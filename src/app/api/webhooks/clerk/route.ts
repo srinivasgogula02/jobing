@@ -69,14 +69,21 @@ export async function POST(req: Request) {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+        const userData: any = {
+            id,
+            username,
+            name,
+            image_url,
+        };
+
+        // Give new users 2 free credits by default
+        if (eventType === 'user.created') {
+            userData.credits = 2;
+        }
+
         const { error } = await supabaseAdmin
             .from('users')
-            .upsert({
-                id,
-                username,
-                name,
-                image_url,
-            })
+            .upsert(userData);
 
         if (error) {
             console.error('Error syncing user to Supabase:', error)

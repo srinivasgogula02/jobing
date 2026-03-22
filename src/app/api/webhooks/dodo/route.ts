@@ -58,6 +58,7 @@ export async function POST(req: Request) {
                     subscriptionId: event.data.subscription_id,
                     isActive: true,
                     clerkUserId: event.data.metadata?.clerk_user_id || null,
+                    productId: event.data.product_id,
                 });
                 break;
 
@@ -214,6 +215,7 @@ async function updateSubscriptionTierAndCredits(props: {
     subscriptionId: string | null;
     isActive: boolean;
     clerkUserId?: string | null;
+    productId?: string;
 }) {
     const supabase = getSupabaseAdmin();
 
@@ -258,8 +260,19 @@ async function updateSubscriptionTierAndCredits(props: {
 
     // Allocate credits when subscription becomes active or renews
     if (props.isActive) {
-        updates.credits = (user.credits || 0) + 100;
-        console.log(`[updateSubscriptionTier] Allocating 100 credits to user ${user.id}.`);
+        let addedCredits = 0;
+        if (props.productId === process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_PRO) {
+            addedCredits = 50;
+        } else if (props.productId === process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_ELITE) {
+            addedCredits = 150;
+        }
+
+        if (addedCredits > 0) {
+            updates.credits = (user.credits || 0) + addedCredits;
+            console.log(`[updateSubscriptionTier] Allocating ${addedCredits} credits to user ${user.id} for product ${props.productId}.`);
+        } else {
+            console.warn(`[updateSubscriptionTier] Unknown product ID ${props.productId}, allocating 0 credits.`);
+        }
     }
 
     const { error: updateError } = await supabase

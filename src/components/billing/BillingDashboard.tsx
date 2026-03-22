@@ -79,13 +79,13 @@ export function BillingDashboard({
         <div className="w-full max-w-3xl mx-auto">
             {/* Page Header */}
             <div className="mb-10">
-                <span className="inline-block px-4 py-1.5 mb-4 text-xs font-bold tracking-widest uppercase bg-yellow-400 text-black rounded-full">
+                <span className="inline-block px-4 py-1.5 mb-4 text-[13px] font-bold tracking-widest uppercase bg-[#C1FF00] text-[#1a1a1a] rounded-full">
                     BILLING
                 </span>
-                <h1 className="text-4xl font-bold tracking-tight text-slate-950 mb-2">
-                    Billing & <span className="text-yellow-400">Subscription</span>
+                <h1 className="text-4xl font-bold tracking-tight text-[#1a1a1a] mb-2">
+                    Billing & <span className="text-[#9acc00]">Subscription</span>
                 </h1>
-                <p className="text-slate-500 font-medium">Manage your plan, track credits, and view invoices.</p>
+                <p className="text-[#6b7280] font-medium">Manage your plan, track credits, and view invoices.</p>
             </div>
 
             {/* Credits Card */}
@@ -94,10 +94,10 @@ export function BillingDashboard({
                     <div>
                         <p className="text-sm text-slate-500 font-medium mb-1">Available Credits</p>
                         <div className="flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-full bg-yellow-400/20 flex items-center justify-center">
-                                <Zap size={20} className="text-yellow-500 fill-yellow-500" />
+                            <div className="w-10 h-10 rounded-full bg-[#C1FF00]/20 flex items-center justify-center">
+                                <Zap size={20} className="text-[#8bb800] fill-[#8bb800]" />
                             </div>
-                            <span className="text-4xl font-bold text-slate-950">
+                            <span className="text-4xl font-bold text-[#1a1a1a]">
                                 {(userRow?.credits || 0).toLocaleString()}
                             </span>
                         </div>
@@ -105,7 +105,7 @@ export function BillingDashboard({
                     {!subscription && (
                         <Link
                             href="/pricing"
-                            className="yellow-glow px-5 py-2.5 bg-yellow-400 hover:bg-black hover:text-white text-black text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2"
+                            className="yellow-glow px-5 py-2.5 bg-[#C1FF00] hover:opacity-90 text-[#1a1a1a] text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2"
                         >
                             <ArrowUpRight size={16} />
                             Get Credits
@@ -193,7 +193,7 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
                 </p>
                 <Link
                     href="/pricing"
-                    className="yellow-glow inline-flex items-center gap-2 px-8 py-3.5 bg-yellow-400 hover:bg-black hover:text-white text-black font-bold rounded-xl transition-all duration-300"
+                    className="yellow-glow inline-flex items-center gap-2 px-8 py-3.5 bg-[#C1FF00] hover:opacity-90 text-[#1a1a1a] font-bold rounded-xl transition-all duration-300"
                 >
                     View Plans
                     <ArrowRight size={16} />
@@ -300,7 +300,7 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
                             <button
                                 onClick={handleRestore}
                                 disabled={isPending}
-                                className="yellow-glow px-5 py-2.5 bg-yellow-400 hover:bg-black hover:text-white text-black text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                                className="yellow-glow px-5 py-2.5 bg-[#C1FF00] hover:opacity-90 text-[#1a1a1a] text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                             >
                                 {isPending ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                                 Keep My Subscription
@@ -337,8 +337,8 @@ function InvoicesPanel({ invoices }: { invoices: Payment[] }) {
         <div className="rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 overflow-hidden shadow-sm">
             <div className="p-6 border-b border-slate-100">
                 <h3 className="text-lg font-bold text-slate-950 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-yellow-400/20 flex items-center justify-center">
-                        <ReceiptText size={16} className="text-yellow-600" />
+                    <div className="w-8 h-8 rounded-lg bg-[#C1FF00]/20 flex items-center justify-center">
+                        <ReceiptText size={16} className="text-[#8bb800]" />
                     </div>
                     Invoice History
                 </h3>

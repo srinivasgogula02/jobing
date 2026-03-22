@@ -33,6 +33,17 @@ export async function POST(req: Request) {
 
     const profileData = profileRecord.profile_data;
 
+    // Fetch credits
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('credits')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData || userData.credits < 1) {
+       return new Response(JSON.stringify({ error: 'Insufficient credits. Please upgrade to generate more resumes.', code: 'INSUFFICIENT_CREDITS' }), { status: 402 });
+    }
+
     // 2. Generate LaTeX BODY using Vercel AI SDK
     // The preamble is hardcoded below to guarantee compilation. The AI only writes the body.
     const LATEX_PREAMBLE = `\\documentclass[11pt,a4paper]{article}
@@ -202,6 +213,16 @@ ${jobDescription}
     if (insertError) {
         console.error("Supabase Database Error:", insertError);
         return new Response(JSON.stringify({ error: 'Failed to save resume record', details: insertError }), { status: 500 });
+    }
+
+    // 6. Deduct 1 credit
+    const { error: deductError } = await supabase
+       .from('users')
+       .update({ credits: userData.credits - 1 })
+       .eq('id', user.id);
+
+    if (deductError) {
+        console.error("Failed to deduct credit:", deductError);
     }
 
     // 6. Return response

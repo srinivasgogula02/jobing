@@ -25,7 +25,7 @@ export function HeaderClient({ isSignedIn, username, credits }: HeaderClientProp
         <>
             <header className="flex justify-between items-center p-6 absolute top-0 w-full z-10">
                 <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
-                    Promwin
+                    Jobing
                 </Link>
 
                 <div className="flex items-center gap-4">
@@ -40,7 +40,7 @@ export function HeaderClient({ isSignedIn, username, credits }: HeaderClientProp
                             <div className="hidden md:flex items-center gap-4 border-r border-slate-200 pr-4 mr-2">
                                 {/* Credits Display */}
                                 <Link href="/billing" className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
-                                    <Zap size={14} className="text-yellow-500 fill-yellow-500" />
+                                    <Zap size={14} className="text-[#8bb800] fill-[#8bb800]" />
                                     <span>{credits.toLocaleString()}</span>
                                 </Link>
 
@@ -103,7 +103,7 @@ export function HeaderClient({ isSignedIn, username, credits }: HeaderClientProp
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                                             isActive
-                                                ? "bg-indigo-50 text-indigo-700"
+                                                ? "bg-[#C1FF00]/20 text-[#1a1a1a]"
                                                 : "text-slate-600 hover:bg-slate-50"
                                         }`}
                                     >

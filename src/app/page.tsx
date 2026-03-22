@@ -1,5 +1,6 @@
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { ArrowRight, FileText, Sparkles, Zap, Brain, Download, ClipboardPaste } from "lucide-react";
 import Link from "next/link";
 
@@ -7,6 +8,10 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const user = await currentUser();
+
+  if (user) {
+    redirect("/create");
+  }
 
   return (
     <div className="min-h-screen bg-white">

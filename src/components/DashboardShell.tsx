@@ -21,12 +21,12 @@ export function DashboardShell({ children, credits }: DashboardShellProps) {
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <header className="h-14 flex items-center justify-end gap-3 px-6 border-b border-[#e5e5e5] shrink-0 bg-white">
           {typeof credits === "number" && (
-            <Link
-              href="/billing"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C1FF00]/15 text-[#1a1a1a] text-xs font-bold hover:bg-[#C1FF00]/30 transition-colors"
+            <Link 
+              href="/billing" 
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
             >
-              <Zap size={12} className="fill-[#1a1a1a]" />
-              {credits} credits
+              <Zap size={14} className="text-[#8bb800] fill-[#8bb800]" />
+              <span>{credits.toLocaleString()}</span>
             </Link>
           )}
           <UserButton

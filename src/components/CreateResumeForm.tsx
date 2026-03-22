@@ -5,7 +5,12 @@ import { Loader2, FileDown, Wand2, FileText, CheckCircle2, AlertCircle } from "l
 import { ProfileCompletionPopup } from "@/components/ProfileCompletionPopup";
 import type { CompletionResult } from "@/lib/profileConfig";
 
-export function CreateResumeForm() {
+interface CreateResumeFormProps {
+  initialCredits?: number;
+}
+
+export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) {
+  const [credits, setCredits] = useState(initialCredits);
   const [jobDescription, setJobDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -16,6 +21,11 @@ export function CreateResumeForm() {
   const handleGenerate = async () => {
     if (!jobDescription.trim()) {
       setError("Please paste a job description first.");
+      return;
+    }
+
+    if (credits < 1) {
+      setError("You don't have enough credits. Please upgrade your plan.");
       return;
     }
 
@@ -52,6 +62,7 @@ export function CreateResumeForm() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to generate resume");
       setPdfUrl(data.pdfUrl);
+      setCredits(prev => Math.max(0, prev - 1));
     } catch (err: any) {
       console.error(err);
       setError(err.message || "An unexpected error occurred.");
@@ -90,17 +101,26 @@ export function CreateResumeForm() {
               />
             </div>
 
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !jobDescription.trim()}
-              className="btn-primary w-full py-4 text-[15px] gap-2.5 h-14"
-            >
-              {isGenerating ? (
-                <><Loader2 size={18} className="animate-spin" /> Generating resume...</>
-              ) : (
-                <><Wand2 size={18} /> Create Design</>
-              )}
-            </button>
+            {credits < 1 ? (
+              <a
+                href="/pricing"
+                className="w-full py-4 text-[15px] gap-2.5 h-14 bg-[#1a1a1a] text-white hover:bg-[#333333] flex items-center justify-center rounded-xl font-bold transition-colors"
+              >
+                Upgrade to Create (0 Credits)
+              </a>
+            ) : (
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating || !jobDescription.trim()}
+                className="btn-primary w-full py-4 text-[15px] gap-2.5 h-14"
+              >
+                {isGenerating ? (
+                  <><Loader2 size={18} className="animate-spin" /> Generating resume...</>
+                ) : (
+                  <><Wand2 size={18} /> Create Design <span className="text-[#1a1a1a]/60 text-sm ml-1 font-semibold">(1 Credit)</span></>
+                )}
+              </button>
+            )}
           </div>
         </div>
 

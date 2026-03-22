@@ -19,9 +19,17 @@ interface ProfileChatProps {
   onProfileUpdate?: () => void;
   missingFields?: MissingField[];
   fromResume?: boolean;
+  isMobile?: boolean;
+  hideHeader?: boolean;
 }
 
-export function ProfileChat({ onProfileUpdate, missingFields = [], fromResume = false }: ProfileChatProps) {
+export function ProfileChat({ 
+  onProfileUpdate, 
+  missingFields = [], 
+  fromResume = false,
+  isMobile = false,
+  hideHeader = false
+}: ProfileChatProps) {
   const transport = useMemo(() => new TextStreamChatTransport({ api: '/api/chat/profile' }), []);
   const { messages, sendMessage, status } = useChat({ transport });
   const [input, setInput] = useState('');
@@ -94,22 +102,24 @@ export function ProfileChat({ onProfileUpdate, missingFields = [], fromResume = 
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-2xl border border-[#e5e5e5] shadow-sm overflow-hidden">
+    <div className={`flex flex-col h-full bg-white relative ${isMobile ? '' : 'rounded-2xl border border-[#e5e5e5] shadow-sm'} overflow-hidden`}>
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#f0f0f0] bg-white flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] flex items-center justify-center">
-            <Sparkles size={16} className="text-[#C1FF00]" />
-          </div>
-          <div>
-            <h2 className="text-[15px] font-bold text-[#1a1a1a]">AI Assistant</h2>
-            <p className="text-[12px] text-[#6b7280]">Chat to build your resume profile</p>
+      {!hideHeader && (
+        <div className="px-6 py-4 border-b border-[#f0f0f0] bg-white flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] flex items-center justify-center">
+              <Sparkles size={16} className="text-[#C1FF00]" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-bold text-[#1a1a1a]">AI Assistant</h2>
+              <p className="text-[12px] text-[#6b7280]">Chat to build your resume profile</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 slim-scrollbar bg-[#fafafa]">
+      <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-5 slim-scrollbar bg-[#fafafa]`}>
         {messages.length === 0 && !isLoading && (
           <div className="flex items-center justify-center h-full text-[#9ca3af]">
             <div className="text-center max-w-[320px] space-y-4">
@@ -193,10 +203,10 @@ export function ProfileChat({ onProfileUpdate, missingFields = [], fromResume = 
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-white border-t border-[#f0f0f0]">
+      <div className={`p-4 bg-white border-t border-[#f0f0f0] shrink-0 ${isMobile ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : ''}`}>
         <form onSubmit={handleSubmit} className="relative flex items-center">
           <input
-            className="w-full bg-[#fafafa] hover:bg-[#f5f5f4] border border-[#e5e5e5] rounded-xl pl-5 pr-14 py-4 text-[14px] text-[#1a1a1a] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#C1FF00] focus:border-[#C1FF00] focus:bg-white transition-all shadow-sm"
+            className="w-full bg-[#fafafa] hover:bg-[#f5f5f4] border border-[#e5e5e5] rounded-xl pl-5 pr-14 py-4 text-base text-[#1a1a1a] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#C1FF00] focus:border-[#C1FF00] focus:bg-white transition-all shadow-sm"
             value={input}
             placeholder="E.g., I studied CS at MIT from 2018 to 2022..."
             onChange={(e) => setInput(e.target.value)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Loader2, FileDown, Wand2, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { ProfileCompletionPopup } from "@/components/ProfileCompletionPopup";
 import type { CompletionResult } from "@/lib/profileConfig";
@@ -17,6 +17,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
   const [error, setError] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [completion, setCompletion] = useState<CompletionResult | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const handleGenerate = async () => {
     if (!jobDescription.trim()) {
@@ -27,6 +28,11 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
     if (credits < 1) {
       setError("You don't have enough credits. Please upgrade your plan.");
       return;
+    }
+
+    // On mobile, scroll to preview so user sees the loading state
+    if (window.innerWidth < 1024) {
+      previewRef.current?.scrollIntoView({ behavior: "smooth" });
     }
 
     // Check profile completion before generating
@@ -73,7 +79,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 px-2 pb-6">
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 px-2 py-4 lg:p-0 lg:px-2 lg:pb-6">
         {/* Left: Input */}
         <div className="flex flex-col w-full lg:w-[40%] bg-white rounded-2xl border border-[#e5e5e5] shadow-sm overflow-hidden flex-shrink-0">
           <div className="px-6 py-4 border-b border-[#f0f0f0] bg-white flex items-center gap-2.5">
@@ -83,7 +89,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
             <h2 className="text-[15px] font-bold text-[#1a1a1a]">Job Description</h2>
           </div>
 
-          <div className="p-6 flex-1 flex flex-col gap-5 bg-white">
+          <div className="p-3 md:p-6 flex-1 flex flex-col gap-3 md:gap-5 bg-white">
             {error && (
               <div className="flex items-start gap-2.5 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium">
                 <AlertCircle size={16} className="mt-0.5 shrink-0" />
@@ -91,9 +97,9 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
               </div>
             )}
 
-            <div className="flex-1 flex flex-col relative group">
+            <div className="flex-1 flex flex-col relative group min-h-[250px] lg:min-h-[400px]">
               <textarea
-                className="flex-1 w-full bg-[#fafafa] group-hover:bg-[#f5f5f4] border border-[#e5e5e5] rounded-xl p-5 text-[#1a1a1a] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#C1FF00] focus:border-[#C1FF00] focus:bg-white transition-all resize-none text-[14px] leading-relaxed slim-scrollbar"
+                className="flex-1 w-full bg-[#fafafa] group-hover:bg-[#f5f5f4] border border-[#e5e5e5] rounded-xl p-2 md:p-5 text-base text-[#1a1a1a] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#C1FF00] focus:border-[#C1FF00] focus:bg-white transition-all resize-none leading-relaxed slim-scrollbar"
                 placeholder="Paste the requirements, responsibilities, and qualifications from the job posting here..."
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
@@ -125,7 +131,10 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
         </div>
 
         {/* Right: Preview */}
-        <div className="flex flex-col flex-1 bg-white rounded-2xl border border-[#e5e5e5] shadow-sm overflow-hidden">
+        <div 
+          ref={previewRef}
+          className="flex flex-col flex-1 bg-white rounded-2xl border border-[#e5e5e5] shadow-sm overflow-hidden min-h-[500px] lg:min-h-[700px]"
+        >
           <div className="px-6 py-4 border-b border-[#f0f0f0] bg-white flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#fafafa] border border-[#e5e5e5] flex items-center justify-center">

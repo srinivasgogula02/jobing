@@ -35,7 +35,7 @@ function EmptyHint({ message }: { message: string }) {
 }
 
 // ── Completion Score Ring ────────────────────────────────────────────────────
-function ScoreRing({ percent, score, total }: { percent: number; score: number; total: number }) {
+export function ScoreRing({ percent, score, total }: { percent: number; score: number; total: number }) {
   const radius = 20;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percent / 100) * circumference;
@@ -215,7 +215,7 @@ export function ProfileSummary({ profileData }: ProfileSummaryProps) {
       {/* Header Card with Score */}
       <div className="bg-white rounded-2xl border border-[#e5e5e5] p-6 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-[#C1FF00] shadow-sm border border-[#1a1a1a]/10 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-xl bg-[#fafafa] border border-[#e5e5e5] flex items-center justify-center shadow-sm">
             <UserCircle size={24} className="text-[#1a1a1a]" />
           </div>
           <div className="flex-1">

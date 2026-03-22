@@ -5,7 +5,7 @@ import { FileText, User, Settings, PlusCircle, CreditCard, LogOut, ChevronDown, 
 import { SignOutButton } from "@clerk/nextjs";
 import { useState } from "react";
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -18,11 +18,8 @@ export function Sidebar() {
   return (
     <div className="flex flex-col w-56 h-full bg-white border-r border-[#e5e5e5] p-4 text-[#6b7280]">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2 px-2 py-3 mb-4 group">
-        <div className="w-8 h-8 rounded-lg bg-[#C1FF00] flex items-center justify-center font-black text-[#1a1a1a] text-sm group-hover:shadow-md group-hover:shadow-[#C1FF00]/20 transition-shadow">
-          J
-        </div>
-        <span className="font-bold text-[15px] text-[#1a1a1a] tracking-tight">Jobing AI</span>
+      <Link href="/" onClick={onClose} className="flex items-center px-2 py-3 mb-4 group shrink-0">
+        <span className="font-bold text-[18px] text-[#1a1a1a] tracking-tight">Jobing AI</span>
       </Link>
 
       {/* Nav */}
@@ -33,6 +30,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
                 isActive
                   ? "bg-[#C1FF00]/15 text-[#1a1a1a] font-semibold"
@@ -47,7 +45,7 @@ export function Sidebar() {
       </nav>
 
       {/* Settings */}
-      <div className="mt-auto space-y-0.5 pt-3 border-t border-[#f0f0f0]">
+      <div className="space-y-0.5 mt-4">
         <button
           onClick={() => setSettingsOpen(!settingsOpen)}
           className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium hover:bg-[#fafafa] hover:text-[#1a1a1a] transition-all"
@@ -63,6 +61,7 @@ export function Sidebar() {
           <div className="pl-8 pr-3 py-1 space-y-0.5 text-[13px]">
             <Link
               href="/billing"
+              onClick={onClose}
               className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-[#fafafa] hover:text-[#1a1a1a] transition-colors"
             >
               <CreditCard size={14} /> Subscription

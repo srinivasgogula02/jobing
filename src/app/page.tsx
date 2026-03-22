@@ -17,10 +17,7 @@ export default async function Home() {
     <div className="min-h-screen bg-white">
       {/* Nav */}
       <nav className="flex justify-between items-center px-6 md:px-16 py-5 border-b border-[#f0f0f0]">
-        <Link href="/" className="text-lg font-bold text-[#1a1a1a] tracking-tight flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#C1FF00] flex items-center justify-center text-sm font-black text-[#1a1a1a]">
-            J
-          </div>
+        <Link href="/" className="text-lg font-bold text-[#1a1a1a] tracking-tight flex items-center">
           Jobing AI
         </Link>
         <div className="flex items-center gap-3">
@@ -215,8 +212,7 @@ export default async function Home() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-[#f0f0f0] bg-white">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[#9ca3af]">
-          <div className="flex items-center gap-2 text-[#1a1a1a] font-semibold">
-            <div className="w-5 h-5 rounded bg-[#C1FF00] flex items-center justify-center text-[10px] font-black">J</div>
+          <div className="flex items-center text-[#1a1a1a] font-semibold">
             Jobing AI
           </div>
           <p>&copy; {new Date().getFullYear()} Jobing AI. All rights reserved.</p>

@@ -32,7 +32,7 @@ export default async function ResumesPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full space-y-8 max-w-6xl mx-auto">
+      <div className="flex flex-col h-full space-y-8 max-w-6xl mx-auto px-4 py-6 md:px-0 md:py-0">
         <div className="space-y-1">
           <h1 className="text-2xl font-extrabold text-[#1a1a1a] tracking-tight">
             My Resumes

@@ -1,25 +1,169 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #ffffff;
+  --bg-subtle: #fafafa;
+  --bg-muted: #f5f5f4;
+  --text: #1a1a1a;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --border: #e5e5e5;
+  --border-strong: #d4d4d4;
+  --accent: #C1FF00;
+  --accent-hover: #a8e600;
+  --accent-text: #1a1a1a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
   --font-sans: var(--font-instrument-sans);
 }
 
 body {
-  background-color: #ffffff;
-  background-image: radial-gradient(#f1f1f1 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-color: var(--bg);
   font-family: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
-  color: #171717;
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-.yellow-glow:hover { 
-  box-shadow: 0 20px 40px -15px rgba(250, 204, 21, 0.4); 
-  transform: translateY(-2px);
+/* — Card — */
+.card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* — Primary Button (Lime) — */
+.btn-primary {
+  background-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  border-radius: 0.625rem;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+  box-shadow: 0 4px 16px -4px rgba(193, 255, 0, 0.35);
+}
+.btn-primary:disabled {
+  background-color: var(--bg-muted);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* — Secondary Button — */
+.btn-secondary {
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 500;
+  border-radius: 0.625rem;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-secondary:hover {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-strong);
+}
+
+/* — Fade in up — */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s ease forwards;
+}
+
+/* — Scrollbar — */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.slim-scrollbar::-webkit-scrollbar { width: 3px; }
+.slim-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.slim-scrollbar::-webkit-scrollbar-thumb { background: #e5e5e5; border-radius: 3px; }
+
+/* — Popup Backdrop — */
+.popup-backdrop {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  animation: fade-in 0.2s ease;
+}
+
+/* — Scale-fade-in (popup entrance) — */
+@keyframes scale-fade-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-scale-fade-in {
+  animation: scale-fade-in 0.25s ease forwards;
+}
+
+/* — Progress bar fill — */
+@keyframes progress-fill {
+  from { width: 0; }
+}
+.animate-progress-fill {
+  animation: progress-fill 0.8s ease-out forwards;
+}
+
+/* — Simple fade-in — */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* — Chat Markdown Styles — */
+.chat-markdown p { margin: 0 0 0.4em; }
+.chat-markdown p:last-child { margin-bottom: 0; }
+.chat-markdown strong { font-weight: 700; }
+.chat-markdown em { font-style: italic; }
+.chat-markdown ul, .chat-markdown ol {
+  margin: 0.3em 0;
+  padding-left: 1.4em;
+}
+.chat-markdown ul { list-style: disc; }
+.chat-markdown ol { list-style: decimal; }
+.chat-markdown li { margin: 0.15em 0; }
+.chat-markdown li > p { margin: 0; }
+.chat-markdown code {
+  font-size: 0.88em;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.chat-markdown pre {
+  margin: 0.5em 0;
+  padding: 0.75em 1em;
+  background: #1a1a1a;
+  color: #e5e5e5;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-size: 0.85em;
+}
+.chat-markdown pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+.chat-markdown h1, .chat-markdown h2, .chat-markdown h3 {
+  font-weight: 700;
+  margin: 0.5em 0 0.25em;
+}
+.chat-markdown a {
+  color: #2563eb;
+  text-decoration: underline;
 }

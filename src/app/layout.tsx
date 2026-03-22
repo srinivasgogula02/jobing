@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
-import { Header } from "@/components/Header";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -11,8 +9,8 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Promwin | Coming Soon",
-  description: "The premium marketplace for creators to monetize AI prompts.",
+  title: "Jobing AI | AI Resume Builder",
+  description: "Build tailored, professional resumes in seconds using AI. Paste a job description, get a perfect PDF.",
 };
 
 export default function RootLayout({
@@ -23,12 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${instrumentSans.variable} antialiased`}>
-        <ClerkProvider
-          appearance={{
-            baseTheme: dark,
-          }}
-        >
-          <Header />
+        <ClerkProvider>
           {children}
         </ClerkProvider>
       </body>

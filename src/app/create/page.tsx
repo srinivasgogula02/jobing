@@ -1,18 +1,23 @@
-"use client"
+// Server component — no "use client"
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { CreateResumeForm } from "@/components/CreateResumeForm";
 
-import { PromptForm } from '@/components/PromptForm';
+export const metadata = {
+  title: "Create Resume | Jobing AI",
+};
 
-export default function CreatePromptPage() {
-    return (
-        <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-6xl mx-auto space-y-8">
-                <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Create New Prompt</h1>
-                    <p className="text-slate-500 max-w-xl mx-auto">Share your expertise and start earning. Your system prompt is securely encrypted.</p>
-                </div>
-
-                <PromptForm />
-            </div>
+export default async function CreateResumePage() {
+  return (
+    <DashboardLayout>
+      <div className="flex flex-col h-full space-y-5 max-w-7xl mx-auto">
+        <div className="space-y-1.5 shrink-0 px-2 mt-4">
+          <h1 className="text-3xl font-extrabold text-[#1a1a1a] tracking-tight">Create Tailored Resume</h1>
+          <p className="text-[15px] text-[#6b7280]">
+            Paste the job description and let AI build the perfect LaTeX resume for you.
+          </p>
         </div>
-    );
+        <CreateResumeForm />
+      </div>
+    </DashboardLayout>
+  );
 }

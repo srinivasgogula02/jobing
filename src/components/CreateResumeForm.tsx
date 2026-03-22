@@ -66,12 +66,15 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
         body: JSON.stringify({ jobDescription })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to generate resume");
+      if (!response.ok) {
+        console.error("Generation/Compiler Error from backend:", data.error || data);
+        throw new Error("Our AI encountered a formatting snag. Please tap Try Again.");
+      }
       setPdfUrl(data.pdfUrl);
       setCredits(prev => Math.max(0, prev - 1));
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -123,7 +126,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
                 {isGenerating ? (
                   <><Loader2 size={18} className="animate-spin" /> Generating resume...</>
                 ) : (
-                  <><Wand2 size={18} /> Create Design <span className="text-[#1a1a1a]/60 text-sm ml-1 font-semibold">(1 Credit)</span></>
+                  <><Wand2 size={18} /> {error ? "Try Again" : "Create Design"} <span className="text-[#1a1a1a]/60 text-sm ml-1 font-semibold">(1 Credit)</span></>
                 )}
               </button>
             )}
@@ -157,14 +160,93 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
 
           <div className="flex-1 bg-[#fafafa] p-6 flex flex-col items-center justify-center overflow-auto min-h-[400px]">
             {!pdfUrl && !isGenerating && (
-              <div className="text-center space-y-4 text-[#9ca3af] max-w-sm">
-                <div className="w-20 h-20 rounded-3xl bg-white border border-[#e5e5e5] shadow-sm flex items-center justify-center mx-auto mb-2">
-                  <FileText size={32} className="text-[#d4d4d4]" />
+              <div className="relative w-full max-w-[320px] sm:max-w-[400px] aspect-[1/1.414] bg-white rounded-md shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-[#e5e5e5] p-6 lg:p-8 flex flex-col mx-auto overflow-hidden group">
+                {/* --- Animated Resume Skeleton --- */}
+                <div className="w-full flex-1 space-y-5 opacity-40 blur-[0.5px]">
+                  {/* Header Area */}
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="w-2/3 h-6 bg-[#C1FF00]/40 rounded-sm animate-pulse"></div>
+                    <div className="w-full max-w-[80%] h-2.5 bg-[#e5e5e5] rounded-sm animate-pulse" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-full h-px bg-[#e5e5e5] mt-1"></div>
+                  </div>
+
+                  {/* Section 1: Experience */}
+                  <div className="space-y-4">
+                    <div className="w-32 h-3 bg-[#e5e5e5] rounded-sm animate-pulse" style={{ animationDelay: '300ms' }}></div>
+                    
+                    {/* Job 1 */}
+                    <div className="space-y-2.5">
+                      <div className="flex justify-between items-end">
+                        <div className="w-48 h-3.5 bg-[#d4d4d4] rounded-sm animate-pulse" style={{ animationDelay: '400ms' }}></div>
+                        <div className="w-20 h-2.5 bg-[#e5e5e5] rounded-sm animate-pulse" style={{ animationDelay: '500ms' }}></div>
+                      </div>
+                      <div className="w-32 h-2.5 bg-[#e5e5e5] rounded-sm animate-pulse" style={{ animationDelay: '550ms' }}></div>
+                      
+                      {/* Bullets */}
+                      <div className="space-y-2 pt-1 pl-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#d4d4d4] shrink-0 animate-pulse"></div>
+                          <div className="flex-1 h-2 bg-[#f0f0f0] rounded-sm animate-pulse" style={{ animationDelay: '600ms' }}></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[#d4d4d4] shrink-0 animate-pulse"></div>
+                           <div className="w-5/6 h-2 bg-[#f0f0f0] rounded-sm animate-pulse" style={{ animationDelay: '650ms' }}></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[#d4d4d4] shrink-0 animate-pulse"></div>
+                           <div className="w-4/5 h-2 bg-[#f0f0f0] rounded-sm animate-pulse" style={{ animationDelay: '700ms' }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Job 2 */}
+                    <div className="space-y-2.5 pt-2">
+                      <div className="flex justify-between items-end">
+                        <div className="w-40 h-3.5 bg-[#d4d4d4] rounded-sm animate-pulse" style={{ animationDelay: '800ms' }}></div>
+                        <div className="w-16 h-2.5 bg-[#e5e5e5] rounded-sm animate-pulse" style={{ animationDelay: '850ms' }}></div>
+                      </div>
+                      <div className="w-24 h-2.5 bg-[#e5e5e5] rounded-sm animate-pulse" style={{ animationDelay: '900ms' }}></div>
+                      
+                      {/* Bullets */}
+                      <div className="space-y-2 pt-1 pl-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#d4d4d4] shrink-0 animate-pulse"></div>
+                          <div className="flex-1 h-2 bg-[#f0f0f0] rounded-sm animate-pulse" style={{ animationDelay: '950ms' }}></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[#d4d4d4] shrink-0 animate-pulse"></div>
+                           <div className="w-3/4 h-2 bg-[#f0f0f0] rounded-sm animate-pulse" style={{ animationDelay: '1000ms' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Education */}
+                  <div className="space-y-3 pt-2">
+                     <div className="w-24 h-3 bg-[#e5e5e5] rounded-sm animate-pulse" style={{ animationDelay: '1100ms' }}></div>
+                     <div className="space-y-2">
+                        <div className="flex justify-between items-end">
+                          <div className="w-36 h-3 bg-[#d4d4d4] rounded-sm animate-pulse" style={{ animationDelay: '1200ms' }}></div>
+                          <div className="w-12 h-2.5 bg-[#e5e5e5] rounded-sm animate-pulse" style={{ animationDelay: '1250ms' }}></div>
+                        </div>
+                        <div className="w-48 h-2 bg-[#f0f0f0] rounded-sm animate-pulse" style={{ animationDelay: '1300ms' }}></div>
+                     </div>
+                  </div>
                 </div>
-                <h3 className="text-[17px] font-bold text-[#1a1a1a]">No preview available</h3>
-                <p className="text-[14px] leading-relaxed text-[#6b7280]">
-                  Your generated resume will appear here once you paste a job description and click create.
-                </p>
+                
+                {/* --- Glass Overlay Prompt --- */}
+                <div className="absolute inset-0 bg-[#f5f5f4]/30 backdrop-blur-[2px] flex items-center justify-center pointer-events-none transition-all duration-300">
+                  <div className="flex flex-col items-center bg-white/95 backdrop-blur-xl px-6 py-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/50 text-center mx-6 mt-12 transform group-hover:scale-[1.02] transition-transform">
+                    <div className="w-12 h-12 rounded-xl bg-[#C1FF00]/15 flex items-center justify-center mb-4">
+                       <Wand2 size={22} className="text-[#8bb800]" />
+                    </div>
+                    <h3 className="text-[17px] font-black text-[#1a1a1a] tracking-tight mb-1.5">Waiting for details</h3>
+                    <p className="text-[13px] text-[#6b7280] leading-relaxed max-w-[200px] font-medium">
+                      Paste a job description on the left to instantly weave your perfect ATS resume.
+                    </p>
+                  </div>
+                </div>
+
               </div>
             )}
 

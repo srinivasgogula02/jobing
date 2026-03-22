@@ -28,7 +28,7 @@ const TIERS = [
             "150 Resumes per month",
             "Dedicated support",
             "All models + ultimate tailoring",
-            "API access",
+            "API access (Coming soon)",
         ],
     }
 ];
@@ -111,14 +111,26 @@ export function Pricing() {
 
                             {/* Features */}
                             <ul className="flex-1 space-y-3 mb-8">
-                                {tier.features.map((feature) => (
-                                    <li key={feature} className="flex items-center gap-3">
-                                        <div className="w-5 h-5 rounded-md bg-[#C1FF00]/20 flex items-center justify-center flex-shrink-0">
-                                            <Check className="h-3 w-3 text-[#1a1a1a]" />
-                                        </div>
-                                        <span className="text-slate-600 text-sm font-medium">{feature}</span>
-                                    </li>
-                                ))}
+                                {tier.features.map((feature) => {
+                                    const isComingSoon = feature.includes("(Coming soon)");
+                                    const featureText = feature.replace(" (Coming soon)", "");
+                                    
+                                    return (
+                                        <li key={feature} className="flex items-center gap-3">
+                                            <div className="w-5 h-5 rounded-md bg-[#C1FF00]/20 flex items-center justify-center flex-shrink-0">
+                                                <Check className="h-3 w-3 text-[#1a1a1a]" />
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-slate-600 text-sm font-medium">{featureText}</span>
+                                                {isComingSoon && (
+                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200">
+                                                        Coming Soon
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </li>
+                                    );
+                                })}
                             </ul>
 
                             {/* CTA */}

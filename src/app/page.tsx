@@ -18,6 +18,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
+import { CopyPasteAnimation } from "@/components/CopyPasteAnimation";
 import { Pricing } from "@/components/Pricing";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,85 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* ─────── SEO & GEO JSON-LD ─────── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Jobing AI",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "All",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "description": "Instantly tailor your experience to any job description and bypass the ATS algorithms in seconds."
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How does Jobing AI tailor my resume?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "When you paste a job description, our AI analyzes the required skills, keywords, and responsibilities. It then rewrites your profile data — experience, skills, and summary — to perfectly match what the employer is looking for. It's not just rearranging; it's rewriting."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need to fill my profile every time?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No! You build your profile once through a simple chat conversation. After that, every resume is generated automatically from your saved profile — just paste a new job description each time."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What format is the resume in?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Your resume is generated as a professional PDF — using the same premium typesetting trusted by top-tier tech companies. It looks clean, polished, and passes ATS systems."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is the free plan enough to get started?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes! You get 2 free resume credits when you sign up. If you need more, the Pro plan at ₹249/month gives you 50 resumes — less than the cost of a single biryani."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I cancel my subscription anytime?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Absolutely. You can cancel anytime with one click. No questions asked, no hidden fees. We also offer a 7-day money-back guarantee."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my data safe?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "100%. Your profile is encrypted and stored securely. We never sell, share, or use your personal data for anything other than generating your resumes."
+                }
+              }
+            ]
+          })
+        }}
+      />
+
       {/* ─────── Nav ─────── */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#f0f0f0]">
         <div className="max-w-6xl mx-auto flex justify-between items-center px-5 md:px-10 py-4">
@@ -67,23 +147,23 @@ export default async function Home() {
         <div className="max-w-3xl mx-auto relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#C1FF00]/15 border border-[#C1FF00]/30 text-[13px] font-bold text-[#1a1a1a] mb-8">
             <Sparkles size={14} />
-            AI-Powered Resume Builder
+            Get Shortlisted Faster
           </div>
 
-          <h1 className="text-[2.25rem] sm:text-[2.5rem] md:text-[3.75rem] font-extrabold tracking-tight leading-[1.15] text-[#1a1a1a] mb-6">
-            Land Your Dream Job
-            <br />
-            with{" "}
-            <span className="relative inline-block">
-              <span className="relative z-10">AI-Tailored Resumes</span>
-              <span className="absolute bottom-0.5 sm:bottom-1 left-0 right-0 h-2.5 sm:h-3 md:h-4 bg-[#C1FF00]/40 -z-0 rounded-sm" />
+          <h1 className="text-[1.75rem] sm:text-4xl lg:text-[3.75rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-6 lg:px-0">
+            Tired of getting rejected
+            <br className="block md:hidden" />
+            <br className="hidden md:block" />
+            <span className="relative inline-block mt-0 lg:mt-2">
+              <span className="relative z-10 lg:ml-2">with the same resume?</span>
+              <span className="absolute bottom-0.5 sm:bottom-1 left-0 right-0 h-2.5 sm:h-3 lg:h-4 bg-[#C1FF00]/40 -z-0 rounded-sm" />
             </span>
           </h1>
 
           <p className="text-base md:text-lg text-[#6b7280] max-w-xl mx-auto mb-10 leading-relaxed font-medium">
             Stop sending the same generic resume everywhere.{" "}
-            <strong className="text-[#1a1a1a]">Paste any job description</strong>,{" "}
-            and our AI creates a perfectly tailored, ATS-optimized resume in{" "}
+            <strong className="text-[#1a1a1a]">Paste a job description</strong>,{" "}
+            and our AI completely rewrites your experience to beat the ATS and get you hired in{" "}
             <strong className="text-[#1a1a1a]">under 30 seconds</strong>.
           </p>
 
@@ -117,6 +197,83 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* ─────── Company Marquee (Social Proof) ─────── */}
+      <section className="py-8 md:py-10 border-t border-[#f0f0f0] bg-white overflow-hidden relative">
+        <div className="max-w-5xl mx-auto px-5 mb-5 text-center">
+          <p className="text-[13px] font-bold text-[#9ca3af] uppercase tracking-widest">
+            Our users have landed jobs at 
+          </p>
+        </div>
+        
+        {/* Marquee Container */}
+        <div className="relative flex overflow-x-hidden group">
+          {/* Gradient Masks */}
+          <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 z-10 bg-gradient-to-r from-white to-transparent pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 z-10 bg-gradient-to-l from-white to-transparent pointer-events-none"></div>
+          
+          {/* Scrolling Content - Repeated twice for seamless loop */}
+          <div className="flex animate-marquee items-center min-w-max py-2">
+            {[
+              { name: "Google", domain: "google.com" },
+              { name: "Microsoft", domain: "microsoft.com" },
+              { name: "Amazon", domain: "amazon.com" },
+              { name: "TCS", domain: "tcs.com" },
+              { name: "Infosys", domain: "infosys.com" },
+              { name: "Razorpay", domain: "razorpay.com" },
+              { name: "Accenture", domain: "accenture.com" },
+              { name: "Zomato", domain: "zomato.com" },
+              { name: "Goldman Sachs", domain: "goldmansachs.com" },
+              { name: "IBM", domain: "ibm.com" }
+            ].map((company, i) => (
+              <div 
+                key={`${company.name}-${i}`} 
+                className="mx-6 md:mx-10 flex items-center gap-2 md:gap-3 opacity-50 hover:opacity-100 transition-all duration-300 grayscale hover:grayscale-0 select-none group/company"
+              >
+                <img 
+                  src={`https://icon.horse/icon/${company.domain}`} 
+                  alt={company.name} 
+                  className="h-6 w-6 md:h-8 md:w-8 object-contain rounded-[4px] bg-white border border-[#e5e5e5] p-[3px] shadow-sm shrink-0"
+                  loading="lazy"
+                />
+                <span className="text-[18px] md:text-[22px] font-black tracking-tighter text-[#1a1a1a] whitespace-nowrap">
+                  {company.name}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Duplicate for seamless loop */}
+          <div className="flex animate-marquee items-center min-w-max py-2" aria-hidden="true">
+            {[
+              { name: "Google", domain: "google.com" },
+              { name: "Microsoft", domain: "microsoft.com" },
+              { name: "Amazon", domain: "amazon.com" },
+              { name: "TCS", domain: "tcs.com" },
+              { name: "Infosys", domain: "infosys.com" },
+              { name: "Razorpay", domain: "razorpay.com" },
+              { name: "Accenture", domain: "accenture.com" },
+              { name: "Zomato", domain: "zomato.com" },
+              { name: "Goldman Sachs", domain: "goldmansachs.com" },
+              { name: "IBM", domain: "ibm.com" }
+            ].map((company, i) => (
+              <div 
+                key={`dup-${company.name}-${i}`} 
+                className="mx-6 md:mx-10 flex items-center gap-2 md:gap-3 opacity-50 hover:opacity-100 transition-all duration-300 grayscale hover:grayscale-0 select-none group/company"
+              >
+                <img 
+                  src={`https://icon.horse/icon/${company.domain}`} 
+                  alt={company.name} 
+                  className="h-6 w-6 md:h-8 md:w-8 object-contain rounded-[4px] bg-white border border-[#e5e5e5] p-[3px] shadow-sm shrink-0"
+                  loading="lazy"
+                />
+                <span className="text-[18px] md:text-[22px] font-black tracking-tighter text-[#1a1a1a] whitespace-nowrap">
+                  {company.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       {/* ─────── Stats Bar ─────── */}
       <section className="py-12 md:py-16 px-5 bg-[#1a1a1a]">
         <div className="max-w-5xl mx-auto">
@@ -140,6 +297,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* ─────── Copy and Paste Animation ─────── */}
+      <CopyPasteAnimation />
 
       {/* ─────── Price Anchoring ─────── */}
       <section className="py-16 md:py-24 px-5 bg-[#fafafa] border-y border-[#f0f0f0]">
@@ -220,7 +380,7 @@ export default async function Home() {
                 step: "03",
                 icon: Download,
                 title: "Download Your Resume",
-                desc: "Our AI rewrites your experience, skills, and summary to perfectly match the job. Download a stunning LaTeX PDF.",
+                desc: "Our AI rewrites your experience, skills, and summary to perfectly match the job. Download a stunning PDF.",
                 highlight: "perfectly match",
               },
             ].map((item) => (
@@ -323,7 +483,7 @@ export default async function Home() {
               },
               {
                 icon: FileText,
-                title: "LaTeX Typography",
+                title: "Premium Typography",
                 desc: "Professional-grade typesetting that makes your resume look polished, academic, and ATS-friendly.",
               },
               {
@@ -439,7 +599,7 @@ export default async function Home() {
               },
               {
                 q: "What format is the resume in?",
-                a: "Your resume is generated as a professional LaTeX PDF — the same typesetting used in academic papers and top-tier tech companies. It looks clean, polished, and passes ATS systems.",
+                a: "Your resume is generated as a professional PDF — using the same premium typesetting trusted by top-tier tech companies. It looks clean, polished, and passes ATS systems.",
               },
               {
                 q: "Is the free plan enough to get started?",

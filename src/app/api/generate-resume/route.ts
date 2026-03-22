@@ -184,6 +184,11 @@ Respond ONLY with JSON: {"title": "...", "summary": "..."}`,
       .replace(/\\documentclass[^]*?\\begin\\{document\\}/, '')
       .replace(/\\end\\{document\\}/g, '')
       .replace(/\\usepackage(?:\\[.*?\\])?\\{.*?\\}/g, '') // Strip rogue usepackages
+      .replace(/₹/g, 'Rs. ') // Fix Indian Rupee symbol crashes
+      .replace(/[\u2018\u2019]/g, "'") // Normalize smart single quotes
+      .replace(/[\u201C\u201D]/g, '"') // Normalize smart double quotes
+      .replace(/[\u2013\u2014]/g, '--') // Convert en/em dashes to LaTeX dashes
+      .replace(/\u200B/g, '') // Remove zero-width spaces
       .trim();
 
     // Assemble the full LaTeX document with our hardcoded preamble

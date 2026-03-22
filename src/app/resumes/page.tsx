@@ -1,9 +1,10 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { currentUser } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
-import { FileText, Calendar, ExternalLink, Download } from "lucide-react";
+import { FileText, Calendar } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { ResumeActions } from "@/components/ResumeActions";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -85,28 +86,7 @@ export default async function ResumesPage() {
                  </div>
 
                  {/* Actions */}
-                 <div className="flex items-center gap-2.5 md:gap-3 mt-auto pt-4 md:pt-5 border-t border-[var(--bg-muted)]">
-                    {resume.pdf_url && (
-                        <>
-                           <a 
-                             href={resume.pdf_url} 
-                             target="_blank" 
-                             rel="noreferrer"
-                             className="btn-primary flex-1 py-2.5 text-[13px] gap-2"
-                           >
-                             <ExternalLink size={14} /> View
-                           </a>
-                           <a 
-                             href={resume.pdf_url} 
-                             download="Resume.pdf"
-                             className="btn-secondary p-2.5"
-                             title="Download PDF"
-                           >
-                             <Download size={16} />
-                           </a>
-                        </>
-                    )}
-                 </div>
+                 <ResumeActions resume={resume} />
 
                  {/* Decorative background element */}
                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#C1FF00]/5 rounded-full blur-2xl group-hover:bg-[#C1FF00]/10 transition-all duration-500" />

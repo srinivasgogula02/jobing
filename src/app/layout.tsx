@@ -9,8 +9,55 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Jobing AI | AI Resume Builder",
-  description: "Build tailored, professional resumes in seconds using AI. Paste a job description, get a perfect PDF.",
+  title: "Jobing AI | The AI Resume Builder That Gets You Hired",
+  description: "Stop getting ghosted. Paste any job description to instantly tailor your resume and bypass ATS algorithms. Build professional, highly-optimized resumes in seconds.",
+  keywords: ["AI Resume Builder", "ATS Resume Score", "Tailor Resume to Job", "Resume Maker", "ChatGPT Resume", "Jobing AI", "ATS Optimizer"],
+  authors: [{ name: "Jobing" }],
+  creator: "Jobing AI",
+  publisher: "Jobing AI",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL("https://jobing.site"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Jobing AI | The AI Resume Builder That Gets You Hired",
+    description: "Instantly tailor your experience to any job description and bypass the ATS. Stop getting ghosted.",
+    url: "https://jobing.site",
+    siteName: "Jobing AI",
+    images: [
+      {
+        url: "/og-image.png", // Recommended to generate this later
+        width: 1200,
+        height: 630,
+        alt: "Jobing AI - Resume Builder",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Jobing AI | AI Resume Builder",
+    description: "Instantly tailor your experience to any job description and bypass the ATS in seconds.",
+    images: ["/og-image.png"],
+    creator: "@jobing_ai",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export const viewport = {
@@ -19,6 +66,7 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: "#C1FF00",
 };
 
 export default function RootLayout({

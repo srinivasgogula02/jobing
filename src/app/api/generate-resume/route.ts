@@ -33,11 +33,44 @@ export async function POST(req: Request) {
 
     const profileData = profileRecord.profile_data;
 
-    // 2. Generate LaTeX using Vercel AI SDK
-    const systemPrompt = `You are an expert resume writer and LaTeX developer. 
-Your task is to create a professional, highly aesthetic LaTeX resume tailored to the provided Job Description using the user's Profile Data.
-Return ONLY valid LaTeX code. Do NOT wrap it in markdown blockquotes like "\`\`\`latex". The output must start with \\documentclass and end with \\end{document}.
-Escape special characters appropriately. Use a modern, clean template (e.g. standard article class with geometry and titlesec).`;
+    // 2. Generate LaTeX BODY using Vercel AI SDK
+    // The preamble is hardcoded below to guarantee compilation. The AI only writes the body.
+    const LATEX_PREAMBLE = `\\documentclass[11pt,a4paper]{article}
+\\usepackage[empty]{fullpage}
+\\usepackage{titlesec}
+\\usepackage{enumitem}
+\\usepackage[hidelinks]{hyperref}
+\\usepackage{fancyhdr}
+\\usepackage{tabularx}
+\\usepackage{xcolor}
+\\usepackage{helvet}
+\\renewcommand{\\familydefault}{\\sfdefault}
+\\usepackage[left=0.5in,top=0.5in,right=0.5in,bottom=0.5in]{geometry}
+
+\\pagestyle{fancy}
+\\fancyhf{}
+\\renewcommand{\\headrulewidth}{0pt}
+\\renewcommand{\\footrulewidth}{0pt}
+\\urlstyle{same}
+
+\\titleformat{\\section}{\\vspace{-4pt}\\scshape\\raggedright\\large\\bfseries}{}{0em}{}[\\color{black}\\titlerule\\vspace{-5pt}]
+\\titlespacing*{\\section}{0pt}{10pt}{5pt}
+
+\\begin{document}
+`;
+    const LATEX_FOOTER = `\n\\end{document}`;
+
+    const systemPrompt = `You are an expert resume writer. Generate ONLY the LaTeX body content for a professional, ATS-friendly resume.
+
+IMPORTANT: Do NOT output \\documentclass, \\usepackage, \\begin{document}, or \\end{document}. I will add those myself. Output ONLY the content that goes BETWEEN \\begin{document} and \\end{document}.
+
+RULES:
+1. ESCAPE all special LaTeX characters from user data: & becomes \\&, % becomes \\%, $ becomes \\$, # becomes \\#, _ becomes \\_. This is critical!
+2. Use ONLY these commands: \\section, \\textbf, \\textit, \\href, \\small, \\begin{itemize}, \\item, \\begin{tabularx}, \\hfill, \\vspace. Do NOT invent or use any other commands.
+3. Start with a centered header: Name (large bold), then contact info (phone | email | LinkedIn | GitHub) using \\href for links.
+4. Include sections: Summary, Experience, Education, Skills. Use \\section{SectionName} for each.
+5. For experience entries use: Job Title -- Company \\hfill Date range, then bullet points with \\begin{itemize}[leftmargin=0.15in, label={\\textbullet}].
+6. Keep it single-column, clean, and ATS-parseable. No graphics, no colors, no fancy formatting.`;
 
     const prompt = `
 Profile Data:
@@ -47,33 +80,45 @@ Job Description:
 ${jobDescription}
 `;
 
-    const { text: latexCode } = await generateText({
-      model: 'google/gemini-2.0-flash-lite' as any,
+    const { text: latexBody } = await generateText({
+      model: 'google/gemini-3-flash' as any,
       system: systemPrompt,
       prompt: prompt,
     });
 
-    // Strip markdown wrap if the model ignored instructions
-    const cleanedLatex = latexCode.replace(/^```latex\n?/, '').replace(/```$/, '').trim();
+    // Strip any markdown wrapping and any \\documentclass/\\begin{document} the AI might have added despite instructions
+    let cleanedBody = latexBody
+      .replace(/^```[a-z]*\n?/i, '')
+      .replace(/```$/i, '')
+      .replace(/\\documentclass[\s\S]*?\\begin\{document\}/, '')
+      .replace(/\\end\{document\}/g, '')
+      .trim();
 
-    // 3. Compile LaTeX to PDF using external API (latexonline.cc)
-    // We send a POST request with the 'text' body parameter or a raw payload.
-    // Let's use url-encoded format for texonline.cc or formulate a multi-part.
-    // Alternatively, latexonline supports GET with ?text= parameter but POST is better.
-    // Form data:
-    const formData = new FormData();
-    formData.append('file', new Blob([cleanedLatex], { type: 'text/plain' }), 'resume.tex');
-    formData.append('command', 'pdflatex');
+    // Assemble the full LaTeX document with our hardcoded preamble
+    const fullLatex = LATEX_PREAMBLE + cleanedBody + LATEX_FOOTER;
 
-    const pdfResponse = await fetch('https://latexonline.cc/compile', {
+    // 3. Compile LaTeX to PDF using our VPS microservice
+    const compilerUrl = process.env.COMPILER_SERVICE_URL || 'http://localhost:4000/api/compile';
+    const compilerApiKey = process.env.COMPILER_API_KEY || 'default_dev_secret_key';
+
+    const pdfResponse = await fetch(compilerUrl, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${compilerApiKey}`
+      },
+      body: JSON.stringify({ latex: fullLatex }),
     });
 
     if (!pdfResponse.ok) {
-       const errorText = await pdfResponse.text();
+       let errorText = await pdfResponse.text();
+       try {
+           const parsed = JSON.parse(errorText);
+           errorText = parsed.error || errorText;
+           if (parsed.details) errorText += ` (${parsed.details})`;
+       } catch (e) {}
        console.error("LaTeX Compilation Error:", errorText);
-       return new Response(JSON.stringify({ error: 'Failed to compile LaTeX to PDF', details: errorText }), { status: 500 });
+       return new Response(JSON.stringify({ error: `Compiler Error: ${errorText}` }), { status: 500 });
     }
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
@@ -103,7 +148,7 @@ ${jobDescription}
        .insert({
           clerk_user_id: user.id,
           job_description: jobDescription,
-          latex_code: cleanedLatex,
+          latex_code: fullLatex,
           pdf_url: pdfUrl,
           job_title: "Tailored Resume" // We could also extract the job title with AI, but keeping it simple
        })
@@ -120,7 +165,7 @@ ${jobDescription}
        success: true, 
        pdfUrl: pdfUrl, 
        resumeId: resumeRecord.id,
-       latexStr: cleanedLatex
+       latexStr: fullLatex
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
   } catch (err: any) {

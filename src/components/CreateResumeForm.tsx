@@ -151,7 +151,7 @@ export function CreateResumeForm() {
 
             {pdfUrl && !isGenerating && (
               <iframe
-                src={`${pdfUrl}#view=FitH`}
+                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
                 className="w-full h-full rounded-xl border border-[#e5e5e5] bg-white shadow-sm"
                 title="Resume PDF Preview"
               />

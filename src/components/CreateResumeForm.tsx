@@ -79,9 +79,9 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 px-2 py-4 lg:p-0 lg:px-2 lg:pb-6">
+      <div className="flex flex-col lg:flex-row gap-8 flex-1 px-2 py-4 lg:pb-6 text-left items-stretch">
         {/* Left: Input */}
-        <div className="flex flex-col w-full lg:w-[40%] bg-white rounded-2xl border border-[#e5e5e5] shadow-sm overflow-hidden flex-shrink-0">
+        <div className="flex flex-col w-full lg:w-[450px] bg-white rounded-2xl border border-[#e5e5e5] shadow-sm overflow-hidden shrink-0 lg:self-start">
           <div className="px-6 py-4 border-b border-[#f0f0f0] bg-white flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#C1FF00]/20 flex items-center justify-center">
               <FileText size={16} className="text-[#1a1a1a]" />
@@ -97,7 +97,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
               </div>
             )}
 
-            <div className="flex-1 flex flex-col relative group min-h-[250px] lg:min-h-[400px]">
+            <div className="flex-1 flex flex-col relative group min-h-[200px] lg:min-h-[300px]">
               <textarea
                 className="flex-1 w-full bg-[#fafafa] group-hover:bg-[#f5f5f4] border border-[#e5e5e5] rounded-xl p-2 md:p-5 text-base text-[#1a1a1a] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#C1FF00] focus:border-[#C1FF00] focus:bg-white transition-all resize-none leading-relaxed slim-scrollbar"
                 placeholder="Paste the requirements, responsibilities, and qualifications from the job posting here..."
@@ -133,7 +133,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
         {/* Right: Preview */}
         <div 
           ref={previewRef}
-          className="flex flex-col flex-1 bg-white rounded-2xl border border-[#e5e5e5] shadow-sm overflow-hidden min-h-[500px] lg:min-h-[700px]"
+          className={`flex flex-col flex-1 bg-white rounded-2xl border border-[#e5e5e5] shadow-sm overflow-hidden ${pdfUrl && !isGenerating ? 'min-h-[600px] lg:min-h-[1100px]' : 'min-h-[350px] lg:min-h-[400px]'}`}
         >
           <div className="px-6 py-4 border-b border-[#f0f0f0] bg-white flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -155,7 +155,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
             )}
           </div>
 
-          <div className="flex-1 bg-[#fafafa] p-6 flex items-center justify-center overflow-hidden">
+          <div className="flex-1 bg-[#fafafa] p-6 flex flex-col items-center justify-center overflow-auto min-h-[400px]">
             {!pdfUrl && !isGenerating && (
               <div className="text-center space-y-4 text-[#9ca3af] max-w-sm">
                 <div className="w-20 h-20 rounded-3xl bg-white border border-[#e5e5e5] shadow-sm flex items-center justify-center mx-auto mb-2">
@@ -179,11 +179,44 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
             )}
 
             {pdfUrl && !isGenerating && (
-              <iframe
-                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                className="w-full h-full rounded-xl border border-[#e5e5e5] bg-white shadow-sm"
-                title="Resume PDF Preview"
-              />
+              <>
+                {/* Mobile: show success card with action buttons (iframes render PDFs poorly on mobile) */}
+                <div className="flex flex-col items-center justify-center text-center space-y-6 lg:hidden w-full py-4">
+                  <div className="w-20 h-20 rounded-3xl bg-[#C1FF00]/15 border border-[#C1FF00]/30 flex items-center justify-center shadow-sm">
+                    <CheckCircle2 size={36} className="text-[#8bb800]" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-[18px] font-bold text-[#1a1a1a] tracking-tight">Resume ready!</h3>
+                    <p className="text-[14px] text-[#6b7280] leading-relaxed max-w-[280px]">
+                      Your tailored resume has been generated. View or download it below.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 w-full max-w-[260px]">
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-primary w-full py-3.5 text-[15px] gap-2.5 font-bold"
+                    >
+                      <FileText size={18} /> View Resume
+                    </a>
+                    <a
+                      href={pdfUrl}
+                      download="resume.pdf"
+                      className="btn-secondary w-full py-3 text-[14px] gap-2.5 font-semibold"
+                    >
+                      <FileDown size={16} /> Download PDF
+                    </a>
+                  </div>
+                </div>
+                {/* Desktop: render PDF in iframe with explicit height */}
+                <iframe
+                  src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                  className="hidden lg:block w-full rounded-xl border border-[#e5e5e5] bg-white shadow-sm"
+                  style={{ minHeight: '1000px' }}
+                  title="Resume PDF Preview"
+                />
+              </>
             )}
           </div>
         </div>

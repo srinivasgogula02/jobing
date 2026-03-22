@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { TextStreamChatTransport } from 'ai';
-import { Send, User, Bot, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Send, User, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 
@@ -102,7 +102,7 @@ export function ProfileChat({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-white relative ${isMobile ? '' : 'rounded-2xl border border-[#e5e5e5] shadow-sm'} overflow-hidden`}>
+    <div className={`flex-1 flex flex-col h-full min-h-0 bg-white relative ${isMobile ? '' : 'rounded-2xl border border-[#e5e5e5] shadow-sm'} overflow-hidden`}>
       {/* Header */}
       {!hideHeader && (
         <div className="px-6 py-4 border-b border-[#f0f0f0] bg-white flex items-center justify-between">
@@ -117,14 +117,14 @@ export function ProfileChat({
           </div>
         </div>
       )}
-
+ 
       {/* Messages */}
-      <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-5 slim-scrollbar bg-[#fafafa]`}>
+      <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-5 slim-scrollbar bg-[#fafafa]`}>
         {messages.length === 0 && !isLoading && (
-          <div className="flex items-center justify-center h-full text-[#9ca3af]">
+          <div className="flex-1 flex flex-col items-center justify-center text-[#9ca3af]">
             <div className="text-center max-w-[320px] space-y-4">
               <div className="w-16 h-16 rounded-[20px] bg-white shadow-sm border border-[#e5e5e5] flex items-center justify-center mx-auto mb-2">
-                <Bot size={28} className="text-[#1a1a1a]" />
+                <span className="text-2xl">✨</span>
               </div>
               <h3 className="text-[17px] font-bold text-[#1a1a1a]">Let&apos;s build your profile</h3>
 
@@ -170,7 +170,7 @@ export function ProfileChat({
                 <div className="flex-shrink-0 mt-0.5">
                   {m.role === 'user' 
                     ? <User size={16} className="text-[#9ca3af]" /> 
-                    : <Bot size={16} className="text-[#1a1a1a]" />
+                    : <span className="text-sm">✨</span>
                   }
                 </div>
                 <div className="flex-1 chat-markdown">
@@ -189,7 +189,7 @@ export function ProfileChat({
           <div className="flex w-full justify-start">
             <div className="flex max-w-[85%] gap-3 px-4 py-3.5 rounded-2xl bg-white text-[#1a1a1a] border border-[#e5e5e5] rounded-bl-sm shadow-sm">
               <div className="flex-shrink-0 mt-0.5">
-                <Bot size={16} className="text-[#1a1a1a]" />
+                <span className="text-sm">✨</span>
               </div>
               <div className="flex items-center gap-1.5 h-5">
                 <div className="w-1.5 h-1.5 bg-[#a3a3a3] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

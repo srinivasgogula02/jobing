@@ -37,7 +37,7 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col h-full lg:h-auto w-full max-w-6xl mx-auto lg:p-0 overflow-hidden lg:overflow-visible">
+    <div className="flex-1 flex flex-col h-[calc(100dvh-56px)] lg:h-full w-full max-w-6xl mx-auto lg:p-0 overflow-hidden lg:overflow-visible">
       {/* Gamified Header - Immersive Version for Mobile */}
       <div className="flex items-center justify-between bg-white px-5 py-3 lg:mb-6 lg:p-6 lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm border-b border-[#f0f0f0] lg:border-none shrink-0">
         <div className="flex items-center gap-3">
@@ -45,23 +45,23 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
             <ScoreRing percent={completion.percent} score={completion.score} total={completion.total} />
           </div>
           <div className="flex-1">
-             <h1 className="text-lg md:text-2xl font-black text-[#1a1a1a] tracking-tight leading-tight">Build Profile</h1>
-             <p className="text-[10px] md:text-sm text-[#6b7280] font-bold uppercase tracking-widest">Level {Math.floor(completion.percent / 20) + 1}</p>
+             <h1 className="hidden lg:block text-2xl font-black text-[#1a1a1a] tracking-tight leading-tight">Build Profile</h1>
+             <p className="hidden lg:block text-sm text-[#6b7280] font-bold uppercase tracking-widest">Level {Math.floor(completion.percent / 20) + 1}</p>
+             <button 
+               onClick={() => setShowDataOnMobile(true)}
+               className="lg:hidden px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-[13px] font-bold active:scale-95 transition-all shadow-sm"
+             >
+               View Profile
+             </button>
           </div>
         </div>
 
-        <button 
-          onClick={() => setShowDataOnMobile(true)}
-          className="lg:hidden flex items-center justify-center w-10 h-10 bg-[#1a1a1a] text-white rounded-xl shadow-lg shadow-[#1a1a1a]/10 hover:bg-[#333] transition-all shrink-0"
-        >
-          <Database size={18} />
-        </button>
       </div>
 
       {/* Main Experience */}
       <div className="flex-1 flex flex-col lg:flex-row lg:gap-6 min-h-0 overflow-hidden">
         {/* Chat - The Primary Interface */}
-        <div className="flex-1 flex flex-col min-h-0 bg-white lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm overflow-hidden border-none shadow-none h-full">
+        <div className="flex-1 flex flex-col min-h-0 bg-white lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm overflow-hidden border-none shadow-none">
           <ProfileChat
             onProfileUpdate={handleProfileUpdate}
             missingFields={missingFields}

@@ -68,7 +68,7 @@ export function DashboardShell({ children, credits }: DashboardShellProps) {
           </UserButton>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-0 md:p-6 slim-scrollbar">
+        <main className="flex-1 flex flex-col min-h-0 overflow-auto p-0 md:p-6 slim-scrollbar">
           {children}
         </main>
       </div>

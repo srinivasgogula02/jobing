@@ -32,76 +32,84 @@ export default async function ResumesPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full space-y-8 max-w-6xl mx-auto px-4 py-6 md:px-0 md:py-0">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold text-[#1a1a1a] tracking-tight">
+      <div className="flex flex-col h-full space-y-8 px-2 py-4 lg:p-0">
+        <div className="space-y-1 bg-white px-5 py-4 lg:p-6 lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm border-b border-[#f0f0f0] lg:border-none shrink-0">
+          <h1 className="text-xl md:text-2xl font-black text-[#1a1a1a] tracking-tight leading-tight">
             My Resumes
           </h1>
-          <p className="text-sm text-[#6b7280]">View and download your previously generated, tailored resumes.</p>
+          <p className="text-[10px] md:text-sm text-[#6b7280] font-bold uppercase tracking-widest mt-1">Managed Tailored Collections</p>
         </div>
 
         {resumes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-4 bg-white rounded-2xl border border-[#e5e5e5] shadow-sm">
-            <div className="w-16 h-16 rounded-2xl bg-[#f5f5f4] flex items-center justify-center mb-6">
-               <FileText size={28} className="text-[#9ca3af]" />
+          <div className="flex flex-col items-center justify-center py-24 px-4 bg-white rounded-2xl border border-[#e5e5e5] shadow-sm mx-2 lg:mx-0">
+            <div className="w-20 h-20 rounded-3xl bg-[#C1FF00]/10 flex items-center justify-center mb-6 shadow-sm border border-[#C1FF00]/20">
+               <FileText size={32} className="text-[#1a1a1a]" />
             </div>
-            <h3 className="text-lg font-bold text-[#1a1a1a] mb-2">No resumes yet</h3>
-            <p className="text-[#6b7280] text-sm text-center max-w-sm mb-8">
+            <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">No resumes yet</h3>
+            <p className="text-[#6b7280] text-sm text-center max-w-sm mb-8 leading-relaxed">
               You haven't generated any tailored resumes yet. Let's create your first one using the AI Resume Builder!
             </p>
             <Link 
               href="/create" 
-              className="btn-primary px-6 py-3 text-sm"
+              className="btn-primary px-8 py-3.5 text-sm shadow-lg shadow-[#C1FF00]/20 hover:scale-[1.02] transition-transform"
             >
               Create New Resume
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 px-2 lg:px-0 pb-10">
             {resumes.map((resume) => (
               <div 
                 key={resume.id} 
-                className="group relative flex flex-col bg-white rounded-xl border border-[#e5e5e5] hover:border-[#d4d4d4] hover:shadow-md transition-all p-5 overflow-hidden"
+                className="card group relative flex flex-col p-5 md:p-6 overflow-hidden hover:border-[#C1FF00]"
               >
-                 <div className="flex items-start justify-between mb-4">
-                   <div className="w-10 h-10 bg-[#C1FF00]/20 rounded-lg flex items-center justify-center text-[#1a1a1a]">
-                     <FileText size={18} />
+                 {/* Card Header */}
+                 <div className="flex items-start justify-between mb-4 md:mb-5">
+                   <div className="w-10 h-10 md:w-12 md:h-12 bg-[var(--bg-subtle)] group-hover:bg-[#C1FF00]/10 rounded-xl flex items-center justify-center text-[var(--text)] transition-colors border border-[var(--border)] group-hover:border-[#C1FF00]/30 shadow-sm">
+                     <FileText size={18} className="md:w-5 md:h-5" />
                    </div>
-                   <div className="flex items-center gap-1.5 text-[11px] text-[#6b7280] font-medium bg-[#f5f5f4] px-2.5 py-1 rounded-md border border-[#e5e5e5]">
-                     <Calendar size={10} />
+                   <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider bg-[var(--bg-subtle)] px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-[var(--border)]">
+                     <Calendar size={10} strokeWidth={2.5} />
                      {formatDistanceToNow(new Date(resume.created_at), { addSuffix: true })}
                    </div>
                  </div>
 
-                 <h3 className="text-[15px] font-bold text-[#1a1a1a] mb-1.5 line-clamp-1">
-                   {resume.job_title || "Tailored Resume"}
-                 </h3>
-                 
-                 <p className="text-[#6b7280] text-[13px] line-clamp-2 mb-6 flex-1">
-                    {resume.job_description.slice(0, 100)}...
-                 </p>
+                 {/* Content */}
+                 <div className="space-y-1.5 md:space-y-2 mb-5 md:mb-6 flex-1">
+                   <h3 className="text-[15px] md:text-[17px] font-bold text-[var(--text)] tracking-tight line-clamp-1">
+                     {resume.job_title || "Tailored Resume"}
+                   </h3>
+                   <p className="text-[var(--text-secondary)] text-[13px] md:text-[13.5px] line-clamp-2 leading-relaxed font-medium">
+                      {resume.job_description}
+                   </p>
+                 </div>
 
-                 <div className="flex items-center gap-2 mt-auto pt-4 border-t border-[#f0f0f0]">
+                 {/* Actions */}
+                 <div className="flex items-center gap-2.5 md:gap-3 mt-auto pt-4 md:pt-5 border-t border-[var(--bg-muted)]">
                     {resume.pdf_url && (
                         <>
                            <a 
                              href={resume.pdf_url} 
                              target="_blank" 
                              rel="noreferrer"
-                             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md bg-[#fafafa] hover:bg-[#f5f5f4] text-[#1a1a1a] font-semibold transition-colors border border-[#e5e5e5] text-[13px]"
+                             className="btn-primary flex-1 py-2.5 text-[13px] gap-2"
                            >
                              <ExternalLink size={14} /> View
                            </a>
                            <a 
                              href={resume.pdf_url} 
                              download="Resume.pdf"
-                             className="p-2 rounded-md bg-[#fafafa] hover:bg-[#f5f5f4] text-[#1a1a1a] transition-colors border border-[#e5e5e5]"
+                             className="btn-secondary p-2.5"
+                             title="Download PDF"
                            >
                              <Download size={16} />
                            </a>
                         </>
                     )}
                  </div>
+
+                 {/* Decorative background element */}
+                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#C1FF00]/5 rounded-full blur-2xl group-hover:bg-[#C1FF00]/10 transition-all duration-500" />
               </div>
             ))}
           </div>

@@ -134,11 +134,48 @@ Job Description:
 ${jobDescription}
 `;
 
-    const { text: latexBody } = await generateText({
-      model: 'google/gemini-3-flash' as any,
-      system: systemPrompt,
-      prompt: prompt,
-    });
+    // Run LaTeX generation and job-title extraction in parallel for zero latency impact
+    const [latexResult, metaResult] = await Promise.all([
+      generateText({
+        model: 'google/gemini-3-flash' as any,
+        system: systemPrompt,
+        prompt: prompt,
+      }),
+      generateText({
+        model: 'google/gemini-3-flash' as any,
+        system: `You extract structured metadata from job descriptions. Respond ONLY with valid JSON, no markdown.`,
+        prompt: `Extract from this job description:
+1. "title": A short, clear job title including the company if mentioned (e.g. "Senior Frontend Engineer @ Stripe"). Max 60 chars.
+2. "summary": A single-sentence summary of the role's focus (e.g. "Build scalable React apps for the payments dashboard"). Max 120 chars.
+
+Job Description:
+${jobDescription.slice(0, 2000)}
+
+Respond ONLY with JSON: {"title": "...", "summary": "..."}`,
+      }).catch(() => null), // Non-critical — we fall back gracefully
+    ]);
+
+    const { text: latexBody } = latexResult;
+
+    // Parse the extracted metadata, with safe fallbacks
+    let extractedTitle = '';
+    let extractedSummary = '';
+    try {
+      if (metaResult?.text) {
+        const cleaned = metaResult.text.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+        const meta = JSON.parse(cleaned);
+        extractedTitle = (meta.title || '').slice(0, 80);
+        extractedSummary = (meta.summary || '').slice(0, 200);
+      }
+    } catch {
+      // JSON parse failed — use fallback below
+    }
+
+    // Fallback: derive a title from the first meaningful line of the JD
+    if (!extractedTitle) {
+      const firstLine = jobDescription.trim().split('\n').find(l => l.trim().length > 5);
+      extractedTitle = firstLine ? firstLine.trim().slice(0, 60) : 'Tailored Resume';
+    }
 
     // Strip any markdown wrapping and any \\documentclass/\\begin{document} the AI might have added despite instructions
     let cleanedBody = latexBody
@@ -202,10 +239,10 @@ ${jobDescription}
        .from('resumes')
        .insert({
           clerk_user_id: user.id,
-          job_description: jobDescription,
-          latex_code: fullLatex,
-          pdf_url: pdfUrl,
-          job_title: "Tailored Resume" // We could also extract the job title with AI, but keeping it simple
+           job_description: extractedSummary || jobDescription.slice(0, 300),
+           latex_code: fullLatex,
+           pdf_url: pdfUrl,
+           job_title: extractedTitle
        })
        .select()
        .single();

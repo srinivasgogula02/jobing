@@ -20,6 +20,10 @@
   --font-sans: var(--font-instrument-sans);
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
   background-color: var(--bg);
   font-family: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;

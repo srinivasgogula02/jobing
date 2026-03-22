@@ -44,8 +44,9 @@ export async function POST(req: Request) {
 \\usepackage{tabularx}
 \\usepackage{xcolor}
 \\usepackage{helvet}
+\\usepackage{setspace}
 \\renewcommand{\\familydefault}{\\sfdefault}
-\\usepackage[left=0.5in,top=0.5in,right=0.5in,bottom=0.5in]{geometry}
+\\usepackage[margin=0.6in]{geometry}
 
 \\pagestyle{fancy}
 \\fancyhf{}
@@ -53,24 +54,66 @@ export async function POST(req: Request) {
 \\renewcommand{\\footrulewidth}{0pt}
 \\urlstyle{same}
 
-\\titleformat{\\section}{\\vspace{-4pt}\\scshape\\raggedright\\large\\bfseries}{}{0em}{}[\\color{black}\\titlerule\\vspace{-5pt}]
-\\titlespacing*{\\section}{0pt}{10pt}{5pt}
+\\setstretch{1.15} % Beautiful line height to prevent clunky text
+
+\\titleformat{\\section}{\\scshape\\raggedright\\large\\bfseries}{}{0em}{}[\\color{black}\\titlerule]
+\\titlespacing*{\\section}{0pt}{14pt}{8pt}
 
 \\begin{document}
 `;
     const LATEX_FOOTER = `\n\\end{document}`;
 
-    const systemPrompt = `You are an expert resume writer. Generate ONLY the LaTeX body content for a professional, ATS-friendly resume.
+    const systemPrompt = `You are an expert executive resume writer and ATS-optimization specialist. Your SOLE PURPOSE is to generate an incredibly high-converting resume perfectly tailored to the provided Job Description (JD). 
 
-IMPORTANT: Do NOT output \\documentclass, \\usepackage, \\begin{document}, or \\end{document}. I will add those myself. Output ONLY the content that goes BETWEEN \\begin{document} and \\end{document}.
+CRITICAL TAILORING INSTRUCTIONS (OUR CORE VALUE PROP):
+1. You MUST deeply analyze the JD and actively REWRITE, FILTER, and REORDER the user's Profile Data to perfectly match the role's requirements and keywords. 
+2. Do NOT just blindly copy-paste their profile. Be ruthless: drop entirely irrelevant experiences/skills, and expand upon the ones the JD explicitly asks for.
+3. Every bullet point MUST be action-oriented, metrics-driven, and rewritten to definitively prove the candidate can solve the specific problems outlined in the JD.
 
-RULES:
-1. ESCAPE all special LaTeX characters from user data: & becomes \\&, % becomes \\%, $ becomes \\$, # becomes \\#, _ becomes \\_. This is critical!
-2. Use ONLY these commands: \\section, \\textbf, \\textit, \\href, \\small, \\begin{itemize}, \\item, \\begin{tabularx}, \\hfill, \\vspace. Do NOT invent or use any other commands.
-3. Start with a centered header: Name (large bold), then contact info (phone | email | LinkedIn | GitHub) using \\href for links.
-4. Include sections: Summary, Experience, Education, Skills. Use \\section{SectionName} for each.
-5. For experience entries use: Job Title -- Company \\hfill Date range, then bullet points with \\begin{itemize}[leftmargin=0.15in, label={\\textbullet}].
-6. Keep it single-column, clean, and ATS-parseable. No graphics, no colors, no fancy formatting.`;
+LATEX RULES:
+1. Outputs ONLY the content that goes BETWEEN \\begin{document} and \\end{document}.
+2. ESCAPE all special LaTeX characters: & becomes \\&, % becomes \\%, $ becomes \\$, # becomes \\#, _ becomes \\_.
+3. You MUST use the exact beautiful, well-spaced structural skeleton below. Fill in the brackets with the aggressively tailored data. DO NOT invent new commands.
+
+REQUIRED SKELETON (Observe the spacing strictness):
+
+\\begin{center}
+    {\\Huge \\scshape \\textbf{[NAME]}} \\\\ \\vspace{6pt}
+    \\small [PHONE] $|$ \\href{mailto:[EMAIL]}{\\underline{[EMAIL]}} $|$ 
+    \\href{[LINKEDIN_URL]}{\\underline{[LINKEDIN_TEXT]}} $|$
+    \\href{[GITHUB_URL]}{\\underline{[GITHUB_TEXT]}}
+\\end{center}
+
+\\vspace{6pt}
+\\section{Profile Summary}
+[Write a powerful, 4-sentence summary perfectly tailored to the Job Description. The setstretch logic handles the line height beautifully.]
+
+\\section{Experience}
+
+% Copy this block for each highly relevant job:
+\\noindent
+\\textbf{[JOB TITLE]} \\hfill [START DATE] -- [END DATE] \\\\
+{\\color{gray}\\textit{[COMPANY NAME], [LOCATION]}}
+\\vspace{6pt}
+\\begin{itemize}[leftmargin=0.15in, label={\\textbullet}]
+  \\setlength{\\itemsep}{4pt}
+  \\item [Highly tailored, action-oriented bullet point emphasizing impact and metrics matching the JD]
+  \\item [Another perfectly tailored bullet point]
+\\end{itemize}
+\\vspace{8pt}
+
+\\section{Education}
+\\noindent
+\\textbf{[DEGREE]} \\hfill [START DATE] -- [END DATE] \\\\
+\\textit{[INSTITUTION], [LOCATION]} \\hfill \\textit{[GPA IF APPLICABLE]}
+\\vspace{8pt}
+
+\\section{Technical Skills}
+\\begin{itemize}[leftmargin=0.15in, label={}]
+    \\setlength{\\itemsep}{2pt}
+    \\item \\textbf{Languages}{: [Comma separated, prioritized by JD]}
+    \\item \\textbf{Frameworks & Tools}{: [Comma separated, prioritized by JD]}
+\\end{itemize}`;
 
     const prompt = `
 Profile Data:
@@ -90,8 +133,9 @@ ${jobDescription}
     let cleanedBody = latexBody
       .replace(/^```[a-z]*\n?/i, '')
       .replace(/```$/i, '')
-      .replace(/\\documentclass[\s\S]*?\\begin\{document\}/, '')
-      .replace(/\\end\{document\}/g, '')
+      .replace(/\\documentclass[^]*?\\begin\\{document\\}/, '')
+      .replace(/\\end\\{document\\}/g, '')
+      .replace(/\\usepackage(?:\\[.*?\\])?\\{.*?\\}/g, '') // Strip rogue usepackages
       .trim();
 
     // Assemble the full LaTeX document with our hardcoded preamble

@@ -40,6 +40,7 @@ export default async function BillingPage() {
           "User"
         }
         userEmail={primaryEmail?.emailAddress || ""}
+        isLiveMode={process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode"}
       />
     </DashboardLayout>
   );

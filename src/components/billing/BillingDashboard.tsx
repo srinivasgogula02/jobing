@@ -56,6 +56,7 @@ interface BillingDashboardProps {
     invoices: Payment[];
     userName: string;
     userEmail: string;
+    isLiveMode: boolean;
 }
 
 // ─────────────────────────────────
@@ -67,6 +68,7 @@ export function BillingDashboard({
     invoices,
     userName,
     userEmail,
+    isLiveMode,
 }: BillingDashboardProps) {
     const [activeTab, setActiveTab] = useState<"billing" | "invoices">("billing");
 
@@ -139,7 +141,7 @@ export function BillingDashboard({
                 <SubscriptionPanel subscription={subscription} />
             )}
             {activeTab === "invoices" && (
-                <InvoicesPanel invoices={invoices} />
+                <InvoicesPanel invoices={invoices} isLiveMode={isLiveMode} />
             )}
         </div>
     );
@@ -316,8 +318,8 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
 // ─────────────────────────────────
 // Invoices Panel
 // ─────────────────────────────────
-function InvoicesPanel({ invoices }: { invoices: Payment[] }) {
-    const dodoBaseUrl = process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT === "live_mode"
+function InvoicesPanel({ invoices, isLiveMode }: { invoices: Payment[]; isLiveMode: boolean }) {
+    const dodoBaseUrl = isLiveMode
         ? "https://live.dodopayments.com"
         : "https://test.dodopayments.com";
 

@@ -75,6 +75,6 @@ export async function DELETE(
 
     } catch (error: any) {
         console.error("Delete resume endpoint error:", error);
-        return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), { status: 500 });
+        return new Response(JSON.stringify({ error: "An unexpected error occurred." }), { status: 500 });
     }
 }

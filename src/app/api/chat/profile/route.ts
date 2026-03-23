@@ -13,6 +13,16 @@ export async function POST(req: Request) {
   }
 
   const { messages } = await req.json();
+
+  if (!Array.isArray(messages) || messages.length > 100) {
+    return new Response('Too many messages or invalid format', { status: 400 });
+  }
+
+  const totalLength = JSON.stringify(messages).length;
+  if (totalLength > 100000) {
+    return new Response('Payload too large', { status: 413 });
+  }
+
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // Fetch current profile data to provide as context

@@ -137,7 +137,7 @@ export function sanitizeProfileData(data: unknown): unknown {
     return data.replace(/<[^>]*>/g, '');
   }
   if (Array.isArray(data)) {
-    return data.map(sanitizeProfileData);
+    return data.slice(0, 50).map(sanitizeProfileData);
   }
   if (data !== null && typeof data === 'object') {
     const cleaned: Record<string, unknown> = {};

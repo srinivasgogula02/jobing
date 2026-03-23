@@ -6,16 +6,23 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export async function POST(req: Request) {
+  let creditDeducted = false;
+  let userIdForRefund: string | null = null;
+
   try {
     const user = await currentUser();
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
+    userIdForRefund = user.id;
 
     const { jobDescription } = await req.json();
 
     if (!jobDescription || typeof jobDescription !== 'string') {
         return new Response(JSON.stringify({ error: 'Job description is required' }), { status: 400 });
+    }
+    if (jobDescription.length > 15000) {
+        return new Response(JSON.stringify({ error: 'Job description is too long (max 15000 characters)' }), { status: 400 });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -44,7 +51,18 @@ export async function POST(req: Request) {
        return new Response(JSON.stringify({ error: 'Insufficient credits. Please upgrade to generate more resumes.', code: 'INSUFFICIENT_CREDITS' }), { status: 402 });
     }
 
-    // 2. Generate LaTeX BODY using Vercel AI SDK
+    // 2. Deduct credit immediately to prevent race conditions
+    const { error: initialDeductError } = await supabase
+       .from('users')
+       .update({ credits: userData.credits - 1 })
+       .eq('id', user.id);
+       
+    if (initialDeductError) {
+        return new Response(JSON.stringify({ error: 'Failed to process credit deduction' }), { status: 500 });
+    }
+    creditDeducted = true;
+
+    // 3. Generate LaTeX BODY using Vercel AI SDK
     // The preamble is hardcoded below to guarantee compilation. The AI only writes the body.
     const LATEX_PREAMBLE = `\\documentclass[11pt,a4paper]{article}
 \\usepackage[empty]{fullpage}
@@ -215,7 +233,7 @@ Respond ONLY with JSON: {"title": "...", "summary": "..."}`,
            if (parsed.details) errorText += ` (${parsed.details})`;
        } catch (e) {}
        console.error("LaTeX Compilation Error:", errorText);
-       return new Response(JSON.stringify({ error: `Compiler Error: ${errorText}` }), { status: 500 });
+       throw new Error(`Compiler Error: ${errorText}`);
     }
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
@@ -232,7 +250,7 @@ Respond ONLY with JSON: {"title": "...", "summary": "..."}`,
 
     if (uploadError) {
         console.error("Supabase Storage Error:", uploadError);
-        return new Response(JSON.stringify({ error: 'Failed to upload PDF', details: uploadError }), { status: 500 });
+        throw new Error('Failed to upload PDF');
     }
 
     // Get public URL
@@ -254,20 +272,10 @@ Respond ONLY with JSON: {"title": "...", "summary": "..."}`,
 
     if (insertError) {
         console.error("Supabase Database Error:", insertError);
-        return new Response(JSON.stringify({ error: 'Failed to save resume record', details: insertError }), { status: 500 });
+        throw new Error('Failed to save resume record');
     }
 
-    // 6. Deduct 1 credit
-    const { error: deductError } = await supabase
-       .from('users')
-       .update({ credits: userData.credits - 1 })
-       .eq('id', user.id);
-
-    if (deductError) {
-        console.error("Failed to deduct credit:", deductError);
-    }
-
-    // 6. Return response
+    // Return response
     return new Response(JSON.stringify({ 
        success: true, 
        pdfUrl: pdfUrl, 
@@ -277,6 +285,20 @@ Respond ONLY with JSON: {"title": "...", "summary": "..."}`,
 
   } catch (err: any) {
     console.error("Generate Resume Error:", err);
-    return new Response(JSON.stringify({ error: 'Internal server error', message: err.message }), { status: 500 });
+    
+    // Attempt to refund credit if we deducted it
+    try {
+        if (creditDeducted && userIdForRefund) {
+            const supabase = createClient(supabaseUrl, supabaseServiceKey);
+            const { data: currentUsr } = await supabase.from('users').select('credits').eq('id', userIdForRefund).single();
+            if (currentUsr) {
+                await supabase.from('users').update({ credits: currentUsr.credits + 1 }).eq('id', userIdForRefund);
+            }
+        }
+    } catch (refundErr) {
+        console.error("Failed to refund credit:", refundErr);
+    }
+
+    return new Response(JSON.stringify({ error: err.message || 'Internal server error' }), { status: 500 });
   }
 }

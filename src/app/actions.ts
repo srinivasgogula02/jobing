@@ -40,7 +40,7 @@ export async function updateBio(newBio: string) {
 export async function joinWaitlist(formData: FormData) {
     const email = formData.get('email');
 
-    if (!email || typeof email !== 'string') {
+    if (!email || typeof email !== 'string' || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return { success: false, error: 'Valid email is required.' };
     }
 
@@ -67,24 +67,4 @@ export async function joinWaitlist(formData: FormData) {
     }
 }
 
-export async function cancelSubscription(subscriptionId: string) {
-    const user = await currentUser();
-    if (!user) {
-        return { success: false, error: "You must be logged in to cancel your subscription." };
-    }
 
-    try {
-        const { dodo } = await import('@/lib/dodo');
-
-        // Use the Dodo SDK to cancel the subscription
-        // Assuming subscription has a cancel method based on ID
-        await dodo.subscriptions.update(subscriptionId, {
-            status: "cancelled"
-        });
-
-        return { success: true };
-    } catch (error: any) {
-        console.error("Error cancelling subscription via Dodo:", error);
-        return { success: false, error: error.message || "Failed to cancel subscription." };
-    }
-}

@@ -31,3 +31,28 @@ export async function getUserCredits() {
 
     return data.credits || 0;
 }
+
+export async function markProfileCompletionPopupSeen() {
+    const user = await currentUser();
+    if (!user) return { success: false };
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: profile } = await supabaseAdmin
+        .from('user_profiles')
+        .select('profile_data')
+        .eq('clerk_user_id', user.id)
+        .single();
+    
+    if (profile) {
+        const newData = { ...(profile.profile_data || {}), hasSeenCompletionPopup: true };
+        await supabaseAdmin
+            .from('user_profiles')
+            .update({ profile_data: newData })
+            .eq('clerk_user_id', user.id);
+    }
+    
+    return { success: true };
+}

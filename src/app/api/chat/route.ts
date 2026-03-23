@@ -21,6 +21,12 @@ const anthropic = createAnthropic({
 
 export async function POST(req: Request) {
     try {
+        const { currentUser } = await import('@clerk/nextjs/server');
+        const user = await currentUser();
+        if (!user) {
+            return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+        }
+
         const { messages, systemPrompt, model = 'google/gemini-2.0-flash-lite' } = await req.json();
 
         const systemInstruction = systemPrompt?.trim() || "You are a helpful assistant.";

@@ -4,9 +4,11 @@ import { useCallback, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { ProfileChat } from "@/components/ProfileChat";
 import { ProfileSummary, ScoreRing } from "@/components/ProfileSummary";
+import { ProfileSuccessPopup } from "@/components/ProfileSuccessPopup";
 import { computeCompletionScore } from "@/lib/profileConfig";
 import { ChevronLeft, LayoutDashboard, Database, X } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
 
 interface ProfilePageClientProps {
   initialProfileData: Record<string, any>;
@@ -35,6 +37,20 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
       console.error("Failed to refresh profile:", err);
     }
   }, []);
+
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
+  useEffect(() => {
+    if (completion.percent === 100 && profileData && profileData.hasSeenCompletionPopup !== true) {
+      const timer = setTimeout(() => setShowSuccessPopup(true), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [completion.percent, profileData]);
+
+  const handleDismissSuccessPopup = () => {
+    setShowSuccessPopup(false);
+    setProfileData(prev => ({ ...prev, hasSeenCompletionPopup: true }));
+  };
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100dvh-56px)] lg:h-full w-full max-w-6xl mx-auto lg:p-0 overflow-hidden lg:overflow-visible">
@@ -95,6 +111,11 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
               </div>
            </div>
         </div>
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <ProfileSuccessPopup onDismiss={handleDismissSuccessPopup} />
       )}
     </div>
   );

@@ -97,7 +97,7 @@ export async function getAllPrompts(category?: string) {
         query = query.eq('output_type', category);
     }
 
-    query = query.order('created_at', { ascending: false });
+    query = query.order('created_at', { ascending: false }).limit(100);
 
     const { data, error } = await query;
 

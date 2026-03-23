@@ -85,6 +85,13 @@ export async function cancelSubscription(subscriptionId: string) {
     const user = await currentUser();
     if (!user) return { success: false as const, error: "Not signed in" };
 
+    const supabase = getSupabaseAdmin();
+    // Verify subscription ownership
+    const { data: sub } = await supabase.from('subscriptions').select('user_id').eq('subscription_id', subscriptionId).single();
+    if (!sub || sub.user_id !== user.id) {
+        return { success: false as const, error: "Forbidden: You do not own this subscription." };
+    }
+
     try {
         await dodo.subscriptions.update(subscriptionId, {
             cancel_at_next_billing_date: true,
@@ -112,6 +119,13 @@ export async function restoreSubscription(subscriptionId: string) {
     const user = await currentUser();
     if (!user) return { success: false as const, error: "Not signed in" };
 
+    const supabase = getSupabaseAdmin();
+    // Verify subscription ownership
+    const { data: sub } = await supabase.from('subscriptions').select('user_id').eq('subscription_id', subscriptionId).single();
+    if (!sub || sub.user_id !== user.id) {
+        return { success: false as const, error: "Forbidden: You do not own this subscription." };
+    }
+
     try {
         await dodo.subscriptions.update(subscriptionId, {
             cancel_at_next_billing_date: false,
@@ -138,6 +152,13 @@ export async function restoreSubscription(subscriptionId: string) {
 export async function changePlan(subscriptionId: string, newProductId: string) {
     const user = await currentUser();
     if (!user) return { success: false as const, error: "Not signed in" };
+
+    const supabase = getSupabaseAdmin();
+    // Verify subscription ownership
+    const { data: sub } = await supabase.from('subscriptions').select('user_id').eq('subscription_id', subscriptionId).single();
+    if (!sub || sub.user_id !== user.id) {
+        return { success: false as const, error: "Forbidden: You do not own this subscription." };
+    }
 
     try {
         await dodo.subscriptions.changePlan(subscriptionId, {

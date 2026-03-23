@@ -44,8 +44,7 @@ export function ResumeActions({ resume }: { resume: any }) {
                         <ExternalLink size={14} /> View
                     </a>
                     <a
-                        href={resume.pdf_url}
-                        download="Resume.pdf"
+                        href={`${resume.pdf_url}?download=Resume.pdf`}
                         className="btn-secondary px-3 py-2.5"
                         title="Download PDF"
                     >

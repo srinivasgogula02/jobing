@@ -147,8 +147,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
             </div>
             {pdfUrl && (
               <a
-                href={pdfUrl}
-                download="resume.pdf"
+                href={`${pdfUrl}?download=resume.pdf`}
                 target="_blank"
                 rel="noreferrer"
                 className="btn-secondary px-4 py-2 text-[13px] gap-2 font-semibold hover:border-[#C1FF00] hover:bg-[#C1FF00]/5"
@@ -283,8 +282,7 @@ export function CreateResumeForm({ initialCredits = 0 }: CreateResumeFormProps) 
                       <FileText size={18} /> View Resume
                     </a>
                     <a
-                      href={pdfUrl}
-                      download="resume.pdf"
+                      href={`${pdfUrl}?download=resume.pdf`}
                       className="btn-secondary w-full py-3 text-[14px] gap-2.5 font-semibold"
                     >
                       <FileDown size={16} /> Download PDF

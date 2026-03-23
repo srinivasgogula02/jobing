@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cancelSubscription } from "@/app/actions";
+import { cancelSubscription } from "@/app/actions/billing";
 import { Loader2, Settings } from "lucide-react";
 
 export function ManageSubscriptionButton({ subscriptionId }: { subscriptionId?: string | null }) {

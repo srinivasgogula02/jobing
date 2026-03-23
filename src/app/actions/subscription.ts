@@ -40,29 +40,25 @@ export async function createSubscriptionCheckout(productId: string) {
     try {
         const primaryEmail = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId);
 
-        const session = await dodo.subscriptions.create({
-            billing: {
-                city: '',
-                country: 'US',
-                state: '',
-                street: '',
-                zipcode: '',
-            },
+        const session = await dodo.checkoutSessions.create({
+            product_cart: [
+                {
+                    product_id: productId,
+                    quantity: 1
+                }
+            ],
             customer: {
                 email: primaryEmail?.emailAddress || '',
                 name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User',
             },
-            product_id: productId,
-            quantity: 1,
-            payment_link: true,
             return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing`,
             metadata: {
                 clerk_user_id: user.id
             }
         });
 
-        if (session.payment_link) {
-            return { url: session.payment_link };
+        if (session.checkout_url) {
+            return { url: session.checkout_url };
         }
 
         return { url: null, session };

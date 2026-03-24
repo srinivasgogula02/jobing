@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Loader2, ArrowRight } from "lucide-react";
 import { createSubscriptionCheckout } from "@/app/actions/subscription";
+import { useClerk } from "@clerk/nextjs";
 
 // Product IDs from env vars (set in .env.local)
 const TIERS = [
@@ -36,8 +37,14 @@ const TIERS = [
 export function Pricing() {
     const [loadingTier, setLoadingTier] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const clerk = useClerk();
 
     const handleSubscribe = async (productId: string) => {
+        if (!clerk.user) {
+            clerk.redirectToSignUp({ fallbackRedirectUrl: '/pricing' });
+            return;
+        }
+
         try {
             setLoadingTier(productId);
             setError(null);

@@ -41,7 +41,7 @@ export function Pricing() {
 
     const handleSubscribe = async (productId: string) => {
         if (!clerk.user) {
-            clerk.redirectToSignIn({ fallbackRedirectUrl: '/pricing' });
+            clerk.redirectToSignIn({ signInFallbackRedirectUrl: '/pricing' });
             return;
         }
 

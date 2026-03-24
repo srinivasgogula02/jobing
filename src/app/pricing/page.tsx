@@ -1,13 +1,15 @@
 import { Pricing } from "@/components/Pricing";
 import { ManageSubscriptionButton } from "@/components/ManageSubscriptionButton";
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { redirect } from "next/navigation";
 
 export default async function PricingPage() {
     const user = await currentUser();
     let currentSubscriptionId = null;
+    let isActuallyPaid = false;
 
     if (user) {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -15,13 +17,58 @@ export default async function PricingPage() {
 
         if (supabaseUrl && supabaseServiceKey) {
             const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-            const { data } = await supabaseAdmin
+            
+            // 1. Fetch current subscription ID
+            const { data: userRow } = await supabaseAdmin
                 .from('users')
                 .select('current_subscription_id')
                 .eq('id', user.id)
                 .single();
 
-            currentSubscriptionId = data?.current_subscription_id;
+            currentSubscriptionId = userRow?.current_subscription_id;
+
+            // 2. If they have a subscription, verify if it's currently active in the DB
+            if (currentSubscriptionId) {
+                const { data: subData } = await supabaseAdmin
+                    .from('subscriptions')
+                    .select('status')
+                    .eq('subscription_id', currentSubscriptionId)
+                    .single();
+
+                if (subData && (subData.status === 'active' || subData.status === 'pending')) {
+                    isActuallyPaid = true;
+                }
+            }
+
+            // 3. AUTO-SYNC & HEAL CLERK JWT METADATA
+            const jwtIsPaid = user.publicMetadata?.is_paid === true;
+
+            if (isActuallyPaid && !jwtIsPaid) {
+                // Desert Case / Legacy User: They are paid in DB, but Clerk JWT is missing the flag.
+                // The proxy forced them here. Let's fix their Clerk account permanently and seamlessly let them in.
+                try {
+                    const client = await clerkClient();
+                    await client.users.updateUserMetadata(user.id, {
+                        publicMetadata: { is_paid: true }
+                    });
+                    console.log(`[Auto-Sync] Backfilled is_paid=true for legacy user ${user.id}`);
+                    redirect('/create'); // Get them off the pricing page!
+                } catch (err) {
+                    console.error("[Auto-Sync] Error syncing is_paid=true to Clerk:", err);
+                }
+            } else if (!isActuallyPaid && jwtIsPaid) {
+                // Edge Case: Their subscription expired in DB, but Clerk JWT still says paid.
+                // Fix it so they can't bypass the proxy later if JWT was somehow stalled.
+                try {
+                    const client = await clerkClient();
+                    await client.users.updateUserMetadata(user.id, {
+                        publicMetadata: { is_paid: false }
+                    });
+                    console.log(`[Auto-Sync] Removed is_paid flag for expired user ${user.id}`);
+                } catch (err) {
+                    console.error("[Auto-Sync] Error stripping is_paid from Clerk:", err);
+                }
+            }
         }
     }
 

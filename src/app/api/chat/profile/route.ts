@@ -28,8 +28,23 @@ async function saveProfileToSupabase(
     console.error('Failed to update profile:', error);
     return false;
   }
-  console.log('Profile updated successfully');
   return true;
+}
+
+// Helper: detect if a user message is likely just casual chat (not profile data)
+function isLikelyCasualMessage(msg: string): boolean {
+  const trimmed = msg.trim().toLowerCase();
+  if (trimmed.length < 3) return true;
+  const casualPatterns = [
+    /^(hi|hey|hello|yo|sup|thanks|thank you|ok|okay|cool|nice|great|yes|no|sure|got it|done|bye|nope|yep|yeah|hmm|hm|idk|lol|haha)\.?!?$/i,
+    /^(what|how|why|when|where|can you|could you|do you|is it|are you|will you)\b/i,
+  ];
+  return casualPatterns.some((p) => p.test(trimmed));
+}
+
+// Helper: strip PROFILE_UPDATE blocks from message content to save tokens
+function stripProfileBlocks(content: string): string {
+  return content.replace(/<<<PROFILE_UPDATE>>>[\s\S]*?<<<END_PROFILE_UPDATE>>>/g, '').trim();
 }
 
 export async function POST(req: Request) {
@@ -69,61 +84,28 @@ export async function POST(req: Request) {
 
   // Compute which mandatory fields are still missing
   const completion = computeCompletionScore(currentProfile);
-  const missingFieldsList = completion.missing.map((f) => `- ${f.label} (key: "${f.key}")`).join('\n');
+  const missingFieldsList = completion.missing.map((f) => `${f.label} ("${f.key}")`).join(', ');
   const completionInfo = completion.missing.length > 0
-    ? `\n\nMANDATORY FIELDS STILL MISSING (${completion.score}/${completion.total} complete):\n${missingFieldsList}\n\nIMPORTANT GUIDANCE BEHAVIOR:\n- You MUST proactively ask the user about these missing fields.\n- After acknowledging what the user tells you, ALWAYS guide them toward the next missing field.\n- For example, after they provide education info, say something like: "Great! Now let's add your work experience — tell me about your most recent role."\n- If the user seems done or says they don't know what else to add, remind them of the specific missing fields by name.\n- Be encouraging and specific — don't just say "what else?" — say "I still need your [specific missing field]. Can you tell me about that?"\n- Prioritize collecting the missing mandatory fields before asking about optional info.\n- When ALL mandatory fields are filled, congratulate them and let them know they can now create a resume.`
-    : '\n\nAll mandatory fields are complete! The user can now create a resume. If they want to add more, help them with any additional info (certifications, languages, projects, etc).';
+    ? `\nMISSING FIELDS (${completion.score}/${completion.total}): ${missingFieldsList}\nProactively guide user to fill these. After each answer, ask about the next missing field. Be specific and encouraging.`
+    : '\nAll fields complete! Help with optional info (certifications, languages, projects).';
 
-  const systemPrompt = `You are a helpful and professional AI assistant tasked with building the user's resume profile.
+  // Compact system prompt — every token here is sent on EVERY request
+  const systemPrompt = `You are a concise, friendly resume profile builder.
 
-Current Profile Data: ${JSON.stringify(currentProfile)}
+Profile: ${JSON.stringify(currentProfile)}
 ${completionInfo}
 
-Your goal is to converse with the user, extract important details, and save them into a flexible JSON profile.
+Store data under camelCase keys: contactInfo (object), education (array), experience (array), skills (array), objective (string), projects (array), certifications (array), languages (array), etc.
 
-IMPORTANT — DYNAMIC DATA:
-The profile is NOT limited to a fixed set of fields. You should store ANY information the user provides under a sensible JSON key. Common keys include:
-- education (array of objects with degree, school/university, year, field, gpa, etc.)
-- experience (array of objects with role/title, company, dates, description, etc.)
-- projects (array of objects with name, description, technologies, link, etc.)
-- skills (array of strings)
-- objective (string — summary/objective statement)
-- contactInfo (object with email, phone, linkedin, github, website, address, etc.)
+SAVING: When user provides ANY profile info (even just a name), append this at the END of your response:
+<<<PROFILE_UPDATE>>>
+{...merged profile JSON with ALL existing + new data...}
+<<<END_PROFILE_UPDATE>>>
+Save immediately for ANY piece of data. Don't wait for complete sections. Skip block ONLY for pure questions/chat.
 
-But you can also create new keys for ANY data the user provides, such as:
-- certifications (array of objects with name, issuer, year, etc.)
-- languages (array of objects with language, proficiency, etc.)
-- publications (array of objects with title, journal, year, etc.)
-- volunteerWork (array of objects with role, organization, dates, etc.)
-- awards (array of objects with name, issuer, year, etc.)
-- hobbies (array of strings)
-- testScores (array of objects with test, score, date, etc.)
-- courses (array of objects with name, provider, year, etc.)
-- portfolioLinks (array of objects with label, url, etc.)
-- Or any other relevant category!
+STYLE: Acknowledge info briefly, then ask about the next missing field. One question at a time.`;
 
-Use camelCase keys. Group related information logically.
-
-CRITICAL INSTRUCTIONS FOR SAVING DATA:
-- Whenever the user provides ANY piece of profile information — even a single field like just their name, a single skill, or one school — you MUST IMMEDIATELY include a JSON block in your response wrapped EXACTLY like this:
-  <<<PROFILE_UPDATE>>>
-  { ...complete merged profile... }
-  <<<END_PROFILE_UPDATE>>>
-- Do NOT wait until you have collected all fields in a section before saving. Save EVERY piece of data the moment it is provided. For example, if the user says "my name is Srinivas", immediately save {"contactInfo": {"name": "Srinivas"}} merged with existing data.
-- The JSON must be a COMPLETE profile object that merges the NEW information with the EXISTING profile data shown above. Always preserve all existing data and only add/modify what the user just mentioned.
-- Do NOT show this JSON block to the user in your conversational text. Place it at the very end of your response, after all conversational text.
-- ONLY skip the JSON block if the user is asking a question, chatting casually, or not providing any factual profile information at all.
-- When in doubt, ALWAYS include the JSON block. It is better to save redundantly than to lose data.
-
-CONVERSATION STYLE:
-- Be concise, friendly, and act as a professional resume building assistant.
-- When the user gives you information, acknowledge it conversationally.
-- ALWAYS proactively guide the user to the next missing field — don't wait for them to ask.
-- Ask one thing at a time. Don't overwhelm with multiple questions.
-- If the user provides partial info, ask clarifying follow-ups (e.g. "What years were you at MIT?")
-- Use encouraging language like "Great!", "Perfect!", "That's really impressive!"`;
-
-  // Convert UIMessages to CoreMessages format
+  // Convert UIMessages to CoreMessages format, STRIPPING profile blocks from history
   const coreMessages = messages.map((m: any) => {
     let content = '';
     if (typeof m.content === 'string') {
@@ -139,6 +121,10 @@ CONVERSATION STYLE:
         .map((p: any) => p.text)
         .join('');
     }
+    // Strip PROFILE_UPDATE blocks from assistant messages to save tokens
+    if (m.role === 'assistant') {
+      content = stripProfileBlocks(content);
+    }
     return { role: m.role, content };
   });
 
@@ -149,6 +135,7 @@ CONVERSATION STYLE:
     model: 'google/gemini-2.0-flash-lite' as any,
     messages: coreMessages,
     system: systemPrompt,
+    maxOutputTokens: 1024,
     onFinish: async ({ text }) => {
       // PRIMARY: Try to extract the PROFILE_UPDATE block from the AI response
       try {
@@ -163,42 +150,34 @@ CONVERSATION STYLE:
         console.error('Error extracting primary profile update:', err);
       }
 
-      // FALLBACK: The model didn't emit the structured block (common with lightweight models).
-      // Use a focused extraction call to pull any profile data from the conversation.
-      try {
-        if (!lastUserMessage.trim()) return;
+      // FALLBACK: Only run if user message likely contains profile data
+      if (!lastUserMessage.trim() || isLikelyCasualMessage(lastUserMessage)) {
+        return; // Skip fallback for trivial messages — saves tokens
+      }
 
-        console.log('[Profile Fallback] No PROFILE_UPDATE block found, running extraction fallback...');
+      try {
+        console.log('[Profile Fallback] Running extraction...');
 
         const extractionResult = await generateText({
           model: 'google/gemini-2.0-flash-lite' as any,
-          system: `You are a JSON extractor. You receive a user message from a resume-building conversation and the AI assistant's response. Your ONLY job is to extract any NEW profile information the user provided and return it as a JSON object.
-
-Existing profile: ${JSON.stringify(currentProfile)}
-
-Rules:
-- Return ONLY valid JSON, no markdown, no explanation, no backticks.
-- Merge new data with the existing profile shown above. Preserve ALL existing data.
-- Common keys: contactInfo (object), education (array), experience (array), skills (array), projects (array), objective (string), certifications (array), languages (array).
-- If the user provided a name, put it in contactInfo.name. If email, in contactInfo.email. Etc.
-- If the user provided NO new profile information (just asking questions or chatting), return exactly: {}
-- Return the COMPLETE merged profile with the new data added.`,
-          prompt: `User message: "${lastUserMessage}"\n\nAssistant response: "${text.replace(/<<<PROFILE_UPDATE>>>[\s\S]*?<<<END_PROFILE_UPDATE>>>/g, '').trim()}"`,
+          maxOutputTokens: 512,
+          system: `Extract profile data from a user message. Return ONLY valid JSON. Existing profile: ${JSON.stringify(currentProfile)}
+Keys: contactInfo(object), education(array), experience(array), skills(array), objective(string), projects(array), certifications(array), languages(array).
+Merge new data with existing. If no profile info found, return {}`,
+          prompt: `User said: "${lastUserMessage}"`,
         });
 
-        const extracted = extractionResult.text.trim();
-        // Clean any markdown wrapping the model might add
-        const cleaned = extracted.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+        const extracted = extractionResult.text.trim()
+          .replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
         
-        if (cleaned && cleaned !== '{}') {
-          const parsedProfile = JSON.parse(cleaned);
+        if (extracted && extracted !== '{}') {
+          const parsedProfile = JSON.parse(extracted);
           if (Object.keys(parsedProfile).length > 0) {
             await saveProfileToSupabase(supabase, user!.id, currentProfile, parsedProfile);
-            console.log('[Profile Fallback] Successfully saved extracted data');
           }
         }
       } catch (fallbackErr) {
-        console.error('[Profile Fallback] Error in fallback extraction:', fallbackErr);
+        console.error('[Profile Fallback] Error:', fallbackErr);
       }
     },
   });

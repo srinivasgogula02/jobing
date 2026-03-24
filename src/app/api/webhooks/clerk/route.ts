@@ -76,9 +76,8 @@ export async function POST(req: Request) {
             image_url,
         };
 
-        // Give new users 2 free credits by default
         if (eventType === 'user.created') {
-            userData.credits = 2;
+            userData.credits = 0;
         }
 
         const { error } = await supabaseAdmin

@@ -160,7 +160,7 @@ export function Pricing() {
 
                 {/* Footer Note */}
                 <p className="text-center text-sm text-slate-400 mt-10 font-medium">
-                    All plans include a 7-day money-back guarantee. Cancel anytime.
+                    Cancel anytime.
                 </p>
             </div>
         </section>

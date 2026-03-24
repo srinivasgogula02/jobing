@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { Webhook } from 'standardwebhooks';
 import { createClient } from '@supabase/supabase-js';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
@@ -283,6 +284,21 @@ async function updateSubscriptionTierAndCredits(props: {
     if (updateError) {
         console.error("[updateSubscriptionTier] Error updating user:", updateError);
         throw updateError;
+    }
+
+    // Sync is_paid status to Clerk publicMetadata
+    if (props.clerkUserId) {
+        try {
+            const client = await clerkClient();
+            await client.users.updateUserMetadata(props.clerkUserId, {
+                publicMetadata: {
+                    is_paid: props.isActive
+                }
+            });
+            console.log(`[updateSubscriptionTier] Synced is_paid=${props.isActive} to Clerk for ${props.clerkUserId}.`);
+        } catch (clerkErr) {
+            console.error(`[updateSubscriptionTier] Error syncing to Clerk:`, clerkErr);
+        }
     }
 
     console.log(`[updateSubscriptionTier] User tier updated successfully for ${user.id}.`);

@@ -95,7 +95,7 @@ export default async function Home() {
                 "name": "Can I cancel my subscription anytime?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Absolutely. You can cancel anytime with one click. No questions asked, no hidden fees. We also offer a 7-day money-back guarantee."
+                  "text": "Absolutely. You can cancel anytime with one click. No questions asked, no hidden fees."
                 }
               },
               {
@@ -131,7 +131,7 @@ export default async function Home() {
             </SignInButton>
             <SignUpButton>
               <button className="btn-primary px-5 py-2.5 text-sm font-bold">
-                Get Started Free
+                Get Started
               </button>
             </SignUpButton>
           </div>
@@ -170,7 +170,7 @@ export default async function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
             <SignUpButton>
               <button className="btn-primary px-8 py-4 text-[15px] font-bold gap-2.5 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
-                Start Building — It&apos;s Free
+                Start Building Now
                 <ArrowRight size={18} />
               </button>
             </SignUpButton>
@@ -187,7 +187,7 @@ export default async function Home() {
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle2 size={14} className="text-[#8bb800]" />
-              2 free resumes included
+              Instant access upon subscribe
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle2 size={14} className="text-[#8bb800]" />
@@ -602,12 +602,12 @@ export default async function Home() {
                 a: "Your resume is generated as a professional PDF — using the same premium typesetting trusted by top-tier tech companies. It looks clean, polished, and passes ATS systems.",
               },
               {
-                q: "Is the free plan enough to get started?",
-                a: "Yes! You get 2 free resume credits when you sign up. If you need more, the Pro plan at ₹249/month gives you 50 resumes — less than the cost of a single biryani.",
+                q: "What do I get with the Pro plan?",
+                a: "The Pro plan at ₹249/month gives you 50 resumes — less than the cost of a single biryani. Perfect for your active job search needs.",
               },
               {
                 q: "Can I cancel my subscription anytime?",
-                a: "Absolutely. You can cancel anytime with one click. No questions asked, no hidden fees. We also offer a 7-day money-back guarantee.",
+                a: "Absolutely. You can cancel anytime with one click. No questions asked, no hidden fees.",
               },
               {
                 q: "Is my data safe?",
@@ -647,11 +647,11 @@ export default async function Home() {
           </p>
           <SignUpButton>
             <button className="btn-primary px-10 py-4 text-[15px] font-bold gap-2.5 shadow-lg shadow-[#C1FF00]/30 hover:scale-[1.02] transition-transform">
-              Get Started — It&apos;s Free
+              Get Started Today
               <ArrowRight size={18} />
             </button>
           </SignUpButton>
-          <p className="mt-6 text-sm text-[#6b7280]">No credit card needed · 2 free resumes · Cancel anytime</p>
+          <p className="mt-6 text-sm text-[#6b7280]">Instant access · Cancel anytime</p>
         </div>
       </section>
 

@@ -206,7 +206,8 @@ interface ProfileSummaryProps {
 
 export function ProfileSummary({ profileData }: ProfileSummaryProps) {
   const data = profileData || {};
-  const sectionKeys = sortedSectionKeys(data);
+  const INTERNAL_KEYS = new Set(['hasSeenCompletionPopup']);
+  const sectionKeys = sortedSectionKeys(data).filter((k) => !INTERNAL_KEYS.has(k));
   const completion = computeCompletionScore(data);
   const isEmpty = sectionKeys.length === 0;
 

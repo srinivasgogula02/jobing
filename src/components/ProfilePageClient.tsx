@@ -88,7 +88,7 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
         </div>
 
         {/* Profile Data - Side Panel on Desktop */}
-        <div className="hidden lg:block lg:w-[380px] shrink-0 min-h-0">
+        <div className="hidden lg:flex lg:flex-col lg:w-[380px] shrink-0 min-h-0 overflow-y-auto slim-scrollbar">
           <ProfileSummary profileData={profileData} />
         </div>
       </div>

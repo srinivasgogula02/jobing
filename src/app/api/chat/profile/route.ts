@@ -1,10 +1,36 @@
-import { streamText } from 'ai';
+import { streamText, generateText } from 'ai';
 import { currentUser } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 import { deepMerge, sanitizeProfileData, computeCompletionScore } from '@/lib/profileConfig';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+// Helper: save profile data to Supabase
+async function saveProfileToSupabase(
+  supabase: any,
+  userId: string,
+  currentProfile: Record<string, any>,
+  newData: Record<string, any>
+) {
+  const sanitized = sanitizeProfileData(newData) as Record<string, unknown>;
+  const mergedProfile = deepMerge(currentProfile, sanitized);
+
+  const { error } = await supabase
+    .from('user_profiles')
+    .upsert({
+      clerk_user_id: userId,
+      profile_data: mergedProfile,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'clerk_user_id' });
+
+  if (error) {
+    console.error('Failed to update profile:', error);
+    return false;
+  }
+  console.log('Profile updated successfully');
+  return true;
+}
 
 export async function POST(req: Request) {
   const user = await currentUser();
@@ -116,38 +142,63 @@ CONVERSATION STYLE:
     return { role: m.role, content };
   });
 
+  // Get the last user message for fallback extraction
+  const lastUserMessage = [...coreMessages].reverse().find((m: any) => m.role === 'user')?.content || '';
+
   const result = streamText({
     model: 'google/gemini-2.0-flash-lite' as any,
     messages: coreMessages,
     system: systemPrompt,
     onFinish: async ({ text }) => {
-      // After the stream finishes, extract any profile update JSON from the response
+      // PRIMARY: Try to extract the PROFILE_UPDATE block from the AI response
       try {
         const match = text.match(/<<<PROFILE_UPDATE>>>([\s\S]*?)<<<END_PROFILE_UPDATE>>>/);
         if (match && match[1]) {
           const profileJson = match[1].trim();
           const rawProfile = JSON.parse(profileJson);
-
-          // Sanitize to prevent XSS, then deep-merge with existing profile
-          const sanitized = sanitizeProfileData(rawProfile) as Record<string, unknown>;
-          const mergedProfile = deepMerge(currentProfile, sanitized);
-
-          const { error } = await supabase
-            .from('user_profiles')
-            .upsert({
-              clerk_user_id: user!.id,
-              profile_data: mergedProfile,
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'clerk_user_id' });
-
-          if (error) {
-            console.error('Failed to update profile:', error);
-          } else {
-            console.log('Profile updated successfully');
-          }
+          await saveProfileToSupabase(supabase, user!.id, currentProfile, rawProfile);
+          return; // Success — no fallback needed
         }
       } catch (err) {
-        console.error('Error extracting/saving profile update:', err);
+        console.error('Error extracting primary profile update:', err);
+      }
+
+      // FALLBACK: The model didn't emit the structured block (common with lightweight models).
+      // Use a focused extraction call to pull any profile data from the conversation.
+      try {
+        if (!lastUserMessage.trim()) return;
+
+        console.log('[Profile Fallback] No PROFILE_UPDATE block found, running extraction fallback...');
+
+        const extractionResult = await generateText({
+          model: 'google/gemini-2.0-flash-lite' as any,
+          system: `You are a JSON extractor. You receive a user message from a resume-building conversation and the AI assistant's response. Your ONLY job is to extract any NEW profile information the user provided and return it as a JSON object.
+
+Existing profile: ${JSON.stringify(currentProfile)}
+
+Rules:
+- Return ONLY valid JSON, no markdown, no explanation, no backticks.
+- Merge new data with the existing profile shown above. Preserve ALL existing data.
+- Common keys: contactInfo (object), education (array), experience (array), skills (array), projects (array), objective (string), certifications (array), languages (array).
+- If the user provided a name, put it in contactInfo.name. If email, in contactInfo.email. Etc.
+- If the user provided NO new profile information (just asking questions or chatting), return exactly: {}
+- Return the COMPLETE merged profile with the new data added.`,
+          prompt: `User message: "${lastUserMessage}"\n\nAssistant response: "${text.replace(/<<<PROFILE_UPDATE>>>[\s\S]*?<<<END_PROFILE_UPDATE>>>/g, '').trim()}"`,
+        });
+
+        const extracted = extractionResult.text.trim();
+        // Clean any markdown wrapping the model might add
+        const cleaned = extracted.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+        
+        if (cleaned && cleaned !== '{}') {
+          const parsedProfile = JSON.parse(cleaned);
+          if (Object.keys(parsedProfile).length > 0) {
+            await saveProfileToSupabase(supabase, user!.id, currentProfile, parsedProfile);
+            console.log('[Profile Fallback] Successfully saved extracted data');
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('[Profile Fallback] Error in fallback extraction:', fallbackErr);
       }
     },
   });

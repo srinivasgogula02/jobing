@@ -185,7 +185,7 @@ export function ProfileChat({
           );
         })}
 
-        {isLoading && (
+        {status === 'submitted' && (
           <div className="flex w-full justify-start">
             <div className="flex max-w-[85%] gap-3 px-4 py-3.5 rounded-2xl bg-white text-[#1a1a1a] border border-[#e5e5e5] rounded-bl-sm shadow-sm">
               <div className="flex-shrink-0 mt-0.5">

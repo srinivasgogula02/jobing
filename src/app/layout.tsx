@@ -123,7 +123,28 @@ export default function RootLayout({
             alt=""
           />
         </noscript>
-        <ClerkProvider>
+        <ClerkProvider
+          appearance={{
+            variables: {
+              colorPrimary: "#C1FF00",
+              colorTextOnPrimaryBackground: "#1a1a1a",
+              colorBackground: "#ffffff",
+              colorInputBackground: "#fafafa",
+              colorInputText: "#1a1a1a",
+              colorText: "#1a1a1a",
+              colorTextSecondary: "#6b7280",
+              borderRadius: "0.75rem",
+              fontFamily: "var(--font-instrument-sans)",
+            },
+            elements: {
+              card: "shadow-sm border border-[#e5e5e5] bg-white",
+              formButtonPrimary: "shadow-sm font-bold border-none hover:bg-[#a8e600] transition-all",
+              socialButtonsBlockButton: "border-[#e5e5e5] hover:bg-[#fafafa] transition-all",
+              formFieldInput: "border-[#e5e5e5] hover:border-[#d4d4d4] focus:border-[#C1FF00] focus:ring-[#C1FF00] transition-all",
+              footerActionLink: "text-[#1a1a1a] hover:text-[#1a1a1a] font-bold",
+            }
+          }}
+        >
           {children}
         </ClerkProvider>
       </body>

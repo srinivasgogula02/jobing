@@ -81,7 +81,6 @@ export async function sendMetaPurchaseEvent(paymentData: any) {
 
     // Build the final CAPI payload
     const payload = {
-      test_event_code: 'TEST68945', // Required to view the event in the "Test Events" tab
       data: [
          {
            event_name: 'Purchase',

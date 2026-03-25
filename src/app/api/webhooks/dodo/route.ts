@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { Webhook } from 'standardwebhooks';
 import { createClient } from '@supabase/supabase-js';
 import { clerkClient } from '@clerk/nextjs/server';
+import { sendMetaPurchaseEvent } from '@/lib/metaCAPI';
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
@@ -77,6 +78,10 @@ export async function POST(req: Request) {
 
             // Payment events
             case "payment.succeeded":
+                await managePayment(event);
+                sendMetaPurchaseEvent(event.data).catch(console.error);
+                break;
+
             case "payment.failed":
             case "payment.processing":
             case "payment.cancelled":

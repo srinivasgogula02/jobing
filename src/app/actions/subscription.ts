@@ -1,6 +1,7 @@
 "use server";
 
 import { currentUser } from "@clerk/nextjs/server";
+import { headers, cookies } from "next/headers";
 import { dodo } from "@/lib/dodo";
 import { createClient } from "@supabase/supabase-js";
 
@@ -40,6 +41,15 @@ export async function createSubscriptionCheckout(productId: string) {
     try {
         const primaryEmail = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId);
 
+        const reqHeaders = await headers();
+        const reqCookies = await cookies();
+        
+        // Safely extract client data; truncate User Agent per metadata safe-limits
+        const clientIp = reqHeaders.get('x-forwarded-for')?.split(',')[0] || reqHeaders.get('x-real-ip') || '';
+        const userAgent = (reqHeaders.get('user-agent') || '').substring(0, 255);
+        const fbp = reqCookies.get('_fbp')?.value || '';
+        const fbc = reqCookies.get('_fbc')?.value || '';
+
         const session = await dodo.checkoutSessions.create({
             product_cart: [
                 {
@@ -53,7 +63,11 @@ export async function createSubscriptionCheckout(productId: string) {
             },
             return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing`,
             metadata: {
-                clerk_user_id: user.id
+                clerk_user_id: user.id,
+                client_ip: clientIp,
+                client_user_agent: userAgent,
+                fbp,
+                fbc
             }
         });
 

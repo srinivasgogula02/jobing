@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 // The Pixel ID was extracted from your existing layout.tsx tracking code.
 const META_PIXEL_ID = '932694869167270';
-const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || 'EAAVA0uDjv00BROfoZCW9UQG50f0DPUytsp7KTQZChIAaGwmE8Dy7w7q4N8OMT6RCo3rnM1UvcVnEka0TZAtn2p1NGfftO2HYKxMEPZAKmmQlDfZABLt0x1JNjYJo8NpeuoNxFI6WfX8WD5gFAUEkMEf5OcoZBoa3SNPuOr36crF9uWTiilfb40ZAoodskrf9QZDZD';
+const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
 
 /**
  * Standardizes and hashes PII parameters according to Meta's strict rules:

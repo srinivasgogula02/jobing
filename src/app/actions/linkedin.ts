@@ -6,148 +6,64 @@ import { deepMerge, sanitizeProfileData } from "@/lib/profileConfig";
 
 const LINKEDIN_SCRAPER_URL = "https://linkedin-scraper-vercel-theta.vercel.app/api/scrape";
 
+import { generateText } from "ai";
+
 /**
- * Maps raw LinkedIn scraper JSON into our app's profile_data schema.
- * Handles missing fields, deduplication, and normalization gracefully.
+ * Uses an incredibly fast Gemini 3 Flash model to intelligently extract and reshape 
+ * the messy LinkedIn JSON into our perfect internal schema. This prevents missed keys 
+ * and handles unpredictable nesting or formatting beautifully.
  */
-function mapLinkedInToProfile(raw: any): Record<string, any> {
-  const profile: Record<string, any> = {};
+async function extractProfileWithAI(rawLinkedInData: any): Promise<Record<string, any>> {
+  // 1. Strip out massive useless arrays/strings to save tokens and speed up latency
+  const optimizedData = { ...rawLinkedInData };
+  delete optimizedData.mutualConnections;
+  delete optimizedData.pictureUrl;
+  delete optimizedData.coverImageUrl;
+  delete optimizedData.creatorInfo;
 
-  // ── Contact Information ──────────────────────────────────────────────
-  const fullName = [raw.firstName, raw.lastName].filter(Boolean).join(" ");
-  profile.contactInfo = {
-    fullName: fullName || undefined,
-    headline: raw.headline || undefined,
-    location: raw.geoLocationName || undefined,
-    country: raw.geoCountryName || undefined,
-    linkedinUrl: raw.inputUrl || raw.publicIdentifier
-      ? `https://www.linkedin.com/in/${raw.publicIdentifier}`
-      : undefined,
-  };
+  const systemPrompt = `You are a world-class structured data extraction engine. 
+Your sole purpose is to convert messy, raw LinkedIn scraper JSON into a clean, strictly typed JSON object that matches our platform's profile schema.
 
-  // ── Summary / Objective ──────────────────────────────────────────────
-  if (raw.summary) {
-    profile.objective = raw.summary;
-  }
+RULES:
+1. Extract ALL meaningful professional data.
+2. Clean up weird formatting, decode escaped characters, and strip raw HTML tags.
+3. If a date is missing an endDate, assume "Present". Format dates cleanly (e.g. "MMM YYYY" or "YYYY").
+4. Deduplicate the "skills" array.
+5. You MUST return ONLY valid JSON. No markdown backticks. Do not include \`\`\`json. 
 
-  // ── Work Experience ──────────────────────────────────────────────────
-  if (raw.positions && raw.positions.length > 0) {
-    profile.experience = raw.positions.map((pos: any) => {
-      const start = pos.timePeriod?.startDate;
-      const end = pos.timePeriod?.endDate;
-      return {
-        title: pos.title || "",
-        company: pos.company?.name || "",
-        location: pos.locationName || "",
-        startDate: start ? `${start.month || ""}/${start.year || ""}` : "",
-        endDate: end ? `${end.month || ""}/${end.year || ""}` : "Present",
-        duration: pos.totalDuration || "",
-        description: pos.description || "",
-      };
+STRICT OUTPUT SCHEMA:
+{
+  "contactInfo": { "fullName": "string", "headline": "string", "location": "string", "country": "string", "linkedinUrl": "string" },
+  "objective": "string (A unified professional summary)",
+  "experience": [{ "title": "string", "company": "string", "location": "string", "startDate": "string", "endDate": "string", "duration": "string", "description": "string" }],
+  "education": [{ "institution": "string", "degree": "string", "fieldOfStudy": "string", "startDate": "string", "endDate": "string", "grade": "string", "activities": "string", "description": "string" }],
+  "skills": ["string"],
+  "languages": [{ "name": "string", "proficiency": "string" }],
+  "volunteerWork": [{ "role": "string", "organization": "string", "cause": "string", "startDate": "string", "endDate": "string", "description": "string" }],
+  "certifications": [{ "name": "string", "authority": "string", "url": "string" }],
+  "projects": [{ "title": "string", "description": "string", "url": "string" }],
+  "awards": [{ "title": "string", "issuer": "string", "description": "string" }],
+  "publications": [{ "title": "string", "publisher": "string", "url": "string", "description": "string" }],
+  "courses": [{ "name": "string", "number": "string" }]
+}
+
+If a section doesn't exist in the input, omit it or return an empty array. Do not hallucinate data.`;
+
+  const prompt = `RAW LINKEDIN DATA:\n${JSON.stringify(optimizedData, null, 2)}`;
+
+  try {
+    const { text } = await generateText({
+      model: 'google/gemini-3-flash' as any,
+      system: systemPrompt,
+      prompt: prompt,
     });
-  }
 
-  // ── Education ────────────────────────────────────────────────────────
-  if (raw.educations && raw.educations.length > 0) {
-    profile.education = raw.educations.map((edu: any) => {
-      const start = edu.timePeriod?.startDate;
-      const end = edu.timePeriod?.endDate;
-      return {
-        institution: edu.school?.name || edu.schoolName || "",
-        degree: edu.degreeName || "",
-        fieldOfStudy: edu.fieldOfStudy || "",
-        startDate: start ? `${start.year || ""}` : "",
-        endDate: end ? `${end.year || ""}` : "",
-        grade: edu.grade || "",
-        activities: edu.activities || "",
-        description: edu.description || "",
-      };
-    });
+    const cleanedText = text.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    console.error("[AI Extraction Failed], falling back to empty object:", error);
+    return {};
   }
-
-  // ── Skills (deduplicated) ────────────────────────────────────────────
-  if (raw.skills && raw.skills.length > 0) {
-    const seen = new Set<string>();
-    profile.skills = raw.skills
-      .map((s: any) => s.name)
-      .filter((name: string) => {
-        const lower = name.toLowerCase();
-        if (seen.has(lower)) return false;
-        seen.add(lower);
-        return true;
-      });
-  }
-
-  // ── Languages ────────────────────────────────────────────────────────
-  if (raw.languages && raw.languages.length > 0) {
-    profile.languages = raw.languages.map((lang: any) => ({
-      name: lang.name || "",
-      proficiency: lang.proficiency || "",
-    }));
-  }
-
-  // ── Volunteer Work ───────────────────────────────────────────────────
-  if (raw.volunteerExperiences && raw.volunteerExperiences.length > 0) {
-    profile.volunteerWork = raw.volunteerExperiences.map((vol: any) => {
-      const start = vol.timePeriod?.startDate;
-      const end = vol.timePeriod?.endDate;
-      return {
-        role: vol.role || "",
-        organization: vol.companyName || vol.company?.name || "",
-        cause: vol.cause || "",
-        startDate: start ? `${start.month || ""}/${start.year || ""}` : "",
-        endDate: end ? `${end.month || ""}/${end.year || ""}` : "",
-        description: vol.description || "",
-      };
-    });
-  }
-
-  // ── Certifications ───────────────────────────────────────────────────
-  if (raw.certifications && raw.certifications.length > 0) {
-    profile.certifications = raw.certifications.map((cert: any) => ({
-      name: cert.name || "",
-      authority: cert.authority || "",
-      url: cert.url || "",
-    }));
-  }
-
-  // ── Courses ──────────────────────────────────────────────────────────
-  if (raw.courses && raw.courses.length > 0) {
-    profile.courses = raw.courses.map((c: any) => ({
-      name: c.name || "",
-      number: c.number || "",
-    }));
-  }
-
-  // ── Honors / Awards ──────────────────────────────────────────────────
-  if (raw.honors && raw.honors.length > 0) {
-    profile.awards = raw.honors.map((h: any) => ({
-      title: h.title || "",
-      issuer: h.issuer || "",
-      description: h.description || "",
-    }));
-  }
-
-  // ── Publications ─────────────────────────────────────────────────────
-  if (raw.publications && raw.publications.length > 0) {
-    profile.publications = raw.publications.map((p: any) => ({
-      title: p.name || "",
-      publisher: p.publisher || "",
-      url: p.url || "",
-      description: p.description || "",
-    }));
-  }
-
-  // ── Projects ─────────────────────────────────────────────────────────
-  if (raw.projects && raw.projects.length > 0) {
-    profile.projects = raw.projects.map((p: any) => ({
-      title: p.title || "",
-      description: p.description || "",
-      url: p.url || "",
-    }));
-  }
-
-  return profile;
 }
 
 /**
@@ -199,8 +115,8 @@ export async function importLinkedInProfile(linkedinUrl: string) {
 
     const linkedInData = result.data[0];
 
-    // ── Map to our profile schema ────────────────────────────────────────
-    const mappedProfile = mapLinkedInToProfile(linkedInData);
+    // ── Map to our profile schema natively via AI ──────────────────────
+    const mappedProfile = await extractProfileWithAI(linkedInData);
     const sanitized = sanitizeProfileData(mappedProfile) as Record<string, any>;
 
     // ── Merge with existing profile (preserve manually entered data) ────

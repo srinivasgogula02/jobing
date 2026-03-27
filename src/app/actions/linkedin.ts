@@ -211,7 +211,7 @@ export async function importLinkedInProfile(linkedinUrl: string) {
     const mappedProfile = extractProfileDeterministic(linkedInData);
     const sanitized = sanitizeProfileData(mappedProfile) as Record<string, any>;
 
-    // ── Merge with existing profile (preserve manually entered data) ────
+    // ── Smart Merge (preserve manual data, prevent empty arrays overwriting) ──
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -223,20 +223,45 @@ export async function importLinkedInProfile(linkedinUrl: string) {
       .single();
 
     const currentProfile = existing?.profile_data || {};
+    
+    // Custom deep merge logic that prevents existing empty arrays/objects from wiping out fresh LinkedIn data
+    const mergedProfile = { ...sanitized };
+    
+    for (const [key, currentVal] of Object.entries(currentProfile)) {
+      if (Array.isArray(currentVal)) {
+        if (currentVal.length > 0) {
+          mergedProfile[key] = currentVal; // Keep existing truthy array
+        }
+      } else if (currentVal !== null && typeof currentVal === 'object') {
+         // Merge objects (like contactInfo)
+         mergedProfile[key] = { ...(mergedProfile[key] || {}), ...currentVal };
+         
+         // Clean out undefined/nulls inside the object
+         Object.keys(mergedProfile[key]).forEach(k => {
+           if (!mergedProfile[key][k]) delete mergedProfile[key][k];
+         });
+      } else if (currentVal) {
+        mergedProfile[key] = currentVal; // Keep existing string/number/boolean
+      }
+    }
 
-    // Deep merge: LinkedIn data fills in gaps, existing manual data takes priority
-    const mergedProfile = deepMerge(sanitized, currentProfile);
+    // ── Save to Supabase (Explicit Update/Insert) ────────────────────────
+    let saveError;
+    if (existing) {
+       const { error } = await supabase
+         .from("user_profiles")
+         .update({ profile_data: mergedProfile })
+         .eq("clerk_user_id", user.id);
+       saveError = error;
+    } else {
+       const { error } = await supabase
+         .from("user_profiles")
+         .insert({ clerk_user_id: user.id, profile_data: mergedProfile });
+       saveError = error;
+    }
 
-    // ── Save to Supabase ─────────────────────────────────────────────────
-    const { error: upsertError } = await supabase
-      .from("user_profiles")
-      .upsert(
-        { clerk_user_id: user.id, profile_data: mergedProfile },
-        { onConflict: "clerk_user_id" }
-      );
-
-    if (upsertError) {
-      console.error("[LinkedIn Import] Supabase error:", upsertError);
+    if (saveError) {
+      console.error("[LinkedIn Import] Supabase error:", saveError);
       return { success: false, error: "Failed to save imported profile data." };
     }
 

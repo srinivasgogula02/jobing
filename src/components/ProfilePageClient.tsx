@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ProfileChat } from "@/components/ProfileChat";
 import { ProfileSummary, ScoreRing } from "@/components/ProfileSummary";
 import { ProfileSuccessPopup } from "@/components/ProfileSuccessPopup";
+import { LinkedInImport } from "@/components/LinkedInImport";
 import { computeCompletionScore } from "@/lib/profileConfig";
 import { ChevronLeft, LayoutDashboard, Database, X } from "lucide-react";
 import Link from "next/link";
@@ -61,6 +62,7 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
            <p className="text-[11px] lg:text-sm text-[#6b7280] font-bold uppercase tracking-widest mt-1">Level {Math.floor(completion.percent / 20) + 1}</p>
         </div>
         <div className="flex items-center gap-3 md:gap-4 shrink-0">
+          <LinkedInImport onImportSuccess={handleProfileUpdate} />
           <div className="scale-90 md:scale-100 origin-right">
             <ScoreRing percent={completion.percent} score={completion.score} total={completion.total} />
           </div>

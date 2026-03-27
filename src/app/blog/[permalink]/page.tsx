@@ -84,17 +84,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </h1>
         </div>
 
-        {/* Cover Image - Edge to edge on mobile! */}
-        {blog.image_url && (
-          <div className="w-full aspect-[21/9] bg-[#f5f5f4] sm:rounded-2xl overflow-hidden mb-8 sm:mb-10 sm:border border-[#e5e5e5] shrink-0">
-            <img 
-              src={blog.image_url} 
-              alt={blog.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          </div>
-        )}
 
         {/* Article Content - Reduced padding on mobile */}
         <div className="bg-white sm:rounded-2xl sm:border border-[#e5e5e5] p-5 sm:p-8 md:p-10 lg:p-12 shadow-none sm:shadow-sm flex-1">

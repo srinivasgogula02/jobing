@@ -77,12 +77,7 @@ export async function POST(req: Request) {
         };
 
         if (eventType === 'user.created') {
-            const pricingMode = process.env.NEXT_PUBLIC_PRICING_MODE || 'paywall';
-            if (pricingMode === 'freemium') {
-                userData.credits = 2; // Grant 2 free credits in freemium mode
-            } else {
-                userData.credits = 0;
-            }
+            userData.credits = 2; // Every user gets 2 free credits
         }
 
         const { error } = await supabaseAdmin
@@ -94,19 +89,16 @@ export async function POST(req: Request) {
             return new Response(`Error syncing user to Supabase: ${error.message} (Code: ${error.code})`, { status: 500 })
         }
 
-        // In freemium mode, sync has_credits to Clerk metadata on new user creation
-        if (eventType === 'user.created') {
-            const pricingMode = process.env.NEXT_PUBLIC_PRICING_MODE || 'paywall';
-            if (pricingMode === 'freemium' && id) {
-                try {
-                    const client = await clerkClient();
-                    await client.users.updateUserMetadata(id, {
-                        publicMetadata: { has_credits: true }
-                    });
-                    console.log(`[Clerk Webhook] Synced has_credits=true for new freemium user ${id}`);
-                } catch (clerkErr) {
-                    console.error('[Clerk Webhook] Error syncing has_credits to Clerk:', clerkErr);
-                }
+        // Always sync has_credits to Clerk on new user creation
+        if (eventType === 'user.created' && id) {
+            try {
+                const client = await clerkClient();
+                await client.users.updateUserMetadata(id, {
+                    publicMetadata: { has_credits: true }
+                });
+                console.log(`[Clerk Webhook] Synced has_credits=true for new user ${id}`);
+            } catch (clerkErr) {
+                console.error('[Clerk Webhook] Error syncing has_credits to Clerk:', clerkErr);
             }
         }
     }

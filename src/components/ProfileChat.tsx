@@ -126,12 +126,12 @@ export function ProfileChat({
       )}
  
       {/* Messages */}
-      <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-5 slim-scrollbar bg-[#fafafa]`}>
+      <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-5 slim-scrollbar bg-[#f1f5f9]`}>
         {messages.length === 0 && !isLoading && (
           <div className="flex-1 flex flex-col items-center justify-center text-[#9ca3af]">
             <div className="text-center max-w-[320px] space-y-4">
-              <div className="w-16 h-16 rounded-[20px] bg-white shadow-sm border border-[#e5e5e5] flex items-center justify-center mx-auto mb-2">
-                <span className="text-2xl">✨</span>
+              <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-[#e5e5e5] flex items-center justify-center mx-auto mb-2 overflow-hidden">
+                <img src="/logo.png" alt="Jobing AI" className="w-12 h-12 object-contain" />
               </div>
               <h3 className="text-[17px] font-bold text-[#1a1a1a]">Let&apos;s build your profile</h3>
 
@@ -169,16 +169,21 @@ export function ProfileChat({
           
           return (
             <div key={m.id} className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`flex max-w-[85%] gap-3 px-4 py-3.5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
+                <div className={`flex max-w-[85%] gap-3 px-4 py-3.5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
                 m.role === 'user' 
-                  ? 'bg-[#1a1a1a] text-white rounded-br-sm' 
+                  ? 'bg-[#0A66C2] text-white rounded-br-sm' 
                   : 'bg-white text-[#1a1a1a] border border-[#e5e5e5] rounded-bl-sm'
               }`}>
                 <div className="flex-shrink-0 mt-0.5">
-                  {m.role === 'user' 
-                    ? <User size={16} className="text-[#9ca3af]" /> 
-                    : <span className="text-sm">✨</span>
-                  }
+                  {m.role === 'user' ? (
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                       <User size={14} className="text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 rounded-lg overflow-hidden bg-[#f0f0f0] flex items-center justify-center shadow-sm">
+                      <img src="/logo.png" alt="AI" className="w-5 h-5 object-contain" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 chat-markdown">
                   {m.role === 'assistant' ? (
@@ -195,8 +200,8 @@ export function ProfileChat({
         {status === 'submitted' && (
           <div className="flex w-full justify-start">
             <div className="flex max-w-[85%] gap-3 px-4 py-3.5 rounded-2xl bg-white text-[#1a1a1a] border border-[#e5e5e5] rounded-bl-sm shadow-sm">
-              <div className="flex-shrink-0 mt-0.5">
-                <span className="text-sm">✨</span>
+              <div className="flex-shrink-0 mt-0.5 w-6 h-6 rounded-lg overflow-hidden bg-[#f0f0f0] flex items-center justify-center shadow-sm">
+                <img src="/logo.png" alt="AI" className="w-5 h-5 object-contain" />
               </div>
               <div className="flex items-center gap-1.5 h-5">
                 <div className="w-1.5 h-1.5 bg-[#a3a3a3] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

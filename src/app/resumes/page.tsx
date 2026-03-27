@@ -34,12 +34,7 @@ export default async function ResumesPage() {
   return (
     <DashboardLayout>
       <div className="flex flex-col h-full space-y-8 px-2 py-4 lg:p-0">
-        <div className="space-y-1 bg-white px-5 py-4 lg:p-6 lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm border-b border-[#f0f0f0] lg:border-none shrink-0">
-          <h1 className="text-xl md:text-2xl font-black text-[#1a1a1a] tracking-tight leading-tight">
-            My Resumes
-          </h1>
-          <p className="text-[10px] md:text-sm text-[#6b7280] font-bold uppercase tracking-widest mt-1">Managed Tailored Collections</p>
-        </div>
+
 
         {resumes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 px-4 bg-white rounded-2xl border border-[#e5e5e5] shadow-sm mx-2 lg:mx-0">

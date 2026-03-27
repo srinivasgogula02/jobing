@@ -8,6 +8,7 @@ import { Sidebar } from "./Sidebar";
 import { UserButton } from "@clerk/nextjs";
 import { Zap, Menu } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -16,6 +17,18 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, credits }: DashboardShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Helper to format pagename
+  const getPageName = () => {
+    if (pathname === "/") return "";
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length === 0) return "";
+    const lastSegment = segments[segments.length - 1];
+    return lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1);
+  };
+
+  const pageName = getPageName();
 
   return (
     <div className="flex h-[100dvh] w-full bg-[#fafafa] text-[#1a1a1a] overflow-hidden">
@@ -25,7 +38,7 @@ export function DashboardShell({ children, credits }: DashboardShellProps) {
       </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative z-0">
-        <header className="h-14 flex items-center justify-between md:justify-end gap-3 px-4 md:px-6 border-b border-[#e5e5e5] shrink-0 bg-white z-10">
+        <header className="h-14 flex items-center justify-between gap-3 px-4 md:px-6 border-b border-[#e5e5e5] shrink-0 bg-white z-10">
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setMobileMenuOpen(true)}
@@ -33,12 +46,49 @@ export function DashboardShell({ children, credits }: DashboardShellProps) {
             >
               <Menu size={20} />
             </button>
-            <Link href="/" className="md:hidden flex items-center px-1 py-1">
-              <span className="font-bold text-[14px] text-[#1a1a1a] tracking-tight">Jobing</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/create" className="flex items-center">
+                <span className="font-bold text-[14px] text-[#1a1a1a] tracking-tight hover:text-[#8bb800] transition-colors">Jobing AI</span>
+              </Link>
+              {pageName && (
+                <>
+                  <span className="text-[#e5e5e5] font-light">/</span>
+                  <span className="text-[14px] text-[#6b7280] font-medium">{pageName}</span>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-4 mr-2">
+              <span className="text-[11px] font-bold text-[#9ca3af] uppercase tracking-widest flex items-center gap-1.5">
+                find jobs on <span className="text-[#e5e5e5] font-light">&gt;</span>
+              </span>
+              <a 
+                href="https://www.linkedin.com/jobs/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[11px] font-bold text-[#6b7280] hover:text-[#1a1a1a] transition-colors uppercase tracking-widest"
+              >
+                LinkedIn
+              </a>
+              <a 
+                href="https://www.indeed.com/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[11px] font-bold text-[#6b7280] hover:text-[#1a1a1a] transition-colors uppercase tracking-widest"
+              >
+                Indeed
+              </a>
+              <a 
+                href="https://www.naukri.com/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[11px] font-bold text-[#6b7280] hover:text-[#1a1a1a] transition-colors uppercase tracking-widest"
+              >
+                Naukri
+              </a>
+            </div>
             {typeof credits === "number" && (
             <Link 
               href="/billing" 

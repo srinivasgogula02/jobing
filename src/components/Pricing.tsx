@@ -11,6 +11,7 @@ const TIERS = [
         name: "Pro",
         id: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_PRO || "",
         price: 249,
+        originalPrice: 999,
         description: "Perfect for active job seekers needing multiple tailored resumes.",
         features: [
             "50 Resumes per month",
@@ -24,6 +25,7 @@ const TIERS = [
         name: "Elite",
         id: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_ELITE || "",
         price: 499,
+        originalPrice: 1999,
         description: "For extreme power users applying to hundreds of jobs.",
         features: [
             "150 Resumes per month",
@@ -111,9 +113,15 @@ export function Pricing() {
                             </div>
 
                             {/* Price */}
-                            <div className="flex items-baseline gap-1 mb-8">
-                                <span className="text-5xl font-bold text-slate-950">₹{tier.price}</span>
-                                <span className="text-slate-400 font-medium">/month</span>
+                            <div className="mb-8">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm text-slate-500 font-bold line-through decoration-slate-400 decoration-2">₹{tier.originalPrice}</span>
+                                    <span className="text-[10px] font-black bg-[#C1FF00]/20 text-[#1a1a1a] px-1.5 py-0.5 rounded uppercase tracking-wider">Save {Math.round((1 - tier.price/tier.originalPrice) * 100)}%</span>
+                                </div>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-5xl font-bold text-slate-950">₹{tier.price}</span>
+                                    <span className="text-slate-400 font-bold">/month</span>
+                                </div>
                             </div>
 
                             {/* Features */}

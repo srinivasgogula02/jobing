@@ -226,7 +226,7 @@ export function ProfileSummary({ profileData }: ProfileSummaryProps) {
         </div>
 
         {/* Completion Score */}
-        <div className="mt-5 p-4 rounded-xl bg-[#fafafa] border border-[#f0f0f0] relative">
+        <div className="mt-5 p-4 rounded-xl bg-[#C1FF00]/10 border border-[#C1FF00]/20 relative">
           <ScoreRing percent={completion.percent} score={completion.score} total={completion.total} />
           {completion.missing.length > 0 && (
             <div className="mt-3 pt-3 border-t border-[#f0f0f0]">

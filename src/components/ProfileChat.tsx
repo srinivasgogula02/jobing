@@ -89,6 +89,9 @@ export function ProfileChat({
     e.preventDefault();
     if (!input.trim() || status === 'streaming' || status === 'submitted') return;
     const currentInput = input;
+    // Reset textarea height to default
+    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    if (textarea) textarea.style.height = 'auto';
     setInput('');
     await sendMessage({ text: currentInput });
   };
@@ -208,18 +211,27 @@ export function ProfileChat({
 
       {/* Input */}
       <div className={`p-4 bg-white border-t border-[#f0f0f0] shrink-0 ${isMobile ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : ''}`}>
-        <form onSubmit={handleSubmit} className="relative flex items-center">
-          <input
-            className="w-full bg-[#fafafa] hover:bg-[#f5f5f4] border border-[#e5e5e5] rounded-xl pl-5 pr-14 py-4 text-base text-[#1a1a1a] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#C1FF00] focus:border-[#C1FF00] focus:bg-white transition-all shadow-sm"
+        <form onSubmit={handleSubmit} className="relative flex items-end">
+          <textarea
+            className="w-full bg-[#fafafa] hover:bg-[#f5f5f4] border border-[#e5e5e5] rounded-xl pl-5 pr-14 py-4 text-base text-[#1a1a1a] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#C1FF00] focus:border-[#C1FF00] focus:bg-white transition-all shadow-sm resize-none slim-scrollbar block min-h-[56px]"
             value={input}
             placeholder="E.g., I studied CS at MIT from 2018 to 2022..."
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
+            }}
             disabled={isLoading}
+            rows={1}
+            onKeyDown={(e) => {
+              // Standard behavior: Enter adds a new line naturally.
+              // We just let the textarea handle it.
+            }}
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="absolute right-2 p-2.5 bg-[#C1FF00] hover:bg-[#a8e600] disabled:bg-[#f5f5f4] disabled:text-[#9ca3af] text-[#1a1a1a] rounded-lg transition-all flex items-center justify-center font-bold shadow-sm"
+            className="absolute right-2 bottom-[8px] p-2.5 bg-[#C1FF00] hover:bg-[#a8e600] disabled:bg-[#f5f5f4] disabled:text-[#9ca3af] text-[#1a1a1a] rounded-lg transition-all flex items-center justify-center font-bold shadow-sm"
           >
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>

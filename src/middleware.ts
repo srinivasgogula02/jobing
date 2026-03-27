@@ -28,7 +28,9 @@ export default clerkMiddleware(async (auth, req) => {
     if (pricingMode === 'freemium') {
       // FREEMIUM MODE: Allow access if user is paid OR has remaining free credits
       const hasCredits = metadata?.has_credits === true;
-      if (!isPaid && !hasCredits) {
+      // If NOT paid AND NOT known to have credits, redirect to pricing
+      // EXCEPT if they are going to /create (let the page handle the fresh session sync)
+      if (!isPaid && !hasCredits && !req.nextUrl.pathname.startsWith('/create')) {
         const pricingUrl = new URL('/pricing', req.url)
         return NextResponse.redirect(pricingUrl)
       }

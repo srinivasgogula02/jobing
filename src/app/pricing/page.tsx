@@ -69,30 +69,12 @@ export default async function PricingPage() {
                 }
             }
 
-            // Freemium auto-sync: If user has credits in DB but JWT says has_credits=false
-            if (pricingMode === 'freemium' && !isActuallyPaid) {
-                const { data: creditRow } = await supabaseAdmin
-                    .from('users')
-                    .select('credits')
-                    .eq('id', user.id)
-                    .single();
-                
-                const dbCredits = creditRow?.credits || 0;
-                const jwtHasCredits = user.publicMetadata?.has_credits === true;
-
-                if (dbCredits > 0 && !jwtHasCredits) {
-                    // User still has credits but JWT is stale — fix it and let them in
-                    try {
-                        const client = await clerkClient();
-                        await client.users.updateUserMetadata(user.id, {
-                            publicMetadata: { has_credits: true }
-                        });
-                        console.log(`[Auto-Sync] Backfilled has_credits=true for freemium user ${user.id}`);
-                        redirect('/create');
-                    } catch (err) {
-                        console.error("[Auto-Sync] Error syncing has_credits:", err);
-                    }
-                }
+            // 4. AGGRESSIVE REDIRECT: If they are already "good to go", don't even show the pricing page
+            const jwtHasCredits = user.publicMetadata?.has_credits === true;
+            if (isActuallyPaid || (pricingMode === 'freemium' && jwtHasCredits)) {
+                // If they are on pricing but already have everything, send them to create
+                // unless they just came from a successful payment (handied by Dodo, but good to be safe)
+                redirect('/create');
             }
         }
     }

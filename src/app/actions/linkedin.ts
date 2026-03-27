@@ -202,9 +202,9 @@ export async function importLinkedInProfile(linkedinUrl: string) {
     if (linkedInData.error) {
         console.error("[LinkedIn Import] Apify returned an error inside JSON:", linkedInData.error);
         if (linkedInData.error.includes("hard limit") || linkedInData.error.includes("free user")) {
-            return { success: false, error: "Scraper API Rate Limit Exceeded. The backend actor hit its free tier limit." };
+            return { success: false, error: "Something went wrong. Please try again after some time." };
         }
-        return { success: false, error: "The scraping provider returned an error: " + linkedInData.error.substring(0, 100) };
+        return { success: false, error: "Something went wrong. Please try again after some time." };
     }
 
     // ── Map to our profile schema natively via exact programmatic extraction ────────────────

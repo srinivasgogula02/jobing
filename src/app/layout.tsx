@@ -112,6 +112,12 @@ export default function RootLayout({
             `,
           }}
         />
+        <Script
+          defer
+          data-website-id="dfid_YXyFB08ieOLrn3aJRAI0F"
+          data-domain="jobing.site"
+          src="https://datafa.st/js/script.js"
+        />
       </head>
       <body className={`${instrumentSans.variable} antialiased`}>
         <noscript>

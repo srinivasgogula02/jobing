@@ -25,18 +25,26 @@ export default clerkMiddleware(async (auth, req) => {
     // Determine pricing mode from environment variable
     const pricingMode = process.env.NEXT_PUBLIC_PRICING_MODE || 'paywall';
 
+    // Helper to check if it's an API request
+    const isApiRequest = req.nextUrl.pathname.startsWith('/api');
+
     if (pricingMode === 'freemium') {
       // FREEMIUM MODE: Allow access if user is paid OR has remaining free credits
       const hasCredits = metadata?.has_credits === true;
-      // If NOT paid AND NOT known to have credits, redirect to pricing
-      // EXCEPT if they are going to /create (let the page handle the fresh session sync)
-      if (!isPaid && !hasCredits && !req.nextUrl.pathname.startsWith('/create')) {
+      
+      // Redirect to pricing if:
+      // - NOT paid
+      // - AND NOT known to have credits
+      // - AND NOT an API request (API calls shouldn't get HTML redirects)
+      // - AND NOT on the /create page (let the page handle initial sync)
+      if (!isPaid && !hasCredits && !isApiRequest && !req.nextUrl.pathname.startsWith('/create')) {
         const pricingUrl = new URL('/pricing', req.url)
         return NextResponse.redirect(pricingUrl)
       }
     } else {
       // PAYWALL MODE (default): Only paid users get through
-      if (!isPaid) {
+      // Don't redirect API requests to HTML pages
+      if (!isPaid && !isApiRequest) {
         const pricingUrl = new URL('/pricing', req.url)
         return NextResponse.redirect(pricingUrl)
       }

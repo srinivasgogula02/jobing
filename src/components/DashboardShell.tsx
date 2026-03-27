@@ -13,13 +13,14 @@ import { usePathname } from "next/navigation";
 interface DashboardShellProps {
   children: React.ReactNode;
   credits?: number;
+  breadcrumbs?: { label: string; href?: string }[];
 }
 
-export function DashboardShell({ children, credits }: DashboardShellProps) {
+export function DashboardShell({ children, credits, breadcrumbs }: DashboardShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  // Helper to format pagename
+  // Helper to format pagename (fallback)
   const getPageName = () => {
     if (pathname === "/") return "";
     const segments = pathname.split("/").filter(Boolean);
@@ -28,7 +29,7 @@ export function DashboardShell({ children, credits }: DashboardShellProps) {
     return lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1);
   };
 
-  const pageName = getPageName();
+  const defaultPageName = getPageName();
 
   return (
     <div className="flex h-[100dvh] w-full bg-[#fafafa] text-[#1a1a1a] overflow-hidden">
@@ -39,23 +40,37 @@ export function DashboardShell({ children, credits }: DashboardShellProps) {
 
       <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative z-0">
         <header className="h-14 flex items-center justify-between gap-3 px-4 md:px-6 border-b border-[#e5e5e5] shrink-0 bg-white z-10">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-w-[50%] md:max-w-[60%]">
             <button 
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 -ml-2 text-[#1a1a1a] hover:bg-slate-100 rounded-lg transition-colors"
+              className="md:hidden p-2 -ml-2 text-[#1a1a1a] hover:bg-slate-100 rounded-lg transition-colors shrink-0"
             >
               <Menu size={20} />
             </button>
-            <div className="flex items-center gap-2">
-              <Link href="/create" className="flex items-center">
+            <div className="flex items-center gap-2 overflow-hidden flex-nowrap min-w-0">
+              <Link href="/create" className="flex items-center shrink-0">
                 <span className="font-bold text-[14px] text-[#1a1a1a] tracking-tight hover:text-[#8bb800] transition-colors">Jobing AI</span>
               </Link>
-              {pageName && (
+              
+              {breadcrumbs && breadcrumbs.length > 0 ? (
+                breadcrumbs.map((crumb, idx) => (
+                  <React.Fragment key={idx}>
+                    <span className="text-[#e5e5e5] font-light shrink-0">/</span>
+                    {crumb.href ? (
+                       <Link href={crumb.href} className="text-[14px] text-[#9ca3af] hover:text-[#1a1a1a] font-medium transition-colors shrink-0">
+                         {crumb.label}
+                       </Link>
+                    ) : (
+                       <span className="text-[14px] text-[#6b7280] font-medium truncate">{crumb.label}</span>
+                    )}
+                  </React.Fragment>
+                ))
+              ) : defaultPageName ? (
                 <>
-                  <span className="text-[#e5e5e5] font-light">/</span>
-                  <span className="text-[14px] text-[#6b7280] font-medium">{pageName}</span>
+                  <span className="text-[#e5e5e5] font-light shrink-0">/</span>
+                  <span className="text-[14px] text-[#6b7280] font-medium truncate">{defaultPageName}</span>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
 

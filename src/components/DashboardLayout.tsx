@@ -7,13 +7,14 @@ import { DashboardShell } from "./DashboardShell";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  breadcrumbs?: { label: string; href?: string }[];
 }
 
-export async function DashboardLayout({ children }: DashboardLayoutProps) {
+export async function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps) {
   const credits = await getUserCredits();
 
   return (
-    <DashboardShell credits={credits}>
+    <DashboardShell credits={credits} breadcrumbs={breadcrumbs}>
       {children}
     </DashboardShell>
   );

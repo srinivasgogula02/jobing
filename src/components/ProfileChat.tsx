@@ -7,7 +7,11 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 function cleanResponse(text: string): string {
-  return text.replace(/<<<PROFILE_UPDATE>>>[\s\S]*?<<<END_PROFILE_UPDATE>>>/g, '').trim();
+  const index = text.indexOf('<<<PROFILE_UPDATE>>>');
+  if (index !== -1) {
+    return text.substring(0, index).trim();
+  }
+  return text.trim();
 }
 
 interface MissingField {

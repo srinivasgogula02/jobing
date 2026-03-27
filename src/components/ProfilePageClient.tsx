@@ -7,9 +7,10 @@ import { ProfileSummary, ScoreRing } from "@/components/ProfileSummary";
 import { ProfileSuccessPopup } from "@/components/ProfileSuccessPopup";
 import { LinkedInImport } from "@/components/LinkedInImport";
 import { computeCompletionScore } from "@/lib/profileConfig";
-import { ChevronLeft, LayoutDashboard, Database, X } from "lucide-react";
+import { ChevronLeft, LayoutDashboard, Database, X, Trash2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
+import { clearProfileData } from "@/app/actions/user";
 
 interface ProfilePageClientProps {
   initialProfileData: Record<string, any>;
@@ -53,6 +54,25 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
     setProfileData(prev => ({ ...prev, hasSeenCompletionPopup: true }));
   };
 
+  const [isClearing, setIsClearing] = useState(false);
+  const handleClearProfile = async () => {
+    if (window.confirm("Are you sure you want to delete all your profile data? This action cannot be undone.")) {
+      setIsClearing(true);
+      try {
+        const res = await clearProfileData();
+        if (res.success) {
+          await handleProfileUpdate();
+        } else {
+          alert("Failed to clear profile data. Please try again.");
+        }
+      } catch (err) {
+        console.error("Error clearing profile:", err);
+      } finally {
+        setIsClearing(false);
+      }
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-[calc(100dvh-56px)] lg:h-full w-full max-w-6xl mx-auto lg:p-0 overflow-hidden lg:overflow-visible">
       {/* Gamified Header - Immersive Version for Mobile */}
@@ -63,6 +83,14 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
         </div>
         <div className="flex items-center gap-3 md:gap-4 shrink-0">
           <LinkedInImport onImportSuccess={handleProfileUpdate} />
+          <button
+            onClick={handleClearProfile}
+            disabled={isClearing}
+            title="Delete all profile data"
+            className="p-2 text-[#ef4444] hover:bg-[#fef2f2] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden sm:block"
+          >
+            {isClearing ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+          </button>
           <div className="scale-90 md:scale-100 origin-right">
             <ScoreRing percent={completion.percent} score={completion.score} total={completion.total} />
           </div>

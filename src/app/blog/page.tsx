@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPublishedBlogs } from "@/app/actions/blog";
-import { Header } from "@/components/Header";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import { ArrowRight, Calendar, FileText } from "lucide-react";
 
 export const metadata = {
@@ -9,33 +9,26 @@ export const metadata = {
   keywords: ["resume tips", "ATS optimization", "career advice", "job search tech", "interview tips"],
 };
 
-// Next.js uses standard caching; we can revalidate occasionally 
-export const revalidate = 3600; // revalidate every hour
+export const revalidate = 3600;
 
 export default async function BlogListingPage() {
   const blogs = await getPublishedBlogs();
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#fafafa]">
-      <Header />
-      
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="pt-20 pb-16 px-5 relative overflow-hidden bg-white border-b border-[#f0f0f0]">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#C1FF00]/10 rounded-full blur-[120px] pointer-events-none" />
-          
-          <div className="max-w-5xl mx-auto text-center relative z-10">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-[#1a1a1a] tracking-tight mb-5">
-              The Jobing AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1a1a1a] to-[#6b7280]">Blog</span>
-            </h1>
-            <p className="text-[#6b7280] text-lg font-medium max-w-2xl mx-auto">
-              Everything you need to know to hack the job search process, beat automated filters, and get humans to actually read your resume.
-            </p>
-          </div>
-        </section>
+    <DashboardLayout>
+      <div className="flex flex-col h-full space-y-6 px-4 py-8 lg:p-10 max-w-7xl mx-auto w-full">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-extrabold text-[#1a1a1a] tracking-tight mb-2">
+            Blog & Career Advice
+          </h1>
+          <p className="text-[#6b7280] font-medium">
+            Read the latest strategies to craft a perfect resume and beat automated systems.
+          </p>
+        </div>
 
         {/* Blog Grid */}
-        <section className="py-20 px-5 max-w-5xl mx-auto">
+        <div className="pt-4">
           {blogs.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl border border-[#e5e5e5]">
               <div className="w-16 h-16 bg-[#f5f5f4] rounded-full flex items-center justify-center mx-auto mb-4">
@@ -97,8 +90,8 @@ export default async function BlogListingPage() {
               ))}
             </div>
           )}
-        </section>
-      </main>
-    </div>
+        </div>
+      </div>
+    </DashboardLayout>
   );
 }

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBlogByPermalink } from "@/app/actions/blog";
 import ReactMarkdown from "react-markdown";
-import { Header } from "@/components/Header";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import { Calendar, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -49,12 +49,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <Header />
-      
-      <main className="flex-1 pb-24">
+    <DashboardLayout>
+      <div className="flex flex-col h-full overflow-y-auto">
         {/* Article Header (Hero) */}
-        <div className="bg-[#fafafa] border-b border-[#f0f0f0] pt-24 pb-12 px-5">
+        <div className="bg-[#fafafa] border-b border-[#f0f0f0] pt-12 pb-12 px-5 md:pt-16 md:px-10 lg:pt-20 lg:px-16">
           <div className="max-w-3xl mx-auto">
             <Link 
               href="/blog" 
@@ -126,7 +124,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </div>
           )}
         </article>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

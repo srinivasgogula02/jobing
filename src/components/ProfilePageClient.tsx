@@ -75,27 +75,25 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100dvh-56px)] lg:h-full w-full max-w-6xl mx-auto lg:p-0 overflow-hidden lg:overflow-visible">
-      {/* Gamified Header - Responsive Dual-Row on Mobile, Single-Row on Desktop */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white px-5 py-4 lg:mb-6 lg:p-6 lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm border-b border-[#f0f0f0] lg:border-none shrink-0 w-full">
+      {/* Gamified Header - Ultra-compact Single Row on Mobile, Full on Desktop */}
+      <div className="flex items-center justify-between gap-4 bg-white px-5 py-4 lg:mb-6 lg:p-6 lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm border-b border-[#f0f0f0] lg:border-none shrink-0 w-full">
         
-        {/* Title & Mobile "View Profile" Button */}
-        <div className="flex items-center justify-between w-full lg:w-auto">
-          <div>
-            <h1 className="text-xl lg:text-2xl font-black text-[#1a1a1a] tracking-tight leading-tight">Build Profile</h1>
-            <p className="text-[11px] lg:text-sm text-[#6b7280] font-bold uppercase tracking-widest mt-1">Level {Math.floor(completion.percent / 20) + 1}</p>
-          </div>
-          <button 
-            onClick={() => setShowDataOnMobile(true)}
-             className="lg:hidden px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-[13px] font-bold active:scale-95 transition-all shadow-sm shrink-0"
-           >
-             View Profile
-           </button>
+        {/* Title Area - Hidden on mobile! */}
+        <div className="hidden lg:block">
+          <h1 className="text-xl lg:text-2xl font-black text-[#1a1a1a] tracking-tight leading-tight">Build Profile</h1>
+          <p className="text-[11px] lg:text-sm text-[#6b7280] font-bold uppercase tracking-widest mt-1">Level {Math.floor(completion.percent / 20) + 1}</p>
         </div>
 
-        {/* Actions & Score Ring */}
-        <div className="flex items-center justify-between lg:justify-end gap-3 md:gap-4 shrink-0 w-full lg:w-auto">
+        {/* Actions & Score Ring (ALL in one line on Mobile!) */}
+        <div className="flex items-center justify-between w-full lg:w-auto overflow-x-auto no-scrollbar gap-2 lg:gap-4 -mx-5 px-5 lg:mx-0 lg:px-0">
           <div className="flex items-center gap-2 shrink-0">
             <LinkedInImport onImportSuccess={handleProfileUpdate} />
+            <button 
+              onClick={() => setShowDataOnMobile(true)}
+              className="lg:hidden px-3.5 py-2 bg-[#1a1a1a] text-white rounded-xl text-[13px] font-bold active:scale-95 transition-all shadow-sm shrink-0"
+            >
+              View Profile
+            </button>
             <button
               onClick={handleClearProfile}
               disabled={isClearing}
@@ -105,8 +103,9 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
               {isClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
             </button>
           </div>
+          
           <div className="scale-90 md:scale-100 origin-right shrink-0">
-            <ScoreRing percent={completion.percent} score={completion.score} total={completion.total} />
+            <ScoreRing percent={completion.percent} score={completion.score} total={completion.total} hideTextOnMobile={true} />
           </div>
         </div>
       </div>

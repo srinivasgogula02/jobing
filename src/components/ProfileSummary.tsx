@@ -35,7 +35,7 @@ function EmptyHint({ message }: { message: string }) {
 }
 
 // ── Completion Score Ring ────────────────────────────────────────────────────
-export function ScoreRing({ percent, score, total }: { percent: number; score: number; total: number }) {
+export function ScoreRing({ percent, score, total, hideTextOnMobile = false }: { percent: number; score: number; total: number; hideTextOnMobile?: boolean }) {
   const radius = 20;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percent / 100) * circumference;
@@ -55,7 +55,7 @@ export function ScoreRing({ percent, score, total }: { percent: number; score: n
       <div className="absolute w-[52px] h-[52px] flex items-center justify-center">
         <span className="text-[13px] font-black text-[#1a1a1a]">{percent}%</span>
       </div>
-      <div className="ml-1">
+      <div className={`ml-1 ${hideTextOnMobile ? 'hidden lg:block' : ''}`}>
         <p className="text-[13px] font-bold text-[#1a1a1a]">{score}/{total} fields</p>
         <p className="text-[11px] text-[#9ca3af]">
           {percent === 100 ? 'Ready to create resume!' : 'Complete your profile'}

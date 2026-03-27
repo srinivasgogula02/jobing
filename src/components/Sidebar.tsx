@@ -13,6 +13,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     { name: "Create Resume", href: "/create", icon: PlusCircle },
     { name: "My Resumes", href: "/resumes", icon: FileText },
     { name: "Profile", href: "/profile", icon: User },
+    { name: "Blog", href: "/blog", icon: FileText },
     { name: "Jobs", href: "#jobs", icon: Briefcase, comingSoon: true },
     { name: "Upskill", href: "#upskill", icon: GraduationCap, comingSoon: true },
     { name: "Extension", href: "#extension", icon: Puzzle, comingSoon: true },

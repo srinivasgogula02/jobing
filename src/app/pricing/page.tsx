@@ -42,23 +42,22 @@ export default async function PricingPage() {
 
             // 3. AUTO-SYNC & HEAL CLERK JWT METADATA
             const jwtIsPaid = user.publicMetadata?.is_paid === true;
+            const pricingMode = process.env.NEXT_PUBLIC_PRICING_MODE || 'paywall';
 
             if (isActuallyPaid && !jwtIsPaid) {
                 // Desert Case / Legacy User: They are paid in DB, but Clerk JWT is missing the flag.
-                // The proxy forced them here. Let's fix their Clerk account permanently and seamlessly let them in.
                 try {
                     const client = await clerkClient();
                     await client.users.updateUserMetadata(user.id, {
-                        publicMetadata: { is_paid: true }
+                        publicMetadata: { is_paid: true, has_credits: true }
                     });
                     console.log(`[Auto-Sync] Backfilled is_paid=true for legacy user ${user.id}`);
-                    redirect('/create'); // Get them off the pricing page!
+                    redirect('/create');
                 } catch (err) {
                     console.error("[Auto-Sync] Error syncing is_paid=true to Clerk:", err);
                 }
             } else if (!isActuallyPaid && jwtIsPaid) {
-                // Edge Case: Their subscription expired in DB, but Clerk JWT still says paid.
-                // Fix it so they can't bypass the proxy later if JWT was somehow stalled.
+                // Edge Case: Subscription expired but JWT still says paid.
                 try {
                     const client = await clerkClient();
                     await client.users.updateUserMetadata(user.id, {
@@ -67,6 +66,32 @@ export default async function PricingPage() {
                     console.log(`[Auto-Sync] Removed is_paid flag for expired user ${user.id}`);
                 } catch (err) {
                     console.error("[Auto-Sync] Error stripping is_paid from Clerk:", err);
+                }
+            }
+
+            // Freemium auto-sync: If user has credits in DB but JWT says has_credits=false
+            if (pricingMode === 'freemium' && !isActuallyPaid) {
+                const { data: creditRow } = await supabaseAdmin
+                    .from('users')
+                    .select('credits')
+                    .eq('id', user.id)
+                    .single();
+                
+                const dbCredits = creditRow?.credits || 0;
+                const jwtHasCredits = user.publicMetadata?.has_credits === true;
+
+                if (dbCredits > 0 && !jwtHasCredits) {
+                    // User still has credits but JWT is stale — fix it and let them in
+                    try {
+                        const client = await clerkClient();
+                        await client.users.updateUserMetadata(user.id, {
+                            publicMetadata: { has_credits: true }
+                        });
+                        console.log(`[Auto-Sync] Backfilled has_credits=true for freemium user ${user.id}`);
+                        redirect('/create');
+                    } catch (err) {
+                        console.error("[Auto-Sync] Error syncing has_credits:", err);
+                    }
                 }
             }
         }

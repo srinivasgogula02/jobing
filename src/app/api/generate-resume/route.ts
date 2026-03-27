@@ -1,5 +1,5 @@
 import { generateText } from 'ai';
-import { currentUser } from '@clerk/nextjs/server';
+import { currentUser, clerkClient } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -61,6 +61,33 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ error: 'Failed to process credit deduction' }), { status: 500 });
     }
     creditDeducted = true;
+
+    // In freemium mode: if credits just hit 0 and user has no subscription, revoke access
+    const newCredits = userData.credits - 1;
+    if (newCredits <= 0) {
+      const pricingMode = process.env.NEXT_PUBLIC_PRICING_MODE || 'paywall';
+      if (pricingMode === 'freemium') {
+        // Check if they have an active subscription (paid users keep access regardless)
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('current_subscription_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!userRow?.current_subscription_id) {
+          // No subscription + no credits = revoke freemium access via Clerk
+          try {
+            const client = await clerkClient();
+            await client.users.updateUserMetadata(user.id, {
+              publicMetadata: { has_credits: false }
+            });
+            console.log(`[Freemium] Credits exhausted for ${user.id}, synced has_credits=false`);
+          } catch (clerkErr) {
+            console.error('[Freemium] Error syncing has_credits=false:', clerkErr);
+          }
+        }
+      }
+    }
 
     // 3. Generate LaTeX BODY using Vercel AI SDK
     // The preamble is hardcoded below to guarantee compilation. The AI only writes the body.

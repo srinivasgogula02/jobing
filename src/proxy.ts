@@ -18,14 +18,26 @@ export default clerkMiddleware(async (auth, req) => {
       return redirectToSignIn({ returnBackUrl: req.url })
     }
 
-    // Retrieve the is_paid flag from the session claims metadata
-    const metadata = sessionClaims?.metadata as { is_paid?: boolean } | undefined;
+    // Retrieve metadata from JWT session claims
+    const metadata = sessionClaims?.metadata as { is_paid?: boolean; has_credits?: boolean } | undefined;
     const isPaid = metadata?.is_paid === true;
 
-    // If they are logged in but not a paid user, redirect them to the pricing page
-    if (!isPaid) {
-      const pricingUrl = new URL('/pricing', req.url)
-      return NextResponse.redirect(pricingUrl)
+    // Determine pricing mode from environment variable
+    const pricingMode = process.env.NEXT_PUBLIC_PRICING_MODE || 'paywall';
+
+    if (pricingMode === 'freemium') {
+      // FREEMIUM MODE: Allow access if user is paid OR has remaining free credits
+      const hasCredits = metadata?.has_credits === true;
+      if (!isPaid && !hasCredits) {
+        const pricingUrl = new URL('/pricing', req.url)
+        return NextResponse.redirect(pricingUrl)
+      }
+    } else {
+      // PAYWALL MODE (default): Only paid users get through
+      if (!isPaid) {
+        const pricingUrl = new URL('/pricing', req.url)
+        return NextResponse.redirect(pricingUrl)
+      }
     }
   }
 })

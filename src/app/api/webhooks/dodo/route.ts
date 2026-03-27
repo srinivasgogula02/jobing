@@ -297,7 +297,8 @@ async function updateSubscriptionTierAndCredits(props: {
             const client = await clerkClient();
             await client.users.updateUserMetadata(props.clerkUserId, {
                 publicMetadata: {
-                    is_paid: props.isActive
+                    is_paid: props.isActive,
+                    has_credits: props.isActive // Subscription grants credits, so sync this too
                 }
             });
             console.log(`[updateSubscriptionTier] Synced is_paid=${props.isActive} to Clerk for ${props.clerkUserId}.`);

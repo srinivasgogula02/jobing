@@ -215,7 +215,7 @@ export function ProfileChat({
           <textarea
             className="w-full bg-[#fafafa] hover:bg-[#f5f5f4] border border-[#e5e5e5] rounded-xl pl-5 pr-14 py-4 text-base text-[#1a1a1a] placeholder:text-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#C1FF00] focus:border-[#C1FF00] focus:bg-white transition-all shadow-sm resize-none slim-scrollbar block min-h-[56px]"
             value={input}
-            placeholder="E.g., I studied CS at MIT from 2018 to 2022..."
+            placeholder="E.g., I studied CS at MIT from 2018..."
             onChange={(e) => {
               setInput(e.target.value);
               e.target.style.height = 'auto';

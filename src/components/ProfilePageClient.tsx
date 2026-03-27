@@ -90,7 +90,7 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
             <LinkedInImport onImportSuccess={handleProfileUpdate} />
             <button 
               onClick={() => setShowDataOnMobile(true)}
-              className="lg:hidden px-3.5 py-2 bg-[#1a1a1a] text-white rounded-xl text-[13px] font-bold active:scale-95 transition-all shadow-sm shrink-0"
+              className="lg:hidden px-2.5 py-2 bg-[#1a1a1a] text-white rounded-xl text-[13px] font-bold active:scale-95 transition-all shadow-sm shrink-0"
             >
               View Profile
             </button>

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, User, Settings, PlusCircle, CreditCard, LogOut, ChevronDown, ChevronUp } from "lucide-react";
+import { FileText, User, Settings, PlusCircle, CreditCard, LogOut, ChevronDown, ChevronUp, Briefcase } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { useState } from "react";
 
@@ -12,6 +12,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const navItems = [
     { name: "Create Resume", href: "/create", icon: PlusCircle },
     { name: "My Resumes", href: "/resumes", icon: FileText },
+    { name: "Jobs", href: "/jobs", icon: Briefcase },
     { name: "Profile", href: "/profile", icon: User },
   ];
 

@@ -5,8 +5,8 @@
 
 import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
-import { UserButton } from "@clerk/nextjs";
-import { Zap, Menu } from "lucide-react";
+import { UserButton, useUser } from "@clerk/nextjs";
+import { Zap, Menu, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,6 +17,7 @@ interface DashboardShellProps {
 }
 
 export function DashboardShell({ children, credits, breadcrumbs }: DashboardShellProps) {
+  const { isSignedIn, isLoaded } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -104,33 +105,43 @@ export function DashboardShell({ children, credits, breadcrumbs }: DashboardShel
                 Naukri
               </a>
             </div>
-            {typeof credits === "number" && (
-            <Link 
-              href="/billing" 
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              <Zap size={14} className="text-[#8bb800] fill-[#8bb800]" />
-              <span>{credits.toLocaleString()}</span>
-            </Link>
-          )}
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "w-8 h-8",
-              },
-            }}
-          >
-            {/* Custom menu items inside the Clerk dropdown */}
-            <UserButton.MenuItems>
-              <UserButton.Link
-                label="Subscription"
-                labelIcon={<Zap size={14} />}
-                href="/billing"
-              />
-              <UserButton.Action label="manageAccount" />
-              <UserButton.Action label="signOut" />
-            </UserButton.MenuItems>
-          </UserButton>
+            {isLoaded && isSignedIn ? (
+              <>
+                {typeof credits === "number" && (
+                  <Link 
+                    href="/billing" 
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <Zap size={14} className="text-[#8bb800] fill-[#8bb800]" />
+                    <span>{credits.toLocaleString()}</span>
+                  </Link>
+                )}
+                <UserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8",
+                    },
+                  }}
+                >
+                  <UserButton.MenuItems>
+                    <UserButton.Link
+                      label="Subscription"
+                      labelIcon={<Zap size={14} />}
+                      href="/billing"
+                    />
+                    <UserButton.Action label="manageAccount" />
+                    <UserButton.Action label="signOut" />
+                  </UserButton.MenuItems>
+                </UserButton>
+              </>
+            ) : isLoaded && !isSignedIn ? (
+              <Link 
+                href="/create" 
+                className="btn-primary px-4 py-1.5 text-sm font-bold shadow-lg shadow-[#C1FF00]/20 hover:scale-[1.02] transition-transform flex items-center gap-1.5"
+              >
+                Get Started <ArrowRight size={14} />
+              </Link>
+            ) : null}
           </div>
         </header>
         <main className="flex-1 flex flex-col min-h-0 overflow-auto p-0 md:p-6 slim-scrollbar">

@@ -75,24 +75,14 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100dvh-56px)] lg:h-full w-full max-w-6xl mx-auto lg:p-0 overflow-hidden lg:overflow-visible">
-      {/* Gamified Header - Immersive Version for Mobile */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white px-5 py-4 lg:mb-6 lg:p-6 lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm border-b border-[#f0f0f0] lg:border-none shrink-0 w-full">
-        <div>
-           <h1 className="text-xl lg:text-2xl font-black text-[#1a1a1a] tracking-tight leading-tight">Build Profile</h1>
-           <p className="text-[11px] lg:text-sm text-[#6b7280] font-bold uppercase tracking-widest mt-1">Level {Math.floor(completion.percent / 20) + 1}</p>
-        </div>
-        <div className="flex items-center gap-3 md:gap-4 shrink-0">
-          <LinkedInImport onImportSuccess={handleProfileUpdate} />
-          <button
-            onClick={handleClearProfile}
-            disabled={isClearing}
-            title="Delete all profile data"
-            className="p-2 text-[#ef4444] hover:bg-[#fef2f2] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden sm:block"
-          >
-            {isClearing ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-          </button>
-          <div className="scale-90 md:scale-100 origin-right">
-            <ScoreRing percent={completion.percent} score={completion.score} total={completion.total} />
+      {/* Gamified Header - Responsive Dual-Row on Mobile, Single-Row on Desktop */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white px-5 py-4 lg:mb-6 lg:p-6 lg:rounded-2xl lg:border lg:border-[#e5e5e5] lg:shadow-sm border-b border-[#f0f0f0] lg:border-none shrink-0 w-full">
+        
+        {/* Title & Mobile "View Profile" Button */}
+        <div className="flex items-center justify-between w-full lg:w-auto">
+          <div>
+            <h1 className="text-xl lg:text-2xl font-black text-[#1a1a1a] tracking-tight leading-tight">Build Profile</h1>
+            <p className="text-[11px] lg:text-sm text-[#6b7280] font-bold uppercase tracking-widest mt-1">Level {Math.floor(completion.percent / 20) + 1}</p>
           </div>
           <button 
             onClick={() => setShowDataOnMobile(true)}
@@ -102,6 +92,23 @@ export function ProfilePageClient({ initialProfileData }: ProfilePageClientProps
            </button>
         </div>
 
+        {/* Actions & Score Ring */}
+        <div className="flex items-center justify-between lg:justify-end gap-3 md:gap-4 shrink-0 w-full lg:w-auto">
+          <div className="flex items-center gap-2 shrink-0">
+            <LinkedInImport onImportSuccess={handleProfileUpdate} />
+            <button
+              onClick={handleClearProfile}
+              disabled={isClearing}
+              title="Delete all profile data"
+              className="flex items-center justify-center w-[36px] h-[36px] bg-[#fef2f2] text-[#ef4444] hover:bg-[#fee2e2] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {isClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            </button>
+          </div>
+          <div className="scale-90 md:scale-100 origin-right shrink-0">
+            <ScoreRing percent={completion.percent} score={completion.score} total={completion.total} />
+          </div>
+        </div>
       </div>
 
       {/* Main Experience */}

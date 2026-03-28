@@ -118,11 +118,6 @@ export default function RootLayout({
           data-domain="jobing.site"
           src="https://datafa.st/js/script.js"
         />
-        <script 
-          async 
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5185477271804967"
-          crossOrigin="anonymous"
-        ></script>
       </head>
       <body className={`${instrumentSans.variable} antialiased`}>
         <noscript>

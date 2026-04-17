@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 function generateRandomId(length = 5) {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   let result = "";

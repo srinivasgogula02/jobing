@@ -11,6 +11,7 @@ function isValidId(id: string) {
 }
 
 export async function getNote(id: string) {
+  id = (id || "").toLowerCase();
   if (!isValidId(id)) return null;
 
   const { data, error } = await supabase
@@ -28,6 +29,7 @@ export async function getNote(id: string) {
 }
 
 export async function saveNote(id: string, content: string) {
+  id = (id || "").toLowerCase();
   if (!isValidId(id)) {
     return { success: false, error: "Invalid ID format or length exceeded." };
   }
@@ -51,6 +53,7 @@ export async function saveNote(id: string, content: string) {
 }
 
 export async function checkIdTaken(id: string) {
+  id = (id || "").toLowerCase();
   if (!isValidId(id)) return true; // Treat invalid IDs as taken so they can't be used
 
   const { data, error } = await supabase

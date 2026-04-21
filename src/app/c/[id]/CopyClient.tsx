@@ -64,7 +64,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
 
   const handleChangeId = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanId = newId.trim().replace(/[^a-zA-Z0-9-_]/g, "");
+    const cleanId = newId.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
     
     if (!cleanId) {
       setIdError("ID cannot be empty.");
@@ -134,7 +134,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                     type="text"
                     value={newId}
                     onChange={(e) => {
-                      setNewId(e.target.value);
+                      setNewId(e.target.value.toLowerCase());
                       setIdError("");
                     }}
                     autoFocus

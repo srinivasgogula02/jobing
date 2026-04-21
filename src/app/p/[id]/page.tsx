@@ -18,9 +18,9 @@ export const dynamic = "force-dynamic";
 
 export default async function PrivatePage({ params }: PageProps) {
   const { id } = await params;
-  let decodedId = id;
+  let decodedId = id.toLowerCase();
   try {
-    decodedId = decodeURIComponent(id);
+    decodedId = decodeURIComponent(id).toLowerCase();
   } catch (e) {
     console.warn("Invalid URI component in private ID", id);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { saveNote, checkIdTaken } from "@/app/actions/copy";
 import { 
@@ -9,7 +9,10 @@ import {
   Link as LinkIcon, 
   Edit,
   Loader2,
-  X 
+  X,
+  Share,
+  Save,
+  EyeOff
 } from "lucide-react";
 import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -18,49 +21,39 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-export default function CopyClient({ id, initialContent }: { id: string, initialContent: string }) {
+export default function CopyClient({ id, initialContent, isNew = false }: { id: string, initialContent: string, isNew?: boolean }) {
   const [content, setContent] = useState(initialContent);
+  const [isEditingContent, setIsEditingContent] = useState(isNew);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedStealthLink, setCopiedStealthLink] = useState(false);
   const [copiedContent, setCopiedContent] = useState(false);
   const [hostname, setHostname] = useState("jobing.site");
   
   const [isEditingId, setIsEditingId] = useState(false);
+  const [currentId, setCurrentId] = useState(id);
   const [newId, setNewId] = useState(id);
   const [idError, setIdError] = useState("");
   const [checkingId, setCheckingId] = useState(false);
 
   const router = useRouter();
-  const initialMount = useRef(true);
 
-  // Debounced Autosave
   useEffect(() => {
     setHostname(window.location.host);
-
-    if (initialMount.current) {
-      initialMount.current = false;
-      return;
-    }
-
-    setSaveStatus("saving");
-    const timeout = setTimeout(async () => {
-      const result = await saveNote(id, content);
-      if (result.success) {
-        setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 2000);
-      } else {
-        setSaveStatus("error");
-      }
-    }, 1000); // 1s debounce
-
-    return () => clearTimeout(timeout);
-  }, [content, id]);
+  }, []);
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/c/${id}`;
+    const url = `${window.location.origin}/c/${currentId}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleCopyStealthLink = () => {
+    const url = `${window.location.origin}/p/${currentId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedStealthLink(true);
+    setTimeout(() => setCopiedStealthLink(false), 2000);
   };
 
   const handleCopyContent = () => {
@@ -78,7 +71,7 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
       return;
     }
     
-    if (cleanId === id) {
+    if (cleanId === currentId) {
       setIsEditingId(false);
       return;
     }
@@ -92,9 +85,31 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
       setIdError("This ID is already taken. Please use another.");
       setCheckingId(false);
     } else {
-      // ID is free. We will save the current content to the new ID, and redirect.
-      await saveNote(cleanId, content);
-      router.push(`/c/${cleanId}`);
+      if (isNew) {
+        setCurrentId(cleanId);
+        setIsEditingId(false);
+        setCheckingId(false);
+      } else {
+        await saveNote(cleanId, content);
+        router.push(`/c/${cleanId}`);
+      }
+    }
+  };
+
+  const handleSaveShare = async () => {
+    if (isNew && !content.trim()) return;
+    setSaveStatus("saving");
+    const result = await saveNote(currentId, content);
+    if (result.success) {
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+      if (isNew) {
+        router.push(`/c/${currentId}`);
+      } else {
+        setIsEditingContent(false);
+      }
+    } else {
+      setSaveStatus("error");
     }
   };
 
@@ -106,7 +121,7 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
           
           {/* Logo / Title Area */}
           <div className="flex items-center gap-3 w-full sm:w-auto overflow-hidden">
-            <div className="bg-blue-600 dark:bg-blue-500 rounded-lg p-2 text-white shadow-lg shadow-blue-500/20">
+            <div className="bg-blue-600 dark:bg-blue-500 rounded-lg p-2 text-white shadow-lg shadow-blue-500/20 shrink-0">
               <Copy size={20} />
             </div>
             {isEditingId ? (
@@ -130,7 +145,7 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
                 <button
                   type="submit"
                   disabled={checkingId}
-                  className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50"
+                  className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 shrink-0"
                   title="Save Custom ID"
                 >
                   {checkingId ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
@@ -140,9 +155,9 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
                   onClick={() => {
                     setIsEditingId(false);
                     setIdError("");
-                    setNewId(id);
+                    setNewId(currentId);
                   }}
-                  className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 bg-neutral-200 dark:bg-neutral-800 rounded-md transition-colors"
+                  className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 bg-neutral-200 dark:bg-neutral-800 rounded-md transition-colors shrink-0"
                   title="Cancel"
                 >
                   <X size={16} />
@@ -152,7 +167,7 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
               <div className="flex items-center gap-2 group cursor-pointer bg-neutral-100/50 hover:bg-neutral-200 dark:bg-neutral-800/50 dark:hover:bg-neutral-800 px-2 sm:px-3 py-1.5 border border-neutral-200 dark:border-neutral-700/50 rounded-md transition-colors flex-1 sm:flex-none shadow-sm min-w-0" onClick={() => setIsEditingId(true)} title="Tap to change custom URL">
                 <h1 className="font-semibold text-sm sm:text-lg flex items-center min-w-0 overflow-hidden">
                   <span className="text-neutral-400 dark:text-neutral-500 font-normal mr-0.5 sm:mr-1 shrink-0">{hostname}/c/</span>
-                  <span className="truncate">{id}</span>
+                  <span className="truncate">{currentId}</span>
                 </h1>
                 <div className="flex items-center text-[10px] sm:text-xs gap-1 text-neutral-500 bg-neutral-200/50 dark:bg-neutral-700/50 px-1 sm:px-1.5 py-0.5 rounded opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
                   <Edit size={12} />
@@ -163,7 +178,7 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
             {/* Status Indicator */}
             <div className="flex items-center text-xs font-medium text-neutral-500 w-16 justify-end">
               {saveStatus === "saving" && (
@@ -177,20 +192,70 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
               )}
             </div>
 
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition"
-            >
-              {copiedLink ? <Check size={16} className="text-green-500" /> : <LinkIcon size={16} />}
-              <span className="hidden sm:inline">Copy Link</span>
-            </button>
-            <button
-              onClick={handleCopyContent}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/20 transition transform active:scale-95"
-            >
-              {copiedContent ? <Check size={16} /> : <Copy size={16} />}
-              Copy Content
-            </button>
+            {isNew ? (
+              content.trim().length > 0 && (
+                <button
+                  onClick={handleSaveShare}
+                  disabled={saveStatus === "saving"}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#C1FF00] text-black hover:bg-[#aee600] transition transform hover:scale-[1.02] active:scale-95 shadow-sm"
+                >
+                  {saveStatus === "saving" ? <Loader2 size={16} className="animate-spin" /> : <Share size={16} />}
+                  Create Share
+                </button>
+              )
+            ) : (
+              isEditingContent ? (
+                <>
+                  <button onClick={() => setIsEditingContent(false)} className="px-3 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 transition">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveShare}
+                    disabled={saveStatus === "saving"}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#C1FF00] text-black hover:bg-[#aee600] transition transform hover:scale-[1.02] active:scale-95 shadow-sm"
+                  >
+                    {saveStatus === "saving" ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    Save Note
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsEditingContent(true)}
+                    className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition"
+                  >
+                    <Edit size={16} />
+                    <span className="hidden sm:inline">Edit</span>
+                  </button>
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition"
+                    title="Copy Link"
+                  >
+                    {copiedLink ? <Check size={16} className="text-green-500" /> : <LinkIcon size={16} />}
+                    <span className="hidden xs:inline xl:inline">Link</span>
+                  </button>
+                  <button
+                    onClick={handleCopyStealthLink}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition group relative"
+                    title="Copy Private Stealth Link"
+                  >
+                    {copiedStealthLink ? <Check size={16} className="text-green-500" /> : <EyeOff size={16} />}
+                    <span className="hidden hidden md:inline">Private Link</span>
+                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+                       Creates a /p/ pseudo-offline page
+                    </div>
+                  </button>
+                  <button
+                    onClick={handleCopyContent}
+                    className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/20 transition transform active:scale-95"
+                  >
+                    {copiedContent ? <Check size={16} /> : <Copy size={16} />}
+                    <span className="hidden xs:inline">Copy Content</span>
+                  </button>
+                </>
+              )
+            )}
           </div>
         </div>
         
@@ -207,14 +272,17 @@ export default function CopyClient({ id, initialContent }: { id: string, initial
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Paste your text here... It will automatically save."
+          placeholder={isEditingContent ? "Paste your text here..." : "No content provided."}
           className="flex-1 w-full resize-none bg-transparent outline-none border-none text-lg leading-relaxed placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:ring-0 p-2 lg:p-6"
           spellCheck="false"
           maxLength={100000}
+          readOnly={!isEditingContent}
         />
-        <div className="absolute bottom-4 right-4 text-xs text-neutral-400 dark:text-neutral-600">
-          {content.length.toLocaleString()} / 100,000
-        </div>
+        {isEditingContent && (
+          <div className="absolute bottom-4 right-4 text-xs text-neutral-400 dark:text-neutral-600 pointer-events-none">
+            {content.length.toLocaleString()} / 100,000
+          </div>
+        )}
       </main>
 
       {/* ─────── Brand Awareness CTA ─────── */}

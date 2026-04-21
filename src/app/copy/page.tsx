@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import CopyClient from "@/app/c/[id]/CopyClient";
 
 export const dynamic = "force-dynamic";
 
@@ -13,5 +13,5 @@ function generateRandomId(length = 5) {
 
 export default function CopyRootPage() {
   const randomId = generateRandomId();
-  redirect(`/c/${randomId}`);
+  return <CopyClient id={randomId} initialContent="" isNew={true} />;
 }

@@ -17,7 +17,8 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/blog(.*)',
   '/api/webhooks(.*)',
   '/copy(.*)',
-  '/c(.*)'
+  '/c(.*)',
+  '/p(.*)'
 ])
 
 // TIER 2 — Auth Required, No Payment Check:

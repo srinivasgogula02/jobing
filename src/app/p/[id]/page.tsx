@@ -1,5 +1,5 @@
 import { getNote } from "@/app/actions/copy";
-import CopyClient from "./CopyClient";
+import PrivateClient from "./PrivateClient";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -7,16 +7,16 @@ interface PageProps {
 
 export const dynamic = "force-dynamic";
 
-export default async function CopyPage({ params }: PageProps) {
+export default async function PrivatePage({ params }: PageProps) {
   const { id } = await params;
   let decodedId = id;
   try {
     decodedId = decodeURIComponent(id);
   } catch (e) {
-    console.warn("Invalid URI component in copy ID", id);
+    console.warn("Invalid URI component in private ID", id);
   }
   
   const note = await getNote(decodedId);
   
-  return <CopyClient id={decodedId} initialContent={note?.content || ""} isNew={false} />;
+  return <PrivateClient id={decodedId} initialContent={note?.content || ""} />;
 }

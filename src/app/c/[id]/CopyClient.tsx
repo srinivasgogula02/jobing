@@ -178,19 +178,21 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
             {/* Status Indicator */}
-            <div className="flex items-center text-xs font-medium text-neutral-500 w-16 justify-end">
-              {saveStatus === "saving" && (
-                <span className="flex items-center gap-1 text-blue-500"><Loader2 size={12} className="animate-spin" /> Saving</span>
-              )}
-              {saveStatus === "saved" && (
-                <span className="flex items-center gap-1 text-green-500"><Check size={12} /> Saved</span>
-              )}
-              {saveStatus === "error" && (
-                <span className="text-red-500">Error saving</span>
-              )}
-            </div>
+            {saveStatus !== "idle" && (
+              <div className="flex items-center text-xs font-medium text-neutral-500">
+                {saveStatus === "saving" && (
+                  <span className="flex items-center gap-1 text-blue-500"><Loader2 size={12} className="animate-spin" /> Saving</span>
+                )}
+                {saveStatus === "saved" && (
+                  <span className="flex items-center gap-1 text-green-500"><Check size={12} /> Saved</span>
+                )}
+                {saveStatus === "error" && (
+                  <span className="text-red-500">Error saving</span>
+                )}
+              </div>
+            )}
 
             {isNew ? (
               content.trim().length > 0 && (
@@ -222,36 +224,51 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                 <>
                   <button
                     onClick={() => setIsEditingContent(true)}
-                    className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition"
+                    className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition whitespace-nowrap"
                   >
                     <Edit size={16} />
-                    <span className="hidden sm:inline">Edit</span>
+                    <span>Edit</span>
                   </button>
                   <button
                     onClick={handleCopyLink}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition whitespace-nowrap"
                     title="Copy Link"
                   >
                     {copiedLink ? <Check size={16} className="text-green-500" /> : <LinkIcon size={16} />}
-                    <span className="hidden xs:inline xl:inline">Link</span>
+                    <span className={cn(copiedLink && "text-green-500 font-semibold")}>
+                      {copiedLink ? "Copied!" : "Link"}
+                    </span>
                   </button>
+                  
                   <button
                     onClick={handleCopyStealthLink}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition group relative"
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition group relative whitespace-nowrap"
                     title="Copy Private Stealth Link"
                   >
                     {copiedStealthLink ? <Check size={16} className="text-green-500" /> : <EyeOff size={16} />}
-                    <span className="hidden hidden md:inline">Private Link</span>
-                    <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs rounded px-2 py-1 whitespace-nowrap z-50">
-                       Creates a /p/ pseudo-offline page
-                    </div>
+                    <span className={cn(copiedStealthLink && "text-green-500 font-semibold")}>
+                      {copiedStealthLink ? "Copied!" : "Private Link"}
+                    </span>
+                    {!copiedStealthLink && (
+                      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+                        Creates a /p/ pseudo-offline page
+                      </div>
+                    )}
                   </button>
+
                   <button
                     onClick={handleCopyContent}
-                    className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/20 transition transform active:scale-95"
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-semibold rounded-lg transition transform active:scale-95 whitespace-nowrap",
+                      copiedContent 
+                        ? "bg-green-500 text-white hover:bg-green-600 shadow-[0_4px_12px_-4px_rgba(34,197,94,0.5)]"
+                        : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-[0_4px_12px_-4px_rgba(37,99,235,0.4)]"
+                    )}
                   >
                     {copiedContent ? <Check size={16} /> : <Copy size={16} />}
-                    <span className="hidden xs:inline">Copy Content</span>
+                    <span>
+                      {copiedContent ? "Copied!" : "Copy"}
+                    </span>
                   </button>
                 </>
               )

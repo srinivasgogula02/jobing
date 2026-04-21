@@ -1,9 +1,18 @@
+import { Metadata } from "next";
 import { getNote } from "@/app/actions/copy";
 import PrivateClient from "./PrivateClient";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
+export const metadata: Metadata = {
+  title: "jobing.site",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export const dynamic = "force-dynamic";
 

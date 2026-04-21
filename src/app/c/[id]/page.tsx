@@ -1,9 +1,18 @@
+import { Metadata } from "next";
 import { getNote } from "@/app/actions/copy";
 import CopyClient from "./CopyClient";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
+export const metadata: Metadata = {
+  title: "Shared Note | Jobing AI",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export const dynamic = "force-dynamic";
 

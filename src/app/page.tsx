@@ -1,6 +1,4 @@
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import {
   ArrowRight,
   FileText,
@@ -24,14 +22,23 @@ import { Pricing } from "@/components/Pricing";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const user = await currentUser();
-
-  if (user) {
-    redirect("/create");
-  }
-
   return (
     <div className="min-h-screen bg-white">
+      {/* ─────── Top Announcement Banner ─────── */}
+      <div className="w-full bg-[#1a1a1a] text-white px-4 py-2.5 flex items-center justify-center relative z-[60] border-b border-black">
+        <Link href="/copy" className="group flex flex-wrap items-center justify-center text-center gap-2 sm:gap-3 text-[12px] sm:text-[13px] font-medium hover:opacity-90 transition-opacity">
+          <span className="hidden sm:flex items-center justify-center bg-[#C1FF00] text-[#1a1a1a] px-2 py-[2px] rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow-[0_0_8px_rgba(193,255,0,0.4)]">
+            NEW
+          </span>
+          <span className="opacity-95">
+            Instantly sync and share notes online without logging in.
+          </span>
+          <span className="text-[#C1FF00] flex items-center gap-1 font-bold whitespace-nowrap">
+            Try /copy <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+          </span>
+        </Link>
+      </div>
+
       {/* ─────── SEO & GEO JSON-LD ─────── */}
       <script
         type="application/ld+json"
@@ -120,6 +127,7 @@ export default async function Home() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#6b7280]">
             <a href="#how-it-works" className="hover:text-[#1a1a1a] transition-colors">How It Works</a>
             <a href="#use-cases" className="hover:text-[#1a1a1a] transition-colors">Use Cases</a>
+            <Link href="/tools" className="hover:text-[#1a1a1a] transition-colors flex items-center gap-1.5 font-bold text-[#1a1a1a]">Tools <span className="bg-[#C1FF00] text-[#1a1a1a] text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider leading-none shadow-[0_0_4px_rgba(193,255,0,0.5)]">New</span></Link>
             <a href="#pricing" className="hover:text-[#1a1a1a] transition-colors">Pricing</a>
             <a href="#faq" className="hover:text-[#1a1a1a] transition-colors">FAQ</a>
           </div>
@@ -144,11 +152,25 @@ export default async function Home() {
         <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="max-w-3xl mx-auto relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#C1FF00]/15 border border-[#C1FF00]/30 text-[13px] font-bold text-[#1a1a1a] mb-8">
-            <Sparkles size={14} />
-            Get Shortlisted Faster
-          </div>
+        <div className="max-w-3xl mx-auto relative z-10 flex flex-col items-center">
+          <Link href="/copy" className="inline-flex mx-auto items-center gap-3 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-full bg-[#1a1a1a] border border-neutral-800 shadow-[0_4px_24px_-4px_rgba(193,255,0,0.15)] hover:shadow-[0_4px_24px_-4px_rgba(193,255,0,0.3)] hover:border-neutral-700 transition-all mb-8 group cursor-pointer relative overflow-hidden">
+            {/* The shining hover reflection */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
+            
+            <div className="flex items-center gap-2 pl-1 sm:pl-2">
+              <span className="flex items-center justify-center bg-[#C1FF00] rounded-full px-2.5 py-1 text-[10px] sm:text-[11px] font-black tracking-[0.1em] text-[#1a1a1a] uppercase leading-none shadow-[0_0_8px_rgba(193,255,0,0.6)] relative z-10">
+                NEW
+              </span>
+              <span className="text-[13px] sm:text-[14px] font-medium text-neutral-200 tracking-tight relative z-10">
+                Share text instantly 
+                <span className="hidden sm:inline"> online across devices</span>
+              </span>
+            </div>
+            <div className="w-[1px] h-4 bg-neutral-700 relative z-10 mx-1" />
+            <span className="flex items-center gap-1 pr-3 sm:pr-4 text-[13px] sm:text-[14px] font-bold tracking-wide text-white group-hover:text-[#C1FF00] transition-colors relative z-10">
+              Try /copy <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </span>
+          </Link>
 
           <h1 className="text-[1.75rem] sm:text-4xl lg:text-[3.75rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-6 lg:px-0">
             Tired of getting rejected

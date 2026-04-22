@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { saveNote, checkIdTaken } from "@/app/actions/copy";
 import { 
   Check, 
@@ -121,9 +122,9 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
           
           {/* Logo / Title Area */}
           <div className="flex items-center gap-3 w-full sm:w-auto overflow-hidden">
-            <div className="bg-blue-600 dark:bg-blue-500 rounded-lg p-2 text-white shadow-lg shadow-blue-500/20 shrink-0">
+            <Link href="/copy" className="bg-[#C1FF00] rounded-lg p-2 text-[#1a1a1a] shadow-md shadow-[#C1FF00]/20 shrink-0 hover:scale-105 hover:bg-[#aee600] transition-all cursor-pointer" title="Create New Note">
               <Copy size={20} />
-            </div>
+            </Link>
             {isEditingId ? (
               <form onSubmit={handleChangeId} className="flex items-center gap-2 flex-1 sm:flex-none min-w-0">
                 <div className="flex bg-neutral-100 dark:bg-neutral-800 rounded-md ring-1 ring-neutral-300 dark:ring-neutral-700 overflow-hidden focus-within:ring-blue-500 transition-shadow flex-1 sm:flex-none">
@@ -261,8 +262,8 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-semibold rounded-lg transition transform active:scale-95 whitespace-nowrap",
                       copiedContent 
-                        ? "bg-green-500 text-white hover:bg-green-600 shadow-[0_4px_12px_-4px_rgba(34,197,94,0.5)]"
-                        : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-[0_4px_12px_-4px_rgba(37,99,235,0.4)]"
+                        ? "bg-green-500 text-white shadow-[0_4px_12px_-4px_rgba(34,197,94,0.5)]"
+                        : "bg-[#C1FF00] text-[#1a1a1a] hover:bg-[#aee600] hover:shadow-[0_4px_12px_-4px_rgba(193,255,0,0.4)]"
                     )}
                   >
                     {copiedContent ? <Check size={16} /> : <Copy size={16} />}

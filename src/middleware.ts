@@ -16,7 +16,10 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/pricing(.*)',
   '/blog(.*)',
   '/api/webhooks(.*)',
-  '/copy(.*)'
+  '/copy(.*)',
+  '/c(.*)',
+  '/p(.*)',
+  '/tools(.*)'
 ])
 
 // TIER 2 — Auth Required, No Payment Check:
@@ -25,6 +28,9 @@ const isAlwaysPublicRoute = createRouteMatcher([
 //
 const isAuthOnlyRoute = createRouteMatcher([
   '/billing(.*)',
+  '/create(.*)',
+  '/profile(.*)',
+  '/resumes(.*)'
 ])
 
 // TIER 3 — Protected: Auth + payment/credit check applied to everything else.
@@ -32,6 +38,15 @@ const isAuthOnlyRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
+
+  // If logged-in user visits homepage, redirect them to /tools
+  if (pathname === '/') {
+    const { userId } = await auth();
+    if (userId) {
+      return NextResponse.redirect(new URL('/tools', req.url));
+    }
+    return NextResponse.next();
+  }
 
   // TIER 1: Always accessible — skip all checks immediately
   if (isAlwaysPublicRoute(req)) {
@@ -63,11 +78,6 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (pricingMode === 'freemium') {
     const hasCredits = metadata?.has_credits === true;
-
-    // Allow /create even if credits unknown — the page handles live sync from DB
-    if (pathname.startsWith('/create')) {
-      return NextResponse.next();
-    }
 
     if (!isPaid && !hasCredits) {
       return NextResponse.redirect(new URL('/pricing', req.url));

@@ -34,11 +34,11 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
   return (
     <div
       className={`flex flex-col h-full bg-white border-r border-[#e5e5e5] text-[#6b7280] transition-all duration-300 ${
-        collapsed ? "w-14 p-2" : "w-56 p-4"
+        collapsed ? "w-14" : "w-56"
       }`}
     >
-      {/* Header: Logo + Collapse button — matched to h-14 header bar */}
-      <div className={`flex items-center h-14 shrink-0 border-b border-[#f0f0f0] -mx-4 px-4 mb-2 ${collapsed ? "justify-center -mx-2 px-2" : "justify-between"}`}>
+      {/* Header: Logo + Collapse button — flush to top, matched h-14 */}
+      <div className={`flex items-center h-14 shrink-0 border-b border-[#f0f0f0] px-4 ${collapsed ? "justify-center px-2" : "justify-between"}`}>
         {!collapsed && (
           <Link href="/" onClick={onClose} className="flex items-center">
             <Image
@@ -64,7 +64,7 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-0.5">
+      <nav className={`flex-1 space-y-0.5 mt-2 ${collapsed ? "px-1.5" : "px-4"}`}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
 
@@ -133,7 +133,7 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
       </nav>
 
       {/* Settings */}
-      <div className="space-y-0.5 mt-4">
+      <div className={`space-y-0.5 mt-4 ${collapsed ? "px-1.5" : "px-4"}`}>
         {collapsed ? (
           <button
             title="Settings"
@@ -177,7 +177,7 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
 
       {/* Legal — only when expanded */}
       {!collapsed && (
-        <div className="mt-auto pt-6 border-t border-[#f0f0f0] flex flex-col gap-1 px-3 pb-2">
+        <div className="mt-auto pt-6 border-t border-[#f0f0f0] flex flex-col gap-1 px-7 pb-2">
           <Link
             href="/about"
             onClick={onClose}

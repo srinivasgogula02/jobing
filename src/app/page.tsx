@@ -132,12 +132,12 @@ export default async function Home() {
             <a href="#faq" className="hover:text-[#1a1a1a] transition-colors">FAQ</a>
           </div>
           <div className="flex items-center gap-2.5">
-            <SignInButton forceRedirectUrl="/create">
+            <SignInButton forceRedirectUrl="/tools">
               <button className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#1a1a1a] transition-colors hidden sm:block">
                 Login
               </button>
             </SignInButton>
-            <SignUpButton forceRedirectUrl="/create">
+            <SignUpButton forceRedirectUrl="/tools">
               <button className="btn-primary px-5 py-2.5 text-sm font-bold">
                 Get Started
               </button>
@@ -190,7 +190,7 @@ export default async function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
-            <SignUpButton forceRedirectUrl="/create">
+            <SignUpButton forceRedirectUrl="/tools">
               <button className="btn-primary px-8 py-4 text-[15px] font-bold gap-2.5 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
                 Start Building Now
                 <ArrowRight size={18} />

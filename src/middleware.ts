@@ -36,6 +36,15 @@ const isAuthOnlyRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
 
+  // If logged-in user visits homepage, redirect them to /tools
+  if (pathname === '/') {
+    const { userId } = await auth();
+    if (userId) {
+      return NextResponse.redirect(new URL('/tools', req.url));
+    }
+    return NextResponse.next();
+  }
+
   // TIER 1: Always accessible — skip all checks immediately
   if (isAlwaysPublicRoute(req)) {
     return NextResponse.next();

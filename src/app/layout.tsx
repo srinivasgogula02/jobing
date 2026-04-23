@@ -129,7 +129,7 @@ export default function RootLayout({
             alt=""
           />
         </noscript>
-        <ClerkProvider>
+        <ClerkProvider signInFallbackRedirectUrl="/tools" signUpFallbackRedirectUrl="/tools">
           {children}
         </ClerkProvider>
       </body>

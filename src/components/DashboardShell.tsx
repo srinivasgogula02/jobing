@@ -19,6 +19,7 @@ interface DashboardShellProps {
 export function DashboardShell({ children, credits, breadcrumbs }: DashboardShellProps) {
   const { isSignedIn, isLoaded } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
 
   // Helper to format pagename (fallback)
@@ -35,8 +36,12 @@ export function DashboardShell({ children, credits, breadcrumbs }: DashboardShel
   return (
     <div className="flex h-[100dvh] w-full bg-[#fafafa] text-[#1a1a1a] overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block h-full shrink-0 relative z-40">
-        <Sidebar onClose={() => setMobileMenuOpen(false)} />
+      <div className="hidden md:block h-full shrink-0 relative z-40 transition-all duration-300">
+        <Sidebar
+          onClose={() => setMobileMenuOpen(false)}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+        />
       </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden w-full relative z-0">

@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Copy, FileText, ArrowRight, Clock, Sparkles, BookOpen } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { auth } from "@clerk/nextjs/server";
+import { SignUpButton } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
   title: "Free AI Career & Productivity Tools | Jobing AI",
@@ -23,7 +25,38 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
-export default function ToolsPage() {
+export default async function ToolsPage() {
+  const { userId } = await auth();
+
+  const ResumeBuilderCardContent = (
+    <>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(193,255,0,0.07),transparent_70%)] pointer-events-none" />
+      
+      <div className="flex flex-col gap-4 relative z-10 flex-1">
+        <div className="flex items-center justify-between">
+          <div className="w-12 h-12 rounded-none bg-[#C1FF00] text-[#1a1a1a] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
+            <FileText size={22} />
+          </div>
+          <span className="bg-[#C1FF00] text-[#1a1a1a] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-none">Featured</span>
+        </div>
+        
+        <div className="flex flex-col mt-2 text-left">
+          <h3 className="text-lg font-extrabold text-white tracking-tight group-hover:text-[#C1FF00] transition-colors mb-1.5">AI Resume Builder</h3>
+          <p className="text-[13px] text-[#9ca3af] font-medium leading-relaxed">
+            Paste your target job description and let the AI core completely rewrite your profile to obliterate ATS algorithms automatically and{" "}
+            <span className="text-[#C1FF00] font-bold">get hired faster</span>.
+          </p>
+        </div>
+      </div>
+
+      <div className="w-full mt-6 relative z-10">
+        <span className="flex items-center justify-between w-full text-[13px] font-bold text-[#1a1a1a] bg-[#C1FF00] group-hover:bg-[#d4ff33] transition-colors py-3 px-5 rounded-none">
+          Build Resume <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+        </span>
+      </div>
+    </>
+  );
+
   return (
     <DashboardLayout breadcrumbs={[{ label: "Tools", href: "/tools" }]}>
       {/* 
@@ -36,41 +69,26 @@ export default function ToolsPage() {
           (or responsive breakpoints for precise control).
           Gap establishes the 1px grid borders. 
         */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-[1px] bg-[#e5e5e5] w-full border-b border-[#e5e5e5]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 border-t border-b border-[#e5e5e5] w-full bg-transparent">
 
           {/* Tool 0 [FEATURED]: AI Resume Builder */}
-          <Link
-            href="/create"
-            className="group flex flex-col justify-between p-6 md:p-8 bg-[#1a1a1a] hover:bg-black transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(193,255,0,0.07),transparent_70%)] pointer-events-none" />
-            
-            <div className="flex flex-col gap-4 relative z-10 flex-1">
-              <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-none bg-[#C1FF00] text-[#1a1a1a] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
-                  <FileText size={22} />
-                </div>
-                <span className="bg-[#C1FF00] text-[#1a1a1a] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-none">Featured</span>
-              </div>
-              
-              <div className="flex flex-col mt-2">
-                <h3 className="text-lg font-extrabold text-white tracking-tight group-hover:text-[#C1FF00] transition-colors mb-1.5">AI Resume Builder</h3>
-                <p className="text-[13px] text-[#9ca3af] font-medium leading-relaxed">
-                  Paste your target job description and let the AI core completely rewrite your profile to obliterate ATS algorithms automatically and{" "}
-                  <span className="text-[#C1FF00] font-bold">get hired faster</span>.
-                </p>
-              </div>
-            </div>
-
-            <div className="w-full mt-6 relative z-10">
-              <span className="flex items-center justify-between w-full text-[13px] font-bold text-[#1a1a1a] bg-[#C1FF00] group-hover:bg-[#d4ff33] transition-colors py-3 px-5 rounded-none">
-                Build Resume <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-              </span>
-            </div>
-          </Link>
+          {userId ? (
+            <Link
+              href="/create"
+              className="group flex flex-col justify-between p-6 md:p-8 bg-[#1a1a1a] hover:bg-black transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden border-b border-r border-[#e5e5e5]"
+            >
+              {ResumeBuilderCardContent}
+            </Link>
+          ) : (
+            <SignUpButton mode="modal" forceRedirectUrl="/create">
+              <button className="group flex flex-col justify-between p-6 md:p-8 bg-[#1a1a1a] hover:bg-black transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden text-left h-full border-b border-r border-[#e5e5e5] focus:outline-none focus:ring-0">
+                {ResumeBuilderCardContent}
+              </button>
+            </SignUpButton>
+          )}
 
           {/* Tool 1: Jobing Clipboard */}
-          <Link href="/copy" className="group flex flex-col justify-between p-6 md:p-8 bg-white hover:bg-[#fafafa] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden">
+          <Link href="/copy" className="group flex flex-col justify-between p-6 md:p-8 bg-white hover:bg-[#fafafa] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden border-b border-r border-[#e5e5e5]">
             <div className="flex flex-col gap-4 flex-1">
                <div className="flex items-center justify-between">
                  <div className="w-12 h-12 rounded-none bg-[#1a1a1a] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
@@ -95,7 +113,7 @@ export default function ToolsPage() {
           </Link>
 
           {/* Tool 2: LastMinute Custom GPT */}
-          <a href="#" target="_blank" rel="noopener noreferrer" className="group flex flex-col justify-between p-6 md:p-8 bg-white hover:bg-[#fafafa] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden">
+          <a href="https://chatgpt.com/g/g-6941cc3967608191a34b2757e3f3232a-lastminute" target="_blank" rel="noopener noreferrer" className="group flex flex-col justify-between p-6 md:p-8 bg-white hover:bg-[#fafafa] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden border-b border-r border-[#e5e5e5]">
             <div className="flex flex-col gap-4 flex-1">
                <div className="flex items-center justify-between">
                  <div className="w-12 h-12 rounded-none bg-[#1a1a1a] text-[#10a37f] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
@@ -120,7 +138,7 @@ export default function ToolsPage() {
           </a>
 
           {/* More Coming Soon */}
-          <div className="flex flex-col items-center justify-center p-6 bg-white opacity-80 min-h-[300px] md:min-h-[340px] group hover:bg-[#fafafa] transition-colors cursor-default">
+          <div className="flex flex-col items-center justify-center p-6 bg-white opacity-80 min-h-[300px] md:min-h-[340px] group hover:bg-[#fafafa] transition-colors cursor-default border-b border-r border-[#e5e5e5]">
              <Clock size={32} className="text-[#d1d5db] mb-3 group-hover:text-[#9ca3af] transition-colors" />
              <p className="text-[14px] font-semibold text-[#9ca3af] text-center">
                More tools<br />coming soon

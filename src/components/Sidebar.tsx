@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Briefcase, GraduationCap, Puzzle,
   LayoutGrid, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
-import { SignOutButton } from "@clerk/nextjs";
+import { SignOutButton, SignUpButton, useUser } from "@clerk/nextjs";
 import { useState } from "react";
 
 interface SidebarProps {
@@ -19,6 +19,7 @@ interface SidebarProps {
 export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { isSignedIn } = useUser();
 
   const navItems = [
     { name: "Tools", href: "/tools", icon: LayoutGrid },
@@ -96,34 +97,60 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
             );
           }
 
+          const requiresAuth = item.href === "/create" || item.href === "/profile";
+          const promptLogin = requiresAuth && isSignedIn === false;
+
           if (collapsed) {
+            const collapsedClass = `flex items-center justify-center w-9 h-9 mx-auto rounded-lg transition-all focus:outline-none ${
+                  isActive
+                    ? "bg-[#C1FF00]/15 text-[#1a1a1a]"
+                    : "hover:bg-[#fafafa] hover:text-[#1a1a1a]"
+                }`;
+
+            if (promptLogin) {
+              return (
+                <SignUpButton key={item.href} mode="modal" forceRedirectUrl={item.href}>
+                  <button title={item.name} className={collapsedClass}>
+                    <item.icon size={17} />
+                  </button>
+                </SignUpButton>
+              );
+            }
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
                 title={item.name}
-                className={`flex items-center justify-center w-9 h-9 mx-auto rounded-lg transition-all ${
-                  isActive
-                    ? "bg-[#C1FF00]/15 text-[#1a1a1a]"
-                    : "hover:bg-[#fafafa] hover:text-[#1a1a1a]"
-                }`}
+                className={collapsedClass}
               >
                 <item.icon size={17} />
               </Link>
             );
           }
 
+          const expandedClass = `flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all focus:outline-none text-left ${
+                isActive
+                  ? "bg-[#C1FF00]/15 text-[#1a1a1a] font-semibold"
+                  : "hover:bg-[#fafafa] hover:text-[#1a1a1a]"
+              }`;
+
+          if (promptLogin) {
+            return (
+              <SignUpButton key={item.href} mode="modal" forceRedirectUrl={item.href}>
+                <button className={expandedClass}>
+                  <item.icon size={16} />
+                  {item.name}
+                </button>
+              </SignUpButton>
+            );
+          }
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
-                isActive
-                  ? "bg-[#C1FF00]/15 text-[#1a1a1a] font-semibold"
-                  : "hover:bg-[#fafafa] hover:text-[#1a1a1a]"
-              }`}
+              className={expandedClass}
             >
               <item.icon size={16} />
               {item.name}

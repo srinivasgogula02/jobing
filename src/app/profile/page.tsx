@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ProfilePageClient } from "@/components/ProfilePageClient";
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser, auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const metadata = {
@@ -21,6 +21,10 @@ async function getProfileData(userId: string) {
 }
 
 export default async function ProfilePage() {
+  // Edge-case bulletproof: forcefully redirect using Clerk's internal router if deeply accessed or prefetched without auth.
+  const { userId, redirectToSignIn } = await auth();
+  if (!userId) return redirectToSignIn();
+
   const user = await currentUser();
   const initialProfileData = user ? await getProfileData(user.id) : {};
 

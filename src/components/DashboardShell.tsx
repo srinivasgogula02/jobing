@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { UserButton, useUser, SignUpButton } from "@clerk/nextjs";
 import { Zap, Menu, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -140,12 +140,11 @@ export function DashboardShell({ children, credits, breadcrumbs }: DashboardShel
                 </UserButton>
               </>
             ) : isLoaded && !isSignedIn ? (
-              <Link 
-                href="/create" 
-                className="btn-primary px-4 py-1.5 text-sm font-bold shadow-lg shadow-[#C1FF00]/20 hover:scale-[1.02] transition-transform flex items-center gap-1.5"
-              >
-                Get Started <ArrowRight size={14} />
-              </Link>
+              <SignUpButton forceRedirectUrl="/tools">
+                <button className="btn-primary px-4 py-1.5 text-sm font-bold shadow-lg shadow-[#C1FF00]/20 hover:scale-[1.02] transition-transform flex items-center gap-1.5">
+                  Get Started <ArrowRight size={14} />
+                </button>
+              </SignUpButton>
             ) : null}
           </div>
         </header>

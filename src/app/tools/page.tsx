@@ -87,60 +87,60 @@ export default async function ToolsPage() {
             </SignUpButton>
           )}
 
-          {/* Tool 1: Jobing Clipboard */}
-          <Link href="/copy" className="group flex flex-col justify-between p-6 md:p-8 bg-white hover:bg-[#fafafa] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden border-b border-r border-[#e5e5e5]">
+          {/* Tool 1: Jobing Clipboard - Indigo Palette */}
+          <Link href="/copy" className="group flex flex-col justify-between p-6 md:p-8 bg-[#f8fafc] hover:bg-[#f1f5f9] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden border-b border-r border-[#e5e5e5]">
             <div className="flex flex-col gap-4 flex-1">
                <div className="flex items-center justify-between">
-                 <div className="w-12 h-12 rounded-none bg-[#1a1a1a] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
-                    <Copy size={22} className="text-white" />
+                 <div className="w-12 h-12 rounded-none bg-[#1e1b4b] text-[#818cf8] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <Copy size={22} />
                  </div>
-                 <span className="bg-[#1a1a1a] text-[#C1FF00] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-none">Live</span>
+                 <span className="bg-[#818cf8]/15 text-[#4f46e5] border border-[#818cf8]/20 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-none">Live</span>
                </div>
                
                <div className="flex flex-col mt-2">
-                 <h3 className="text-lg font-extrabold text-[#1a1a1a] tracking-tight group-hover:text-[#8bb800] transition-colors mb-1.5">Jobing Clipboard</h3>
-                 <p className="text-[13px] text-[#6b7280] font-medium leading-relaxed">
+                 <h3 className="text-lg font-extrabold text-[#0f172a] tracking-tight group-hover:text-[#4f46e5] transition-colors mb-1.5">Jobing Clipboard</h3>
+                 <p className="text-[13px] text-[#475569] font-medium leading-relaxed">
                    Instantly sync and share text online across devices. Built with native custom short URLs, offline stealth UI routing, and sub-millisecond memory bounds. No login required.
                  </p>
                </div>
             </div>
 
             <div className="w-full mt-6">
-               <span className="flex items-center justify-between w-full text-[13px] font-bold text-[#1a1a1a] group-hover:text-[#4f46e5] transition-colors py-3 px-5 rounded-none bg-[#f5f5f4] group-hover:bg-indigo-50">
+               <span className="flex items-center justify-between w-full text-[13px] font-bold text-[#4f46e5] group-hover:text-white transition-colors py-3 px-5 rounded-none bg-[#4f46e5]/10 group-hover:bg-[#4f46e5]">
                  Create notes <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                </span>
             </div>
           </Link>
 
-          {/* Tool 2: LastMinute Custom GPT */}
-          <a href="https://chatgpt.com/g/g-6941cc3967608191a34b2757e3f3232a-lastminute" target="_blank" rel="noopener noreferrer" className="group flex flex-col justify-between p-6 md:p-8 bg-white hover:bg-[#fafafa] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden border-b border-r border-[#e5e5e5]">
+          {/* Tool 2: LastMinute Custom GPT - Teal/Mint Palette */}
+          <a href="https://chatgpt.com/g/g-6941cc3967608191a34b2757e3f3232a-lastminute" target="_blank" rel="noopener noreferrer" className="group flex flex-col justify-between p-6 md:p-8 bg-[#f0fdfa] hover:bg-[#ccfbf1] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden border-b border-r border-[#e5e5e5]">
             <div className="flex flex-col gap-4 flex-1">
                <div className="flex items-center justify-between">
-                 <div className="w-12 h-12 rounded-none bg-[#1a1a1a] text-[#10a37f] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
+                 <div className="w-12 h-12 rounded-none bg-[#0f766e] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
                     <BookOpen size={22} />
                  </div>
-                 <span className="bg-[#10a37f]/10 text-[#10a37f] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-none border border-[#10a37f]/20">Custom GPT</span>
+                 <span className="bg-[#ccfbf1] text-[#0f766e] text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-none border border-[#5eead4]">Custom GPT</span>
                </div>
                
                <div className="flex flex-col mt-2">
-                 <h3 className="text-lg font-extrabold text-[#1a1a1a] tracking-tight group-hover:text-[#10a37f] transition-colors mb-1.5">LastMinute</h3>
-                 <p className="text-[13px] text-[#6b7280] font-medium leading-relaxed">
+                 <h3 className="text-lg font-extrabold text-[#115e59] tracking-tight group-hover:text-[#0f766e] transition-colors mb-1.5">LastMinute</h3>
+                 <p className="text-[13px] text-[#0f766e]/70 font-medium leading-relaxed">
                    Upload any study PDF and get a one-page A4 exam revision sheet. Just what you need before exams.
                  </p>
                </div>
             </div>
 
             <div className="w-full mt-6">
-               <span className="flex items-center justify-between w-full text-[13px] font-bold text-[#10a37f] group-hover:text-white transition-colors py-3 px-5 rounded-none bg-[#10a37f]/10 group-hover:bg-[#10a37f]">
+               <span className="flex items-center justify-between w-full text-[13px] font-bold text-[#0f766e] group-hover:text-[#042f2e] transition-colors py-3 px-5 rounded-none bg-white group-hover:bg-[#99f6e4]">
                  Add to ChatGPT <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                </span>
             </div>
           </a>
 
-          {/* More Coming Soon */}
-          <div className="flex flex-col items-center justify-center p-6 bg-white opacity-80 min-h-[300px] md:min-h-[340px] group hover:bg-[#fafafa] transition-colors cursor-default border-b border-r border-[#e5e5e5]">
-             <Clock size={32} className="text-[#d1d5db] mb-3 group-hover:text-[#9ca3af] transition-colors" />
-             <p className="text-[14px] font-semibold text-[#9ca3af] text-center">
+          {/* More Coming Soon - Amber Palette */}
+          <div className="flex flex-col items-center justify-center p-6 bg-[#fffbeb] hover:bg-[#fef3c7] min-h-[300px] md:min-h-[340px] group transition-colors cursor-default border-b border-r border-[#e5e5e5]">
+             <Clock size={32} className="text-[#fbbf24] mb-3 group-hover:text-[#d97706] transition-colors" />
+             <p className="text-[14px] font-semibold text-[#d97706] text-center">
                More tools<br />coming soon
              </p>
           </div>

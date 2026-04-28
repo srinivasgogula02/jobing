@@ -185,7 +185,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
             <button
               onClick={() => setShowGuide(!showGuide)}
               className={cn(
-                "p-2 rounded-lg transition-colors border hidden sm:flex shrink-0",
+                "p-2 rounded-lg transition-colors border flex shrink-0",
                 showGuide 
                   ? "bg-neutral-100 dark:bg-neutral-800 text-[#8bb800] border-transparent" 
                   : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-800"
@@ -300,16 +300,10 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
       </header>
 
       {/* Split Canvas Area */}
-      <main className={cn(
-        "flex-1 w-full flex relative overflow-hidden bg-neutral-50 dark:bg-neutral-950",
-        showGuide ? "flex-col sm:flex-row" : "flex-row"
-      )}>
+      <main className="flex-1 w-full flex relative overflow-hidden bg-neutral-50 dark:bg-neutral-950 flex-row">
         
         {/* Editor Half */}
-        <div className={cn(
-          "w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col relative transition-all duration-300 z-0",
-          showGuide ? "flex-[0.35] sm:flex-1 shrink-0" : "flex-1 h-full"
-        )}>
+        <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col relative transition-all duration-300 z-0 flex-1 h-full">
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -320,10 +314,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
             readOnly={!isEditingContent}
           />
           {isEditingContent && (
-            <div className={cn(
-              "text-xs font-medium text-neutral-400 dark:text-neutral-500 pointer-events-none transition-all",
-              showGuide ? "relative mt-2 text-right sm:absolute sm:bottom-0 sm:right-0 sm:mt-0" : "absolute bottom-4 sm:bottom-0 right-4 sm:right-0"
-            )}>
+            <div className="absolute bottom-4 sm:bottom-0 right-4 sm:right-0 text-xs font-medium text-neutral-400 dark:text-neutral-500 pointer-events-none transition-all">
               {content.length.toLocaleString()} / 100,000
             </div>
           )}
@@ -331,11 +322,10 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
 
         {/* Floating Guide Panel */}
         <aside className={cn(
-          "bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-3xl border-t sm:border-t-0 sm:border-l border-neutral-200 dark:border-neutral-800 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)] sm:shadow-[0_0_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 will-change-transform z-20 flex flex-col",
+          "absolute top-0 right-0 h-full bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-3xl sm:border-l border-neutral-200 dark:border-neutral-800 shadow-[-20px_0_60px_-15px_rgba(0,0,0,0.1)] sm:shadow-[0_0_60px_-15px_rgba(0,0,0,0.1)] transition-transform duration-500 will-change-transform z-20 flex flex-col sm:static",
           // Layout constraints
-          showGuide ? "flex-[0.65] sm:flex-none sm:h-full shrink-0" : "hidden sm:flex flex-none h-full border-none",
-          // Width animations
-          showGuide ? "w-full sm:w-80 lg:w-[400px] xl:w-[450px]" : "sm:w-0 overflow-hidden"
+          showGuide ? "w-full sm:w-80 lg:w-[400px] xl:w-[450px] shrink-0" : "w-0 overflow-hidden shrink-0 border-none",
+          showGuide ? "translate-x-0" : "translate-x-full sm:translate-x-0"
         )}>
           {/* Guide Header */}
           <div className="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-neutral-800/50 shrink-0 bg-white/50 dark:bg-[#1a1a1a]/50 sticky top-0 z-10 backdrop-blur-md">

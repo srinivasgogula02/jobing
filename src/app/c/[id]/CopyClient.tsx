@@ -416,21 +416,21 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
       </main>
 
       {/* ─────── Brand Awareness CTA ─────── */}
-      <footer className="w-full bg-white dark:bg-[#1a1a1a] border-t border-neutral-200 dark:border-neutral-800 py-3 px-4 shrink-0 transition-colors z-10 selection:bg-[#C1FF00]/30 relative">
+      <footer className="w-full bg-[#C1FF00] border-t border-[#aee600] py-3 px-4 shrink-0 transition-colors z-10 selection:bg-black/10 relative">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
-          <div className="flex items-center gap-2 text-neutral-500 font-medium">
+          <div className="flex items-center gap-2 text-black/60 font-medium">
             <span className="hidden xs:inline">Powered by</span>
             <a 
               href="/" 
               target="_blank" 
-              className="flex items-center gap-1.5 px-3 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 hover:border-[#C1FF00] dark:hover:border-[#C1FF00] rounded-full text-neutral-900 dark:text-white transition-all shadow-sm hover:shadow-[#C1FF00]/20 group"
+              className="flex items-center gap-1.5 px-3 py-1 bg-black/5 border border-black/10 hover:border-black/20 rounded-full text-black transition-all shadow-sm group"
             >
-              <div className="w-3.5 h-3.5 rounded-full bg-[#C1FF00] group-hover:scale-110 transition-transform shadow-[0_0_8px_rgba(193,255,0,0.5)]"></div>
+              <div className="w-3.5 h-3.5 rounded-full bg-black group-hover:scale-110 transition-transform shadow-[0_0_8px_rgba(0,0,0,0.1)]"></div>
               <span className="font-extrabold tracking-tight text-[13px] uppercase">Jobing AI</span>
             </a>
           </div>
-          <p className="text-neutral-400 dark:text-neutral-500 text-xs sm:text-sm font-medium text-center sm:text-right">
-            Stop getting rejected. <a href="/" target="_blank" className="text-neutral-600 dark:text-neutral-300 hover:text-[#1a1a1a] dark:hover:text-[#C1FF00] underline decoration-[#C1FF00]/50 hover:decoration-[#C1FF00] underline-offset-4 transition-all font-semibold">Tailor your resume in 30 seconds</a>.
+          <p className="text-black/50 text-xs sm:text-sm font-medium text-center sm:text-right">
+            Stop getting rejected. <a href="/" target="_blank" className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold">Tailor your resume in 30 seconds</a>.
           </p>
         </div>
       </footer>

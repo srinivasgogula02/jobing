@@ -300,21 +300,42 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
       </header>
 
       {/* Split Canvas Area */}
-      <main className="flex-1 w-full flex relative overflow-hidden bg-neutral-50 dark:bg-neutral-950">
+      <main className={cn(
+        "flex-1 w-full flex relative bg-neutral-50 dark:bg-neutral-950",
+        showGuide ? "flex-col sm:flex-row overflow-y-auto sm:overflow-hidden" : "flex-row overflow-hidden"
+      )}>
         
         {/* Editor Half */}
-        <div className="flex-1 w-full max-w-6xl mx-auto h-full p-4 sm:p-6 lg:p-8 flex flex-col relative transition-all duration-300 z-0">
+        <div className={cn(
+          "w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col relative transition-all duration-300 z-0",
+          showGuide ? "min-h-[200px] sm:min-h-0 shrink-0 sm:flex-1 h-auto sm:h-full" : "h-full flex-1"
+        )}>
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+               setContent(e.target.value);
+               if (window.innerWidth < 640) {
+                 e.target.style.height = 'auto';
+                 e.target.style.height = `${e.target.scrollHeight}px`;
+               } else {
+                 e.target.style.height = '100%';
+               }
+            }}
             placeholder={isEditingContent ? "Paste your text here..." : "No content provided."}
-            className="flex-1 w-full resize-none bg-transparent outline-none border-none text-[15px] sm:text-lg leading-relaxed placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:ring-0 p-2 sm:p-0"
+            className={cn(
+              "w-full resize-none bg-transparent outline-none border-none text-[15px] sm:text-lg leading-relaxed placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:ring-0 p-2 sm:p-0",
+              showGuide ? "flex-1 sm:h-full overflow-hidden sm:overflow-y-auto" : "flex-1 h-full"
+            )}
+            style={{ minHeight: showGuide ? '150px' : '100%' }}
             spellCheck="false"
             maxLength={100000}
             readOnly={!isEditingContent}
           />
           {isEditingContent && (
-            <div className="absolute bottom-4 sm:bottom-0 right-4 sm:right-0 text-xs font-medium text-neutral-400 dark:text-neutral-500 pointer-events-none">
+            <div className={cn(
+              "text-xs font-medium text-neutral-400 dark:text-neutral-500 pointer-events-none transition-all",
+              showGuide ? "relative mt-2 text-right sm:absolute sm:bottom-0 sm:right-0 sm:mt-0" : "absolute bottom-4 sm:bottom-0 right-4 sm:right-0"
+            )}>
               {content.length.toLocaleString()} / 100,000
             </div>
           )}
@@ -322,11 +343,14 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
 
         {/* Floating Guide Panel */}
         <aside className={cn(
-          "absolute top-0 right-0 h-full w-full sm:w-80 lg:w-[400px] xl:w-[450px] bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-3xl border-l border-neutral-200 dark:border-neutral-800 shadow-[0_0_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_0_60px_-15px_rgba(0,0,0,0.7)] transition-transform duration-500 will-change-transform z-20 flex flex-col",
-          showGuide ? "translate-x-0" : "translate-x-full"
+          "bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-3xl border-t sm:border-t-0 sm:border-l border-neutral-200 dark:border-neutral-800 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)] sm:shadow-[0_0_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 will-change-transform z-20 flex flex-col",
+          // Layout constraints
+          showGuide ? "h-auto sm:h-full shrink-0" : "hidden sm:flex h-full border-none",
+          // Width animations
+          showGuide ? "w-full sm:w-80 lg:w-[400px] xl:w-[450px]" : "sm:w-0 overflow-hidden"
         )}>
           {/* Guide Header */}
-          <div className="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-neutral-800/50 shrink-0 bg-white/50 dark:bg-[#1a1a1a]/50">
+          <div className="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-neutral-800/50 shrink-0 bg-white/50 dark:bg-[#1a1a1a]/50 sticky top-0 z-10 backdrop-blur-md">
             <h2 className="text-[15px] font-extrabold text-[#1a1a1a] dark:text-neutral-100 flex items-center gap-2.5 tracking-tight uppercase">
               <span className="w-6 h-6 rounded-md bg-[#C1FF00] text-[#1a1a1a] flex items-center justify-center">
                 <Info size={14} className="stroke-[3px]" />

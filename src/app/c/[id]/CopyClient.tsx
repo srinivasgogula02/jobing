@@ -300,24 +300,28 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
       </header>
 
       {/* Split Canvas Area */}
-      <main className="flex-1 w-full flex relative overflow-hidden bg-neutral-50 dark:bg-neutral-950 flex-row">
+      <main className="flex-1 w-full flex relative overflow-hidden bg-neutral-50 dark:bg-neutral-950 flex-row items-stretch">
         
-        {/* Editor Half */}
-        <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col relative transition-all duration-300 z-0 flex-1 h-full">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={isEditingContent ? "Paste your text here..." : "No content provided."}
-            className="flex-1 w-full h-full resize-none bg-transparent outline-none border-none text-[15px] sm:text-lg leading-relaxed placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:ring-0 p-2 sm:p-0"
-            spellCheck="false"
-            maxLength={100000}
-            readOnly={!isEditingContent}
-          />
-          {isEditingContent && (
-            <div className="absolute bottom-4 sm:bottom-0 right-4 sm:right-0 text-xs font-medium text-neutral-400 dark:text-neutral-500 pointer-events-none transition-all">
-              {content.length.toLocaleString()} / 100,000
-            </div>
-          )}
+        {/* Editor Half Parent (Stretches from flex-1) */}
+        <div className="flex-1 w-full relative z-0 transition-all duration-300 min-h-0">
+          
+          {/* Editor Bounds (Absolute Lock) */}
+          <div className="absolute inset-0 w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={isEditingContent ? "Paste your text here..." : "No content provided."}
+              className="flex-1 w-full resize-none bg-transparent outline-none border-none text-[15px] sm:text-lg leading-relaxed placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:ring-0 p-2 sm:p-0"
+              spellCheck="false"
+              maxLength={100000}
+              readOnly={!isEditingContent}
+            />
+            {isEditingContent && (
+              <div className="absolute bottom-4 sm:bottom-0 right-4 sm:right-0 text-xs font-medium text-neutral-400 dark:text-neutral-500 pointer-events-none transition-all">
+                {content.length.toLocaleString()} / 100,000
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Floating Guide Panel */}

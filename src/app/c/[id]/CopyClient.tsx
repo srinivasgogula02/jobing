@@ -117,7 +117,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col font-sans transition-colors duration-300">
+    <div className="h-[100dvh] w-full overflow-hidden bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col font-sans transition-colors duration-300">
       {/* Top Navbar / Glassmorphism */}
       <header className="sticky top-0 z-10 backdrop-blur-xl bg-white/70 dark:bg-neutral-900/70 border-b border-neutral-200 dark:border-neutral-800 p-4 shadow-sm">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">

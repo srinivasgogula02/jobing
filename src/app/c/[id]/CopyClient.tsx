@@ -13,7 +13,8 @@ import {
   X,
   Share,
   Save,
-  EyeOff
+  EyeOff,
+  Info
 } from "lucide-react";
 import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -25,6 +26,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 export default function CopyClient({ id, initialContent, isNew = false }: { id: string, initialContent: string, isNew?: boolean }) {
   const [content, setContent] = useState(initialContent);
   const [isEditingContent, setIsEditingContent] = useState(isNew);
+  const [showGuide, setShowGuide] = useState(isNew);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedStealthLink, setCopiedStealthLink] = useState(false);
@@ -180,6 +182,18 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+            <button
+              onClick={() => setShowGuide(!showGuide)}
+              className={cn(
+                "p-2 rounded-lg transition-colors border hidden sm:flex shrink-0",
+                showGuide 
+                  ? "bg-neutral-100 dark:bg-neutral-800 text-[#8bb800] border-transparent" 
+                  : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              )}
+              title="How it Works"
+            >
+              <Info size={16} />
+            </button>
             {/* Status Indicator */}
             {saveStatus !== "idle" && (
               <div className="flex items-center text-xs font-medium text-neutral-500">
@@ -285,22 +299,106 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
         )}
       </header>
 
-      {/* Editor Area */}
-      <main className="flex-1 w-full max-w-6xl mx-auto p-4 flex flex-col relative">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={isEditingContent ? "Paste your text here..." : "No content provided."}
-          className="flex-1 w-full resize-none bg-transparent outline-none border-none text-lg leading-relaxed placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:ring-0 p-2 lg:p-6"
-          spellCheck="false"
-          maxLength={100000}
-          readOnly={!isEditingContent}
-        />
-        {isEditingContent && (
-          <div className="absolute bottom-4 right-4 text-xs text-neutral-400 dark:text-neutral-600 pointer-events-none">
-            {content.length.toLocaleString()} / 100,000
+      {/* Split Canvas Area */}
+      <main className="flex-1 w-full flex relative overflow-hidden bg-neutral-50 dark:bg-neutral-950">
+        
+        {/* Editor Half */}
+        <div className="flex-1 w-full max-w-6xl mx-auto h-full p-4 sm:p-6 lg:p-8 flex flex-col relative transition-all duration-300 z-0">
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={isEditingContent ? "Paste your text here..." : "No content provided."}
+            className="flex-1 w-full resize-none bg-transparent outline-none border-none text-[15px] sm:text-lg leading-relaxed placeholder:text-neutral-400 dark:placeholder:text-neutral-600 focus:ring-0 p-2 sm:p-0"
+            spellCheck="false"
+            maxLength={100000}
+            readOnly={!isEditingContent}
+          />
+          {isEditingContent && (
+            <div className="absolute bottom-4 sm:bottom-0 right-4 sm:right-0 text-xs font-medium text-neutral-400 dark:text-neutral-500 pointer-events-none">
+              {content.length.toLocaleString()} / 100,000
+            </div>
+          )}
+        </div>
+
+        {/* Floating Guide Panel */}
+        <aside className={cn(
+          "absolute top-0 right-0 h-full w-full sm:w-80 lg:w-[400px] xl:w-[450px] bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-3xl border-l border-neutral-200 dark:border-neutral-800 shadow-[0_0_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_0_60px_-15px_rgba(0,0,0,0.7)] transition-transform duration-500 will-change-transform z-20 flex flex-col",
+          showGuide ? "translate-x-0" : "translate-x-full"
+        )}>
+          {/* Guide Header */}
+          <div className="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-neutral-800/50 shrink-0 bg-white/50 dark:bg-[#1a1a1a]/50">
+            <h2 className="text-[15px] font-extrabold text-[#1a1a1a] dark:text-neutral-100 flex items-center gap-2.5 tracking-tight uppercase">
+              <span className="w-6 h-6 rounded-md bg-[#C1FF00] text-[#1a1a1a] flex items-center justify-center">
+                <Info size={14} className="stroke-[3px]" />
+              </span>
+              How it works
+            </h2>
+            <button 
+              onClick={() => setShowGuide(false)} 
+              className="w-8 h-8 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-full transition-colors"
+            >
+              <X size={16} />
+            </button>
           </div>
-        )}
+
+          {/* Guide Content: Scrollable Y */}
+          <div className="flex-1 overflow-y-auto p-6 pb-20 space-y-8 scrollbar-hide">
+            
+            {/* 1. Custom URL */}
+            <div className="flex flex-col gap-3 group">
+               <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    1
+                 </div>
+                 <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Custom Links</h3>
+               </div>
+               <div className="pl-11 pr-2">
+                 <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed mb-3">
+                   Create memorable short links universally accessible across any device without login instantly.
+                 </p>
+                 <div className="bg-neutral-100 dark:bg-neutral-800/50 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 text-[11px] font-mono flex items-center gap-2">
+                   <Edit size={12} className="text-neutral-400" />
+                   <span className="text-neutral-400 select-none">jobing.site/c/</span>
+                   <span className="text-blue-500 font-bold">homework-1</span>
+                 </div>
+               </div>
+            </div>
+
+            {/* 2. Stealth Links */}
+            <div className="flex flex-col gap-3 group">
+               <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <EyeOff size={14} />
+                 </div>
+                 <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Stealth Private Mode</h3>
+               </div>
+               <div className="pl-11 pr-2">
+                 <p className="text-[12px] sm:text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed mb-3">
+                   Using a private link by swapping <strong className="text-neutral-700 dark:text-neutral-300 font-mono">/c/</strong> for <strong className="text-neutral-700 dark:text-neutral-300 font-mono">/p/</strong>, it shows a "No internet" page. By clicking the dinosaur icon, you can securely copy the contents you saved.
+                 </p>
+                 <div className="mt-3 rounded-t-lg rounded-b-sm overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-950">
+                   <img src="/privacypage.gif" alt="Privacy Page Stealth Guide" className="w-full h-auto object-contain" />
+                 </div>
+               </div>
+            </div>
+
+            {/* 3. Core Engine */}
+            <div className="flex flex-col gap-3 group">
+               <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                    <Save size={14} />
+                 </div>
+                 <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Manual Persistence</h3>
+               </div>
+               <div className="pl-11 pr-2">
+                 <p className="text-[11.5px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                   Nothing limits you. Changes do not save automatically, allowing you to use <span className="font-mono bg-neutral-200 dark:bg-neutral-800 px-1 py-0.5 rounded text-neutral-700 dark:text-neutral-300">/copy</span> as a local scratchpad. Once your clipboard payload is ready, simply smash <strong className="text-[#8bb800]">Create Share</strong> to commit limits out to the public relay server globally.
+                 </p>
+               </div>
+            </div>
+
+          </div>
+        </aside>
       </main>
 
       {/* ─────── Brand Awareness CTA ─────── */}

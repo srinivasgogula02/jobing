@@ -26,7 +26,15 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 export default function CopyClient({ id, initialContent, isNew = false }: { id: string, initialContent: string, isNew?: boolean }) {
   const [content, setContent] = useState(initialContent);
   const [isEditingContent, setIsEditingContent] = useState(isNew);
-  const [showGuide, setShowGuide] = useState(isNew);
+  const [showGuide, setShowGuide] = useState(false);
+  
+  useEffect(() => {
+    // Only automatically slide open the guide for brand new visitors on Desktop/Tablet viewports to preserve mobile typing real-estate.
+    if (isNew && window.innerWidth >= 640) {
+      setShowGuide(true);
+    }
+  }, [isNew]);
+  
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedStealthLink, setCopiedStealthLink] = useState(false);
@@ -181,7 +189,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+          <div className="flex flex-nowrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0 overflow-hidden">
             <button
               onClick={() => setShowGuide(!showGuide)}
               className={cn(

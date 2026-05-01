@@ -19,7 +19,9 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/copy(.*)',
   '/c(.*)',
   '/p(.*)',
-  '/tools(.*)'
+  '/tools(.*)',
+  '/sitemap(.*)',
+  '/robots.txt'
 ])
 
 // TIER 2 — Auth Required, No Payment Check:

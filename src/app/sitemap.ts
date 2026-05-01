@@ -1,7 +1,19 @@
 import { MetadataRoute } from 'next';
+import { getPublishedBlogs } from './actions/blog';
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Fetch dynamic blog routes
+  const blogs = await getPublishedBlogs();
+  
+  const blogEntries: MetadataRoute.Sitemap = blogs.map((blog) => ({
+    url: `https://jobing.site/blog/${blog.permalink}`,
+    lastModified: new Date(blog.created_at),
+    changeFrequency: 'weekly',
+    priority: 0.8,
+  }));
+
+  // Define static core routes
+  const staticEntries: MetadataRoute.Sitemap = [
     {
       url: 'https://jobing.site',
       lastModified: new Date(),
@@ -10,6 +22,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: 'https://jobing.site/tools',
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: 'https://jobing.site/blog',
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.9,
@@ -39,4 +57,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
   ];
+
+  return [...staticEntries, ...blogEntries];
 }

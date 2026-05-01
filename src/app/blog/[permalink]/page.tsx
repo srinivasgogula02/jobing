@@ -23,11 +23,24 @@ export async function generateMetadata({ params }: BlogPostPageProps) {
     title: `${blog.title} | Jobing AI Blog`,
     description: blog.description,
     keywords: blog.keywords?.split(",").map(k => k.trim()) || [],
+    authors: [{ name: "Srinivas Gogula", url: "https://x.com/srinimyr" }],
+    alternates: {
+      canonical: `https://jobing.site/blog/${blog.permalink}`,
+    },
     openGraph: {
       title: blog.title,
       description: blog.description,
+      url: `https://jobing.site/blog/${blog.permalink}`,
       type: "article",
       publishedTime: blog.created_at,
+      authors: ["Srinivas Gogula"],
+      images: blog.image_url ? [blog.image_url] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: blog.title,
+      description: blog.description,
+      creator: "@srinimyr",
       images: blog.image_url ? [blog.image_url] : [],
     },
   };
@@ -48,6 +61,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     day: "numeric",
   });
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": blog.title,
+    "description": blog.description,
+    "image": blog.image_url ? [blog.image_url] : [],
+    "datePublished": blog.created_at,
+    "author": [{
+        "@type": "Person",
+        "name": "Srinivas Gogula",
+        "url": "https://x.com/srinimyr"
+      }]
+  };
+
   return (
     <DashboardLayout 
       breadcrumbs={[
@@ -55,6 +82,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         { label: blog.title }
       ]}
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* We use px-0 on mobile so we can have full-width components if we want, but pad the inner content */}
       <div className="flex flex-col h-full overflow-y-auto px-0 sm:px-4 py-0 sm:py-6 md:p-8 lg:p-10 w-full max-w-5xl mx-auto">
         
@@ -74,7 +105,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <Calendar size={14} />
               <time dateTime={blog.created_at}>{formattedDate}</time>
               <span className="mx-1">•</span>
-              <span>Jobing AI Team</span>
+              <span>Srinivas Gogula</span>
             </div>
           </div>
 

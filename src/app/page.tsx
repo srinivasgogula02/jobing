@@ -155,24 +155,7 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           {/* Left Column: Content */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <Link href="/copy" className="inline-flex items-center gap-3 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-full bg-[#1a1a1a] border border-neutral-800 shadow-[0_4px_24px_-4px_rgba(193,255,0,0.15)] hover:shadow-[0_4px_24px_-4px_rgba(193,255,0,0.3)] hover:border-neutral-700 transition-all mb-8 group cursor-pointer relative overflow-hidden">
-              {/* The shining hover reflection */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
-              
-              <div className="flex items-center gap-2 pl-1 sm:pl-2">
-                <span className="flex items-center justify-center bg-[#C1FF00] rounded-full px-2.5 py-1 text-[10px] sm:text-[11px] font-black tracking-[0.1em] text-[#1a1a1a] uppercase leading-none shadow-[0_0_8px_rgba(193,255,0,0.6)] relative z-10">
-                  NEW
-                </span>
-                <span className="text-[13px] sm:text-[14px] font-medium text-neutral-200 tracking-tight relative z-10">
-                  Share text instantly 
-                  <span className="hidden sm:inline"> online across devices</span>
-                </span>
-              </div>
-              <div className="w-[1px] h-4 bg-neutral-700 relative z-10 mx-1" />
-              <span className="flex items-center gap-1 pr-3 sm:pr-4 text-[13px] sm:text-[14px] font-bold tracking-wide text-white group-hover:text-[#C1FF00] transition-colors relative z-10">
-                Try /copy <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </span>
-            </Link>
+
 
             <h1 className="text-[1.75rem] sm:text-4xl lg:text-[3.75rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-6">
               Tired of getting rejected
@@ -226,7 +209,7 @@ export default async function Home() {
             <img 
               src="/hero-image.png" 
               alt="Jobing AI ATS Optimization Visualization" 
-              className="w-full max-w-lg lg:max-w-xl h-auto object-contain drop-shadow-2xl hover:scale-[1.02] transition-transform duration-500 ease-out"
+              className="w-full h-auto object-contain hover:scale-[1.02] transition-transform duration-500 ease-out"
             />
           </div>
         </div>

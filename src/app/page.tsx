@@ -147,7 +147,7 @@ export default async function Home() {
       </nav>
 
       {/* ─────── Hero ─────── */}
-      <section className="pt-16 md:pt-28 pb-16 px-5 relative overflow-hidden">
+      <section className="pt-6 md:pt-12 pb-16 px-5 relative overflow-hidden">
         {/* Decorative blurs */}
         <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none z-20" />
@@ -156,12 +156,10 @@ export default async function Home() {
           {/* Left Column: Content */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left w-full">
 
-            <h1 className="text-[1.75rem] sm:text-4xl lg:text-[4rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-8">
-              Tired of getting rejected
-              <br className="block md:hidden" />
-              <br className="hidden md:block" />
+            <h1 className="text-[2rem] sm:text-5xl lg:text-[4.25rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-8">
+              Tired of getting rejected<br />
               <span className="relative inline-block mt-0 lg:mt-2">
-                <span className="relative z-10 md:ml-0 lg:ml-2">with the same resume?</span>
+                <span className="relative z-10">with the same resume?</span>
                 <span className="absolute bottom-0.5 sm:bottom-1 left-0 right-0 h-2.5 sm:h-3 lg:h-4 bg-[#C1FF00]/40 -z-0 rounded-sm" />
               </span>
             </h1>

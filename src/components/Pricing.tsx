@@ -206,39 +206,34 @@ export function Pricing() {
             </div>
 
             {/* Mobile Sticky Footer CTA */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 rounded-t-2xl">
-                <div className="flex items-center justify-between mb-3 px-1">
-                    <div>
-                        <p className="text-xs text-slate-500 font-bold mb-0.5">{activeTierData.name} Plan</p>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-bold text-slate-950">₹{activeTierData.price}</span>
-                            <span className="text-xs text-slate-400 font-bold">/mo</span>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                         <span className="text-[10px] font-black bg-[#C1FF00]/20 text-[#1a1a1a] px-1.5 py-0.5 rounded uppercase tracking-wider">
-                             Save {Math.round((1 - activeTierData.price / activeTierData.originalPrice) * 100)}%
-                         </span>
-                    </div>
-                </div>
+            <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 pb-safe">
                 <button
                     onClick={() => handleSubscribe(activeTierData.id)}
                     disabled={loadingTier !== null}
-                    className={`w-full py-3.5 px-6 rounded-xl text-[16px] font-bold transition-all duration-300 flex justify-center items-center gap-2 cursor-pointer ${activeTierData.popular
+                    className={`w-full py-3.5 px-4 rounded-xl text-[15px] font-bold transition-all duration-300 flex justify-between items-center cursor-pointer ${activeTierData.popular
                         ? 'bg-[#C1FF00] text-[#1a1a1a]'
                         : 'bg-[#1a1a1a] text-white'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                    {loadingTier === activeTierData.id ? (
-                        <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Processing...
-                        </>
-                    ) : (
-                        <>
-                            Get {activeTierData.name}
+                    <div className="flex items-center gap-2">
+                        {loadingTier === activeTierData.id ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span>Processing...</span>
+                            </>
+                        ) : (
+                            <span>Get {activeTierData.name}</span>
+                        )}
+                    </div>
+
+                    {loadingTier !== activeTierData.id && (
+                        <div className="flex items-center gap-1.5">
+                            <div className="flex flex-col items-end leading-none mr-1">
+                                <span className="text-[10px] opacity-60 line-through">₹{activeTierData.originalPrice}</span>
+                                <span className="text-lg tracking-tight">₹{activeTierData.price}<span className="text-xs opacity-80">/mo</span></span>
+                            </div>
                             <ArrowRight size={18} />
-                        </>
+                        </div>
                     )}
                 </button>
             </div>

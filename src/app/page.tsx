@@ -150,7 +150,7 @@ export default async function Home() {
       <section className="pt-16 md:pt-28 pb-16 px-5 relative overflow-hidden">
         {/* Decorative blurs */}
         <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none z-20" />
 
         <div className="w-full max-w-[1600px] mx-auto px-5 md:px-10 lg:px-16 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column: Content */}
@@ -204,12 +204,12 @@ export default async function Home() {
 
           {/* Right Column: Image */}
           <div className="w-full relative flex justify-center md:justify-end mt-12 md:mt-0">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#C1FF00]/20 to-transparent blur-3xl rounded-full scale-75 -z-10" />
             <img 
               src="/hero-image.png" 
               alt="Jobing AI ATS Optimization Visualization" 
-              className="w-full h-auto object-contain hover:scale-[1.02] transition-transform duration-500 ease-out"
+              className="w-full h-auto object-contain hover:scale-[1.02] transition-transform duration-500 ease-out relative z-10"
             />
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#C1FF00]/20 to-transparent blur-3xl rounded-full scale-75 z-10 pointer-events-none" />
           </div>
         </div>
       </section>

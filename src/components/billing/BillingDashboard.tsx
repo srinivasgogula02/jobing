@@ -78,17 +78,7 @@ export function BillingDashboard({
     ];
 
     return (
-        <div className="w-full max-w-3xl mx-auto">
-            {/* Page Header */}
-            <div className="mb-10">
-                <span className="inline-block px-4 py-1.5 mb-4 text-[13px] font-bold tracking-widest uppercase bg-[#C1FF00] text-[#1a1a1a] rounded-full">
-                    BILLING
-                </span>
-                <h1 className="text-4xl font-bold tracking-tight text-[#1a1a1a] mb-2">
-                    Billing & <span className="text-[#9acc00]">Subscription</span>
-                </h1>
-                <p className="text-[#6b7280] font-medium">Manage your plan, track credits, and view invoices.</p>
-            </div>
+        <div className="w-full max-w-3xl mx-auto px-4 py-6 md:px-0 md:py-0">
 
             {/* Credits Card */}
             <div className="mb-8 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm">
@@ -185,7 +175,7 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
     // No subscription state
     if (!subscription) {
         return (
-            <div className="rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 p-10 text-center shadow-sm">
+            <div className="rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 p-6 md:p-10 text-center shadow-sm">
                 <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
                     <CreditCard size={28} className="text-slate-400" />
                 </div>
@@ -325,7 +315,7 @@ function InvoicesPanel({ invoices, isLiveMode }: { invoices: Payment[]; isLiveMo
 
     if (!invoices || invoices.length === 0) {
         return (
-            <div className="rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 p-10 text-center shadow-sm">
+            <div className="rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 p-6 md:p-10 text-center shadow-sm">
                 <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
                     <ReceiptText size={28} className="text-slate-400" />
                 </div>

@@ -152,12 +152,11 @@ export default async function Home() {
         <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div className="w-full max-w-[1600px] mx-auto px-5 md:px-10 lg:px-16 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Column: Content */}
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+          <div className="flex flex-col items-center md:items-start text-center md:text-left w-full">
 
-
-            <h1 className="text-[1.75rem] sm:text-4xl lg:text-[3.75rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-6">
+            <h1 className="text-[1.75rem] sm:text-4xl lg:text-[4rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-8">
               Tired of getting rejected
               <br className="block md:hidden" />
               <br className="hidden md:block" />
@@ -167,27 +166,27 @@ export default async function Home() {
               </span>
             </h1>
 
-            <p className="text-base md:text-lg text-[#6b7280] max-w-xl mb-10 leading-relaxed font-medium">
+            <p className="text-base md:text-xl text-[#6b7280] w-full mb-10 leading-relaxed font-medium">
               Stop sending the same generic resume everywhere.{" "}
               <strong className="text-[#1a1a1a]">Paste a job description</strong>,{" "}
               and our AI completely rewrites your experience to beat the ATS and get you hired in{" "}
               <strong className="text-[#1a1a1a]">under 30 seconds</strong>.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 mb-12">
+            <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
               <SignUpButton forceRedirectUrl="/tools">
-                <button className="btn-primary px-8 py-4 text-[15px] font-bold gap-2.5 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
+                <button className="btn-primary px-10 py-4 text-[16px] font-bold gap-2.5 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
                   Start Building Now
                   <ArrowRight size={18} />
                 </button>
               </SignUpButton>
-              <a href="#how-it-works" className="btn-secondary px-7 py-3.5 text-sm font-semibold w-full sm:w-auto text-center">
+              <a href="#how-it-works" className="btn-secondary px-8 py-4 text-[15px] font-semibold w-full sm:w-auto text-center">
                 See How It Works
               </a>
             </div>
 
             {/* Trust strip */}
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 text-sm text-[#9ca3af] font-medium">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-3 text-sm text-[#9ca3af] font-medium">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-[#8bb800]" />
                 No credit card required
@@ -204,7 +203,7 @@ export default async function Home() {
           </div>
 
           {/* Right Column: Image */}
-          <div className="w-full relative flex justify-center md:justify-end mt-10 md:mt-0">
+          <div className="w-full relative flex justify-center md:justify-end mt-12 md:mt-0">
             <div className="absolute inset-0 bg-gradient-to-tr from-[#C1FF00]/20 to-transparent blur-3xl rounded-full scale-75 -z-10" />
             <img 
               src="/hero-image.png" 

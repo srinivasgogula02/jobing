@@ -204,12 +204,12 @@ export default async function Home() {
 
           {/* Right Column: Image */}
           <div className="w-full relative flex justify-center md:justify-end mt-12 md:mt-0">
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#C1FF00]/20 to-transparent blur-3xl rounded-full scale-75 -z-10" />
             <img 
               src="/hero-image.png" 
               alt="Jobing AI ATS Optimization Visualization" 
               className="w-full h-auto object-contain hover:scale-[1.02] transition-transform duration-500 ease-out"
             />
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#C1FF00]/20 to-transparent blur-3xl rounded-full scale-75 z-10 pointer-events-none" />
           </div>
         </div>
       </section>

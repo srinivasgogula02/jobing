@@ -233,77 +233,46 @@ export function Pricing() {
                 <div className="mt-16 md:mt-24 max-w-4xl mx-auto">
                     <h3 className="text-2xl font-bold text-center text-[#1a1a1a] mb-8">Compare plan features</h3>
                     
-                    {/* Desktop Table */}
-                    <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                        <table className="w-full text-left border-collapse">
+                    {/* Unified Responsive Table */}
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                        <table className="w-full text-left border-collapse min-w-[320px]">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-slate-200">
-                                    <th className="py-4 px-6 font-semibold text-slate-900 w-1/2">Features</th>
-                                    <th className="py-4 px-6 font-semibold text-slate-900 w-1/4">Pro</th>
-                                    <th className="py-4 px-6 font-semibold text-[#1a1a1a] w-1/4 bg-[#C1FF00]/10">Max</th>
+                                    <th className="py-3 md:py-4 px-3 md:px-6 font-semibold text-slate-900 w-1/2 text-xs md:text-base">Features</th>
+                                    <th className="py-3 md:py-4 px-2 md:px-6 font-semibold text-slate-900 w-1/4 text-xs md:text-base text-center">Pro</th>
+                                    <th className="py-3 md:py-4 px-2 md:px-6 font-semibold text-[#1a1a1a] w-1/4 bg-[#C1FF00]/10 text-xs md:text-base text-center">Max</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {COMPARISON_FEATURES.map((item, idx) => (
                                     <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                        <td className="py-4 px-6 text-sm text-slate-600 font-medium">{item.feature}</td>
-                                        <td className="py-4 px-6 text-sm text-slate-900">
-                                            {typeof item.pro === "boolean" ? (
-                                                item.pro ? <Check className="w-5 h-5 text-green-500" /> : <X className="w-5 h-5 text-slate-300" />
-                                            ) : (
-                                                item.pro
-                                            )}
+                                        <td className="py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm text-slate-600 font-medium">{item.feature}</td>
+                                        <td className="py-3 md:py-4 px-2 md:px-6 text-xs md:text-sm text-slate-900 text-center">
+                                            <div className="flex justify-center">
+                                                {typeof item.pro === "boolean" ? (
+                                                    item.pro ? <Check className="w-4 h-4 md:w-5 md:h-5 text-green-500" /> : <X className="w-4 h-4 md:w-5 md:h-5 text-slate-300" />
+                                                ) : (
+                                                    item.pro
+                                                )}
+                                            </div>
                                         </td>
-                                        <td className="py-4 px-6 text-sm text-slate-900 font-medium bg-[#C1FF00]/5">
-                                            {typeof item.max === "boolean" ? (
-                                                item.max ? (
-                                                    <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
-                                                        <Check className="w-3.5 h-3.5 text-[#C1FF00]" />
-                                                    </div>
-                                                ) : <X className="w-5 h-5 text-slate-300" />
-                                            ) : (
-                                                item.max
-                                            )}
+                                        <td className="py-3 md:py-4 px-2 md:px-6 text-xs md:text-sm text-slate-900 font-medium bg-[#C1FF00]/5 text-center">
+                                            <div className="flex justify-center">
+                                                {typeof item.max === "boolean" ? (
+                                                    item.max ? (
+                                                        <div className="w-4 h-4 md:w-5 md:h-5 bg-black rounded-full flex items-center justify-center">
+                                                            <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#C1FF00]" />
+                                                        </div>
+                                                    ) : <X className="w-4 h-4 md:w-5 md:h-5 text-slate-300" />
+                                                ) : (
+                                                    item.max
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-
-                    {/* Mobile Table */}
-                    <div className="md:hidden space-y-3">
-                        {COMPARISON_FEATURES.map((item, idx) => (
-                            <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                                <h4 className="text-sm font-bold text-slate-900 mb-3">{item.feature}</h4>
-                                <div className="flex justify-between items-center text-sm">
-                                    <div className="flex flex-col gap-1 w-1/2 pr-2 border-r border-slate-100">
-                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wider">Pro</span>
-                                        <span className="font-medium text-slate-800">
-                                            {typeof item.pro === "boolean" ? (
-                                                item.pro ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-slate-300" />
-                                            ) : (
-                                                item.pro
-                                            )}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col gap-1 w-1/2 pl-4">
-                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wider">Max</span>
-                                        <span className="font-bold text-slate-900">
-                                            {typeof item.max === "boolean" ? (
-                                                item.max ? (
-                                                    <div className="w-4 h-4 bg-black rounded-full flex items-center justify-center">
-                                                        <Check className="w-3 h-3 text-[#C1FF00]" />
-                                                    </div>
-                                                ) : <X className="w-4 h-4 text-slate-300" />
-                                            ) : (
-                                                item.max
-                                            )}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
                     </div>
                 </div>
 

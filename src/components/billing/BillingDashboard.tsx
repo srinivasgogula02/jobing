@@ -79,6 +79,9 @@ export function BillingDashboard({
 
     return (
         <div className="w-full max-w-3xl mx-auto px-4 py-6 md:px-0 md:py-0">
+            <div className="mb-6">
+                <p className="text-[#6b7280] font-medium">Manage your plan, track credits, and view invoices.</p>
+            </div>
 
             {/* Credits Card */}
             <div className="mb-8 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm">

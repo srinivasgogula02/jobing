@@ -133,7 +133,7 @@ export default async function Home() {
       </nav>
 
       {/* ─────── Hero ─────── */}
-      <section className="pt-4 md:pt-8 pb-4 px-5 relative overflow-hidden">
+      <section className="pt-2 md:pt-4 pb-2 px-5 relative overflow-hidden">
         {/* Decorative blurs */}
         <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none z-20" />
@@ -142,7 +142,7 @@ export default async function Home() {
           {/* Left Column: Content */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left w-full">
 
-            <h1 className="text-[2rem] sm:text-[2.5rem] lg:text-[3.25rem] xl:text-[3.75rem] font-extrabold tracking-tight leading-[1.12] text-[#1a1a1a] mb-4 lg:mb-6">
+            <h1 className="text-[1.9rem] sm:text-[2.4rem] lg:text-[3rem] xl:text-[3.5rem] font-extrabold tracking-tight leading-[1.12] text-[#1a1a1a] mb-3 lg:mb-4">
               Tired of getting rejected<br />
               <span className="relative inline-block mt-1">
                 <span className="relative z-10">with the same resume?</span>
@@ -150,21 +150,21 @@ export default async function Home() {
               </span>
             </h1>
 
-            <p className="text-sm md:text-base lg:text-lg text-[#6b7280] w-full mb-7 leading-relaxed font-medium">
+            <p className="text-sm md:text-base text-[#6b7280] w-full mb-5 leading-relaxed font-medium">
               Stop sending the same generic resume everywhere.{" "}
               <strong className="text-[#1a1a1a]">Paste a job description</strong>,{" "}
               and our AI completely rewrites your experience to beat the ATS and get you hired in{" "}
               <strong className="text-[#1a1a1a]">under 30 seconds</strong>.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 mb-7">
+            <div className="flex flex-col sm:flex-row items-center gap-3 mb-5">
               <SignUpButton forceRedirectUrl="/tools">
-                <button className="btn-primary px-10 py-4 text-[16px] font-bold gap-2.5 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
+                <button className="btn-primary px-8 py-3 text-[15px] font-bold gap-2 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
                   Start Building Now
                   <ArrowRight size={18} />
                 </button>
               </SignUpButton>
-              <a href="#how-it-works" className="btn-secondary px-8 py-4 text-[15px] font-semibold w-full sm:w-auto text-center">
+              <a href="#how-it-works" className="btn-secondary px-6 py-3 text-[14px] font-semibold w-full sm:w-auto text-center">
                 See How It Works
               </a>
             </div>
@@ -192,7 +192,7 @@ export default async function Home() {
             <img 
               src="/hero-image.png" 
               alt="Jobing AI ATS Optimization Visualization" 
-              className="w-full h-auto object-contain hover:scale-[1.02] transition-transform duration-500 ease-out relative z-10"
+              className="w-full max-h-[420px] lg:max-h-[500px] object-contain hover:scale-[1.02] transition-transform duration-500 ease-out relative z-10"
             />
           </div>
         </div>

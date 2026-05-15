@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Loader2, ArrowRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Check, Loader2, ArrowRight, X } from "lucide-react";
 import { createSubscriptionCheckout } from "@/app/actions/subscription";
 import { useClerk } from "@clerk/nextjs";
 
@@ -36,11 +36,41 @@ const TIERS = [
     }
 ];
 
+const COMPARISON_FEATURES = [
+    { feature: "Resumes per month", pro: "50", max: "150" },
+    { feature: "ATS-optimization models", pro: "Advanced", max: "Ultimate" },
+    { feature: "Tailoring precision", pro: "Standard", max: "Hyper-personalized" },
+    { feature: "Support", pro: "Priority", max: "Dedicated" },
+    { feature: "Early access to features", pro: true, max: true },
+    { feature: "API access", pro: false, max: "Coming soon" },
+];
+
 export function Pricing() {
     const [loadingTier, setLoadingTier] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"Pro" | "Max">("Pro");
+    const [showStickyCta, setShowStickyCta] = useState(false);
+    const pricingRef = useRef<HTMLElement>(null);
     const clerk = useClerk();
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (pricingRef.current) {
+                const rect = pricingRef.current.getBoundingClientRect();
+                // Show sticky CTA if the pricing component has entered the viewport
+                if (rect.top <= window.innerHeight - 100) {
+                    setShowStickyCta(true);
+                } else {
+                    setShowStickyCta(false);
+                }
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        handleScroll(); // Initial check
+
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     const handleSubscribe = async (productId: string) => {
         if (!clerk.user) {
@@ -70,7 +100,7 @@ export function Pricing() {
     const activeTierData = TIERS.find(t => t.name === activeTab) || TIERS[0];
 
     return (
-        <section className="py-8 md:py-20 pb-36 md:pb-20 relative">
+        <section ref={pricingRef} className="py-8 md:py-20 pb-36 md:pb-20 relative">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="text-center max-w-2xl mx-auto mb-8 md:mb-16">
@@ -199,6 +229,84 @@ export function Pricing() {
                     })}
                 </div>
 
+                {/* Comparison Table */}
+                <div className="mt-16 md:mt-24 max-w-4xl mx-auto">
+                    <h3 className="text-2xl font-bold text-center text-[#1a1a1a] mb-8">Compare plan features</h3>
+                    
+                    {/* Desktop Table */}
+                    <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="py-4 px-6 font-semibold text-slate-900 w-1/2">Features</th>
+                                    <th className="py-4 px-6 font-semibold text-slate-900 w-1/4">Pro</th>
+                                    <th className="py-4 px-6 font-semibold text-[#1a1a1a] w-1/4 bg-[#C1FF00]/10">Max</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {COMPARISON_FEATURES.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                        <td className="py-4 px-6 text-sm text-slate-600 font-medium">{item.feature}</td>
+                                        <td className="py-4 px-6 text-sm text-slate-900">
+                                            {typeof item.pro === "boolean" ? (
+                                                item.pro ? <Check className="w-5 h-5 text-green-500" /> : <X className="w-5 h-5 text-slate-300" />
+                                            ) : (
+                                                item.pro
+                                            )}
+                                        </td>
+                                        <td className="py-4 px-6 text-sm text-slate-900 font-medium bg-[#C1FF00]/5">
+                                            {typeof item.max === "boolean" ? (
+                                                item.max ? (
+                                                    <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
+                                                        <Check className="w-3.5 h-3.5 text-[#C1FF00]" />
+                                                    </div>
+                                                ) : <X className="w-5 h-5 text-slate-300" />
+                                            ) : (
+                                                item.max
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile Table */}
+                    <div className="md:hidden space-y-3">
+                        {COMPARISON_FEATURES.map((item, idx) => (
+                            <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                                <h4 className="text-sm font-bold text-slate-900 mb-3">{item.feature}</h4>
+                                <div className="flex justify-between items-center text-sm">
+                                    <div className="flex flex-col gap-1 w-1/2 pr-2 border-r border-slate-100">
+                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wider">Pro</span>
+                                        <span className="font-medium text-slate-800">
+                                            {typeof item.pro === "boolean" ? (
+                                                item.pro ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-slate-300" />
+                                            ) : (
+                                                item.pro
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-1 w-1/2 pl-4">
+                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wider">Max</span>
+                                        <span className="font-bold text-slate-900">
+                                            {typeof item.max === "boolean" ? (
+                                                item.max ? (
+                                                    <div className="w-4 h-4 bg-black rounded-full flex items-center justify-center">
+                                                        <Check className="w-3 h-3 text-[#C1FF00]" />
+                                                    </div>
+                                                ) : <X className="w-4 h-4 text-slate-300" />
+                                            ) : (
+                                                item.max
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Footer Note */}
                 <p className="hidden md:block text-center text-sm text-slate-400 mt-10 font-medium">
                     Cancel anytime.
@@ -206,7 +314,7 @@ export function Pricing() {
             </div>
 
             {/* Mobile Sticky Footer CTA */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 pb-safe">
+            <div className={`md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 pb-safe transition-transform duration-500 ease-out ${showStickyCta ? 'translate-y-0' : 'translate-y-[150%]'}`}>
                 <button
                     onClick={() => handleSubscribe(activeTierData.id)}
                     disabled={loadingTier !== null}

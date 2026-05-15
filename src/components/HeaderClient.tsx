@@ -25,7 +25,7 @@ export function HeaderClient({ isSignedIn, username, credits }: HeaderClientProp
         <>
             <header className="flex justify-between items-center p-6 absolute top-0 w-full z-10">
                 <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
-                    Jobing
+                    {pathname === "/pricing" ? "Jobing AI/pricing" : "Jobing"}
                 </Link>
 
                 <div className="flex items-center gap-4">

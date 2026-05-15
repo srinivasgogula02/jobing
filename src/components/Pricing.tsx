@@ -74,15 +74,9 @@ export function Pricing() {
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="text-center max-w-2xl mx-auto mb-8 md:mb-16">
-                    <span className="inline-block px-4 py-1.5 mb-4 md:mb-6 text-[13px] font-bold tracking-widest uppercase bg-[#C1FF00] text-[#1a1a1a] rounded-full">
-                        PRICING
-                    </span>
-                    <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-[#1a1a1a] mb-3 md:mb-4">
+                    <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-[#1a1a1a]">
                         Simple, transparent <span className="bg-[#C1FF00] px-2 rounded text-[#1a1a1a]">pricing</span>
                     </h2>
-                    <p className="text-base md:text-lg text-slate-500 font-medium px-4">
-                        Choose the plan that fits your workflow. Upgrade or downgrade anytime.
-                    </p>
                 </div>
 
                 {/* Mobile Toggle */}

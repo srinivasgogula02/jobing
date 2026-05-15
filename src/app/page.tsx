@@ -133,81 +133,99 @@ export default async function Home() {
       </nav>
 
       {/* ─────── Hero ─────── */}
-      <section className="pt-2 md:pt-4 pb-2 px-5 relative overflow-hidden">
-        {/* Decorative blurs */}
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none z-20" />
+      <section className="relative overflow-hidden bg-[#0d0d0d]">
+        {/* Dot grid background */}
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(circle, #C1FF00 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+        />
+        {/* Glow blobs */}
+        <div className="absolute -top-60 -left-60 w-[700px] h-[700px] bg-[#C1FF00]/8 rounded-full blur-[160px] pointer-events-none" />
+        <div className="absolute -top-20 right-0 w-[500px] h-[500px] bg-[#C1FF00]/6 rounded-full blur-[130px] pointer-events-none z-0" />
 
-        <div className="w-full max-w-[1600px] mx-auto px-4 md:px-10 lg:px-16 relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-12 items-center min-h-0">
-          {/* Left Column: Content */}
-          <div className="flex flex-col items-center md:items-start text-center md:text-left w-full py-6 md:py-0">
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 lg:px-20 pt-10 md:pt-16 pb-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-16 items-center">
+          {/* Left: Content */}
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
 
-            <h1 className="text-[1.9rem] sm:text-[2.4rem] lg:text-[3rem] xl:text-[3.5rem] font-extrabold tracking-tight leading-[1.12] text-[#1a1a1a] mb-3 lg:mb-4">
-              Tired of getting rejected<br />
-              <span className="relative inline-block mt-1">
-                <span className="relative z-10">with the same resume?</span>
-                <span className="absolute bottom-0.5 sm:bottom-1 left-0 right-0 h-2.5 sm:h-3 lg:h-3.5 bg-[#C1FF00]/40 -z-0 rounded-sm" />
+            {/* Live badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#C1FF00]/25 bg-[#C1FF00]/8 mb-6 backdrop-blur-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C1FF00] animate-pulse shadow-[0_0_6px_#C1FF00]" />
+              <span className="text-[10px] sm:text-[11px] font-bold text-[#C1FF00] tracking-[0.15em] uppercase">
+                AI-Powered Resume Builder
               </span>
+            </div>
+
+            <h1 className="text-[2rem] sm:text-[2.5rem] lg:text-[3.25rem] xl:text-[3.75rem] font-extrabold tracking-tight leading-[1.1] text-white mb-5">
+              Tired of getting rejected<br />
+              <span className="text-[#C1FF00]">with the same resume?</span>
             </h1>
 
-            <p className="text-sm md:text-base text-[#6b7280] w-full mb-5 leading-relaxed font-medium">
-              Stop sending the same generic resume everywhere.{" "}
-              <strong className="text-[#1a1a1a]">Paste a job description</strong>,{" "}
-              and our AI completely rewrites your experience to beat the ATS and get you hired in{" "}
-              <strong className="text-[#1a1a1a]">under 30 seconds</strong>.
+            <p className="text-sm md:text-[15px] text-[#888] w-full max-w-lg mb-7 leading-relaxed">
+              Stop sending the same generic resume.{" "}
+              <span className="text-white font-semibold">Paste any job description</span>{" "}
+              and our AI rewrites your experience to beat the ATS and get you hired in{" "}
+              <span className="text-white font-semibold">under 30 seconds</span>.
             </p>
 
-            <div className="flex flex-row items-center justify-center md:justify-start gap-3 mb-5 w-full">
+            {/* CTAs */}
+            <div className="flex flex-row items-center justify-center md:justify-start gap-3 mb-7 w-full">
               <SignUpButton forceRedirectUrl="/tools">
-                <button className="btn-primary px-6 py-3 text-[14px] sm:px-8 sm:text-[15px] font-bold gap-2 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform">
+                <button className="flex items-center gap-2 bg-[#C1FF00] text-[#0d0d0d] px-6 py-3 sm:px-8 sm:py-3.5 text-[14px] sm:text-[15px] font-extrabold rounded-full hover:bg-[#d4ff33] hover:scale-[1.03] transition-all shadow-[0_0_24px_rgba(193,255,0,0.3)] whitespace-nowrap">
                   Start Building Now
-                  <ArrowRight size={18} />
+                  <ArrowRight size={16} />
                 </button>
               </SignUpButton>
-              <a href="#how-it-works" className="btn-secondary px-6 py-3 text-[13px] sm:text-[14px] font-semibold text-center whitespace-nowrap">
+              <a
+                href="#how-it-works"
+                className="px-5 py-3 sm:px-7 sm:py-3.5 text-[13px] sm:text-[14px] font-semibold text-white border border-white/15 rounded-full hover:border-white/35 hover:bg-white/5 transition-all text-center whitespace-nowrap"
+              >
                 See How It Works
               </a>
             </div>
 
             {/* Trust strip */}
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1.5 text-xs md:text-sm text-[#9ca3af] font-medium">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1.5 text-[11px] md:text-xs text-[#555] font-medium">
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={13} className="text-[#8bb800]" />
-                No credit card required
+                <CheckCircle2 size={12} className="text-[#C1FF00]" />
+                <span className="text-[#777]">No credit card required</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={13} className="text-[#8bb800]" />
-                Instant access upon subscribe
+                <CheckCircle2 size={12} className="text-[#C1FF00]" />
+                <span className="text-[#777]">Instant access upon subscribe</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={13} className="text-[#8bb800]" />
-                ATS-optimized output
+                <CheckCircle2 size={12} className="text-[#C1FF00]" />
+                <span className="text-[#777]">ATS-optimized output</span>
               </span>
             </div>
           </div>
 
-          {/* Right Column: Image — hidden on mobile */}
-          <div className="hidden md:flex w-full relative justify-center md:justify-end mt-8 md:mt-0 overflow-hidden min-h-0">
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#C1FF00]/20 to-transparent blur-3xl rounded-full scale-75 -z-10" />
-            <img 
-              src="/hero-image.png" 
-              alt="Jobing AI ATS Optimization Visualization" 
-              className="w-full max-h-[420px] lg:max-h-[500px] object-contain hover:scale-[1.02] transition-transform duration-500 ease-out relative z-10"
+          {/* Right: Image — hidden on mobile */}
+          <div className="hidden md:flex w-full relative items-center justify-end overflow-hidden">
+            {/* Subtle glow behind image */}
+            <div className="absolute inset-0 bg-[#C1FF00]/10 rounded-3xl blur-3xl scale-90 -z-10" />
+            <img
+              src="/hero-image.png"
+              alt="Jobing AI ATS Optimization Visualization"
+              className="w-full max-h-[480px] lg:max-h-[540px] object-contain hover:scale-[1.02] transition-transform duration-500 ease-out relative z-10"
             />
           </div>
         </div>
+
+        {/* Bottom fade to white */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-white pointer-events-none" />
       </section>
 
       {/* ─────── Company Marquee (Social Proof) ─────── */}
-      <section className="py-4 md:py-6 bg-white overflow-hidden relative">
-        <div className="max-w-5xl mx-auto px-5 mb-5 text-center">
-          <p className="text-[13px] font-bold text-[#9ca3af] uppercase tracking-widest">
-            Our users have landed jobs at 
+      <section className="pt-2 pb-6 md:pb-8 bg-white overflow-hidden relative">
+        <div className="max-w-5xl mx-auto px-5 mb-4 text-center">
+          <p className="text-[11px] font-bold text-[#bbb] uppercase tracking-[0.2em]">
+            Our users have landed jobs at
           </p>
         </div>
-        
+
         {/* Marquee Container */}
-        <div className="relative flex overflow-x-hidden group">
+        <div className="relative flex overflow-x-hidden group">          
           {/* Gradient Masks */}
           <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 z-10 bg-gradient-to-r from-white to-transparent pointer-events-none"></div>
           <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 z-10 bg-gradient-to-l from-white to-transparent pointer-events-none"></div>

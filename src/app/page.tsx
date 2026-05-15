@@ -147,74 +147,87 @@ export default async function Home() {
       </nav>
 
       {/* ─────── Hero ─────── */}
-      <section className="pt-16 md:pt-28 pb-16 px-5 text-center relative overflow-hidden">
+      <section className="pt-16 md:pt-28 pb-16 px-5 relative overflow-hidden">
         {/* Decorative blurs */}
         <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="max-w-3xl mx-auto relative z-10 flex flex-col items-center">
-          <Link href="/copy" className="inline-flex mx-auto items-center gap-3 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-full bg-[#1a1a1a] border border-neutral-800 shadow-[0_4px_24px_-4px_rgba(193,255,0,0.15)] hover:shadow-[0_4px_24px_-4px_rgba(193,255,0,0.3)] hover:border-neutral-700 transition-all mb-8 group cursor-pointer relative overflow-hidden">
-            {/* The shining hover reflection */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
-            
-            <div className="flex items-center gap-2 pl-1 sm:pl-2">
-              <span className="flex items-center justify-center bg-[#C1FF00] rounded-full px-2.5 py-1 text-[10px] sm:text-[11px] font-black tracking-[0.1em] text-[#1a1a1a] uppercase leading-none shadow-[0_0_8px_rgba(193,255,0,0.6)] relative z-10">
-                NEW
+        <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          {/* Left Column: Content */}
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <Link href="/copy" className="inline-flex items-center gap-3 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-full bg-[#1a1a1a] border border-neutral-800 shadow-[0_4px_24px_-4px_rgba(193,255,0,0.15)] hover:shadow-[0_4px_24px_-4px_rgba(193,255,0,0.3)] hover:border-neutral-700 transition-all mb-8 group cursor-pointer relative overflow-hidden">
+              {/* The shining hover reflection */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
+              
+              <div className="flex items-center gap-2 pl-1 sm:pl-2">
+                <span className="flex items-center justify-center bg-[#C1FF00] rounded-full px-2.5 py-1 text-[10px] sm:text-[11px] font-black tracking-[0.1em] text-[#1a1a1a] uppercase leading-none shadow-[0_0_8px_rgba(193,255,0,0.6)] relative z-10">
+                  NEW
+                </span>
+                <span className="text-[13px] sm:text-[14px] font-medium text-neutral-200 tracking-tight relative z-10">
+                  Share text instantly 
+                  <span className="hidden sm:inline"> online across devices</span>
+                </span>
+              </div>
+              <div className="w-[1px] h-4 bg-neutral-700 relative z-10 mx-1" />
+              <span className="flex items-center gap-1 pr-3 sm:pr-4 text-[13px] sm:text-[14px] font-bold tracking-wide text-white group-hover:text-[#C1FF00] transition-colors relative z-10">
+                Try /copy <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </span>
-              <span className="text-[13px] sm:text-[14px] font-medium text-neutral-200 tracking-tight relative z-10">
-                Share text instantly 
-                <span className="hidden sm:inline"> online across devices</span>
+            </Link>
+
+            <h1 className="text-[1.75rem] sm:text-4xl lg:text-[3.75rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-6">
+              Tired of getting rejected
+              <br className="block md:hidden" />
+              <br className="hidden md:block" />
+              <span className="relative inline-block mt-0 lg:mt-2">
+                <span className="relative z-10 md:ml-0 lg:ml-2">with the same resume?</span>
+                <span className="absolute bottom-0.5 sm:bottom-1 left-0 right-0 h-2.5 sm:h-3 lg:h-4 bg-[#C1FF00]/40 -z-0 rounded-sm" />
+              </span>
+            </h1>
+
+            <p className="text-base md:text-lg text-[#6b7280] max-w-xl mb-10 leading-relaxed font-medium">
+              Stop sending the same generic resume everywhere.{" "}
+              <strong className="text-[#1a1a1a]">Paste a job description</strong>,{" "}
+              and our AI completely rewrites your experience to beat the ATS and get you hired in{" "}
+              <strong className="text-[#1a1a1a]">under 30 seconds</strong>.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 mb-12">
+              <SignUpButton forceRedirectUrl="/tools">
+                <button className="btn-primary px-8 py-4 text-[15px] font-bold gap-2.5 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
+                  Start Building Now
+                  <ArrowRight size={18} />
+                </button>
+              </SignUpButton>
+              <a href="#how-it-works" className="btn-secondary px-7 py-3.5 text-sm font-semibold w-full sm:w-auto text-center">
+                See How It Works
+              </a>
+            </div>
+
+            {/* Trust strip */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 text-sm text-[#9ca3af] font-medium">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-[#8bb800]" />
+                No credit card required
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-[#8bb800]" />
+                Instant access upon subscribe
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-[#8bb800]" />
+                ATS-optimized output
               </span>
             </div>
-            <div className="w-[1px] h-4 bg-neutral-700 relative z-10 mx-1" />
-            <span className="flex items-center gap-1 pr-3 sm:pr-4 text-[13px] sm:text-[14px] font-bold tracking-wide text-white group-hover:text-[#C1FF00] transition-colors relative z-10">
-              Try /copy <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </span>
-          </Link>
-
-          <h1 className="text-[1.75rem] sm:text-4xl lg:text-[3.75rem] font-extrabold tracking-tight leading-[1.15] lg:leading-[1.1] text-[#1a1a1a] mb-5 lg:mb-6 lg:px-0">
-            Tired of getting rejected
-            <br className="block md:hidden" />
-            <br className="hidden md:block" />
-            <span className="relative inline-block mt-0 lg:mt-2">
-              <span className="relative z-10 lg:ml-2">with the same resume?</span>
-              <span className="absolute bottom-0.5 sm:bottom-1 left-0 right-0 h-2.5 sm:h-3 lg:h-4 bg-[#C1FF00]/40 -z-0 rounded-sm" />
-            </span>
-          </h1>
-
-          <p className="text-base md:text-lg text-[#6b7280] max-w-xl mx-auto mb-10 leading-relaxed font-medium">
-            Stop sending the same generic resume everywhere.{" "}
-            <strong className="text-[#1a1a1a]">Paste a job description</strong>,{" "}
-            and our AI completely rewrites your experience to beat the ATS and get you hired in{" "}
-            <strong className="text-[#1a1a1a]">under 30 seconds</strong>.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
-            <SignUpButton forceRedirectUrl="/tools">
-              <button className="btn-primary px-8 py-4 text-[15px] font-bold gap-2.5 shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
-                Start Building Now
-                <ArrowRight size={18} />
-              </button>
-            </SignUpButton>
-            <a href="#how-it-works" className="btn-secondary px-7 py-3.5 text-sm font-semibold w-full sm:w-auto">
-              See How It Works
-            </a>
           </div>
 
-          {/* Trust strip */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-[#9ca3af] font-medium">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 size={14} className="text-[#8bb800]" />
-              No credit card required
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 size={14} className="text-[#8bb800]" />
-              Instant access upon subscribe
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 size={14} className="text-[#8bb800]" />
-              ATS-optimized output
-            </span>
+          {/* Right Column: Image */}
+          <div className="w-full relative flex justify-center md:justify-end mt-10 md:mt-0">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#C1FF00]/20 to-transparent blur-3xl rounded-full scale-75 -z-10" />
+            <img 
+              src="/hero-image.png" 
+              alt="Jobing AI ATS Optimization Visualization" 
+              className="w-full max-w-lg lg:max-w-xl h-auto object-contain drop-shadow-2xl hover:scale-[1.02] transition-transform duration-500 ease-out"
+            />
           </div>
         </div>
       </section>

@@ -24,20 +24,6 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   return (
     <div className="min-h-screen bg-white">
-      {/* ─────── Top Announcement Banner ─────── */}
-      <div className="w-full bg-[#1a1a1a] text-white px-4 py-2.5 flex items-center justify-center relative z-[60] border-b border-black">
-        <Link href="/copy" className="group flex flex-wrap items-center justify-center text-center gap-2 sm:gap-3 text-[12px] sm:text-[13px] font-medium hover:opacity-90 transition-opacity">
-          <span className="hidden sm:flex items-center justify-center bg-[#C1FF00] text-[#1a1a1a] px-2 py-[2px] rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow-[0_0_8px_rgba(193,255,0,0.4)]">
-            NEW
-          </span>
-          <span className="opacity-95">
-            Instantly sync and share notes online without logging in.
-          </span>
-          <span className="text-[#C1FF00] flex items-center gap-1 font-bold whitespace-nowrap">
-            Try /copy <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </span>
-        </Link>
-      </div>
 
       {/* ─────── SEO & GEO JSON-LD ─────── */}
       <script
@@ -213,7 +199,7 @@ export default async function Home() {
       </section>
 
       {/* ─────── Company Marquee (Social Proof) ─────── */}
-      <section className="py-8 md:py-10 border-t border-[#f0f0f0] bg-white overflow-hidden relative">
+      <section className="py-4 md:py-6 bg-white overflow-hidden relative">
         <div className="max-w-5xl mx-auto px-5 mb-5 text-center">
           <p className="text-[13px] font-bold text-[#9ca3af] uppercase tracking-widest">
             Our users have landed jobs at 

@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { Copy, FileText, ArrowRight, Clock, Sparkles, BookOpen } from "lucide-react";
+import { Copy, FileText, ArrowRight, Clock, Sparkles, BookOpen, Code } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { auth } from "@clerk/nextjs/server";
 import { SignUpButton } from "@clerk/nextjs";
@@ -108,6 +108,31 @@ export default async function ToolsPage() {
             <div className="w-full mt-6">
                <span className="flex items-center justify-between w-full text-[13px] font-bold text-[#4f46e5] group-hover:text-white transition-colors py-3 px-5 rounded-none bg-[#4f46e5]/10 group-hover:bg-[#4f46e5]">
                  Create notes <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+               </span>
+            </div>
+          </Link>
+
+          {/* Tool X: HTML Viewer - Lime Green Palette */}
+          <Link href="/pages" className="group flex flex-col justify-between p-6 md:p-8 bg-[#f7fee7] hover:bg-[#ecfccb] transition-colors min-h-[300px] md:min-h-[340px] relative overflow-hidden border-b border-r border-[#e5e5e5]">
+            <div className="flex flex-col gap-4 flex-1">
+               <div className="flex items-center justify-between">
+                 <div className="w-12 h-12 rounded-none bg-[#3f6212] text-[#a3e635] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <Code size={22} />
+                 </div>
+                 <span className="bg-[#a3e635]/15 text-[#65a30d] border border-[#a3e635]/20 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-none">Live</span>
+               </div>
+               
+               <div className="flex flex-col mt-2">
+                 <h3 className="text-lg font-extrabold text-[#14532d] tracking-tight group-hover:text-[#65a30d] transition-colors mb-1.5">HTML Online Viewer</h3>
+                 <p className="text-[13px] text-[#3f6212]/70 font-medium leading-relaxed">
+                   Fast HTML editor with instant live preview. View, edit, and experiment with your HTML code in real-time. 100% private, no login required.
+                 </p>
+               </div>
+            </div>
+
+            <div className="w-full mt-6">
+               <span className="flex items-center justify-between w-full text-[13px] font-bold text-[#65a30d] group-hover:text-[#1a1a1a] transition-colors py-3 px-5 rounded-none bg-[#65a30d]/10 group-hover:bg-[#C1FF00]">
+                 Open Viewer <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                </span>
             </div>
           </Link>

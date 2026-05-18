@@ -20,6 +20,7 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/c(.*)',
   '/p(.*)',
   '/tools(.*)',
+  '/pages(.*)',
   '/sitemap(.*)',
   '/robots.txt'
 ])

@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-97902571-5"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-97902571-5');
+    </script>
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4523112948468173"
+        crossorigin="anonymous"></script>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width">
+    <meta name="description"
+        content="HTML Online Viewer is a fast HTML editor and formatter with an instant live preview. View, edit and format your HTML in real-time!">
+    <meta name="keywords"
+        content="HTML Online Viewer,Online HTML Viewer,HTML Preview,HTML Viewer,HTML Editor,Highlight HTML,HTML live">
+
+    <title>HTML Online Viewer</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+        integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="//www.onlineviewer.net/onlineviewer.v3.css">
+    <link rel="icon" href="//www.onlineviewer.net/favicon.ico" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.4/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.4/beautify-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.4/beautify-html.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.43.3/ace.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"
+        integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
+        crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+    <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="aboutModalLabel">About</h4>
+                </div>
+                <div class="modal-body">
+                    <strong>HTML Online Viewer</strong> is a fast HTML editor and formatter with an instant live
+                    preview. View, edit and format your HTML in real-time!
+                    <p>
+                    <p>
+                        You can see the <strong>live preview</strong> of the HTML on the same page, but you can also
+                        show the preview in a new separate tab where it is more stable.
+                    <p>
+                    <p>
+                        The viewer highlights the HTML for better readability using the high
+                        performance editor: <a href="https://ace.c9.io/" target="_blank"><strong>Ace</strong></a> (<a
+                            href="https://github.com/ajaxorg/ace/blob/master/LICENSE" target="_blank">license</a>).
+                        <strong>The highlighted code</strong> can also be shown in a separate tab where it is
+                        rendered at once (not in the editor), so the browser's native search function can be used
+                        (Ctrl+F). This highlighting is done using a reliable third-party library: <a
+                            href="https://highlightjs.org/" target="_blank"><strong>highlight.js</strong></a> (<a
+                            href="https://github.com/isagalaev/highlight.js/blob/master/LICENSE"
+                            target="_blank">license</a>).
+                    <p>
+                    <p>
+                        <strong>The formatting</strong> function can be useful too. It is done using an efficient
+                        third-party library: <a href="http://jsbeautifier.org/" target="_blank"><strong>JS
+                                Beautifier</strong></a> (<a
+                            href="https://github.com/beautify-web/js-beautify/blob/master/LICENSE"
+                            target="_blank">license</a>).
+                    <p>
+                    <p>
+                        Available functions:
+                    <ul>
+                        <li><strong>Preview (Alt+1)</strong> button renders the HTML code in a new tab.</li>
+                        <li><strong>Highlight (Alt+2)</strong> button shows the entire highlighted code in a new tab.
+                        </li>
+                        <li><strong>Format (Alt+3)</strong> button beautifies the HTML text.</li>
+                        <li><strong>Expand all (Alt+4)</strong> button expands all elements.</li>
+                        <li><strong>Collapse all (Alt+5)</strong> button collapses all elements.</li>
+                        <li><strong>Sample (Alt+6)</strong> button puts a sample HTML text into the editor.</li>
+                        <li><strong>Clear (Alt+7)</strong> button erases the editor text.</li>
+                    </ul>
+                    <p>
+                    <p>
+                        This website uses cookies for traffic monitoring and running ads. If you don't
+                        want to allow cookies, you can disable them in <strong>Privacy settings</strong>.
+                    <p>
+                    <p>
+                        <strong>All input is processed locally (not by a server)</strong> and it is thus 100% safe and
+                        private.
+                    <p>
+                    <p>
+                        Internal libraries used:
+                    <ul>
+                        <li><a href="https://jquery.com/" target="_blank">jQuery</a> (<a
+                                href="https://github.com/jquery/jquery/blob/master/LICENSE.txt"
+                                target="_blank">license</a>)</li>
+                        <li><a href="https://getbootstrap.com/" target="_blank">Bootstrap</a> (<a
+                                href="https://github.com/twbs/bootstrap/blob/master/LICENSE"
+                                target="_blank">license</a>)</li>
+                        <li><a href="https://web.archive.org/web/20170729144500/http://fontawesome.io/"
+                                target="_blank">Font Awesome</a> (<a
+                                href="https://web.archive.org/web/20170730011910/http://fontawesome.io/license"
+                                target="_blank">license</a>)</li>
+                    </ul>
+                    <p>
+                    <p>
+                        Check other viewers:
+                    <ul>
+                        <li><a href="https://javascript.onlineviewer.net" target="_blank">JavaScript Online Viewer</a>
+                        </li>
+                        <li><a href="https://css.onlineviewer.net" target="_blank">CSS Online Viewer</a></li>
+                        <li><a href="https://xml.onlineviewer.net" target="_blank">XML Online Viewer</a></li>
+                        <li><a href="https://json.onlineviewer.net" target="_blank">JSON Online Viewer</a></li>
+                        <li><a href="https://text.onlineviewer.net" target="_blank">Text Online Viewer</a></li>
+                    </ul>
+                    <p>
+                    <p>
+                        <strong>The favicon</strong> is from the <a href="https://github.com/KDE/oxygen-icons"
+                            target="_blank">Oxygen Icons</a> set made by <a href="https://www.kde.org/"
+                            target="_blank">KDE</a> (<a href="https://github.com/KDE/oxygen-icons/blob/master/COPYING"
+                            target="_blank">license</a>)
+                    <p>
+                    <p>
+                        If you have any suggestions, please use the following contact email address:
+                        <br><img src="//www.onlineviewer.net/email_address.png" alt="contact email address" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="cover"></div>
+    <div id="separ"></div>
+    <div id="view">
+        <div id="sidebar">
+            <h1 class="header"><a href="https://html.onlineviewer.net/" class="linkColor">HTML Online Viewer</a></h1>
+            <div id="textViewButtons">
+                <button onclick="openHtmlPreview()" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-eye fa-lg fa-fw"></i> Preview (Full page)</button>
+                <button onclick="openHighlightedSyntax()" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-edit fa-lg fa-fw"></i> Highlight (Full page)</button>
+                <button onclick="formatHtml();" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-indent fa-lg fa-fw"></i> Format</button>
+                <button onclick="unfoldAll()" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-plus-square fa-lg fa-fw"></i> Expand all</button>
+                <button onclick="foldAll();" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-minus-square fa-lg fa-fw"></i> Collapse all</button>
+                <button id="btnSample" onclick="insertSample()" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-file-text-o fa-lg fa-fw"></i> Sample</button>
+                <button id="btnClear" onclick="clearTextInput()" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-file-o fa-lg fa-fw"></i> Clear</button>
+                <button id="btnImport" onclick="importText()" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-upload fa-lg fa-fw"></i> Import from file</button>
+                <button id="btnExport" onclick="exportText()" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-download fa-lg fa-fw"></i> Export to file</button>
+                <button id="btnDark" onclick="changeToDarkMode()" class="btn btn-default btn-sm btn-block"><i
+                        class="fa fa-moon-o fa-lg fa-fw"></i> Dark mode</button>
+                <button id="btnLight" onclick="changeToLightMode()" class="btn btn-default btn-sm btn-block"
+                    style="display:none"><i class="fa fa-sun-o fa-lg fa-fw"></i> Light mode</button>
+                <a id="btnSupport" style="margin-top: 21px"
+                    href="https://www.paypal.com/donate/?hosted_button_id=YYK4RRVT9A88L" target="_blank"
+                    class="btn btn-default btn-sm btn-block">
+                    <i class="fa fa-thumbs-up fa-lg fa-fw"></i> Support the website</a>
+                <input type="file" id="inpImport" onclick="this.value=null;" accept="text/*" style="display:none">
+            </div>
+            <div id="aboutButtons">
+                <button style="margin-bottom: 5px; margin-top: 5px;" id="btnCookies"
+                    onclick="googlefc.callbackQueue.push(googlefc.showRevocationMessage)"
+                    class="btn btn-default btn-sm btn-block"><i class="fa fa-shield fa-lg fa-fw"></i> Privacy
+                    settings</button>
+                <div id="aboutButton" data-toggle="modal" data-target="#aboutModal">
+                    <button id="btnAbout" class="btn btn-default btn-sm btn-block"><i
+                            class="fa fa-question-circle-o fa-lg fa-fw"></i> About</button>
+                </div>
+                <div class="copyrightText">
+                    <span id="copyright"></span> <a id="copyrightName"
+                        href="https://www.onlineviewer.net">OnlineViewer.net</a><br />
+                </div>
+            </div>
+        </div>
+        <div id="content">
+            <div id="textView">
+                <div id="editor">Put your HTML text here</div>
+            </div>
+            <div id="livePreview">
+                <iframe id="liveFrame" title="Live HTML Preview" srcdoc=""
+                    sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-presentation allow-scripts"></iframe>
+            </div>
+        </div>
+        <div id="rightsidebar">
+
+        </div>
+        <div id="leftbottomabs">
+            <script async
+                src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4523112948468173"
+                crossorigin="anonymous"></script>
+            <!-- Sidebar bottom -->
+            <ins class="adsbygoogle" style="display:inline-block;width:200px;height:200px"
+                data-ad-client="ca-pub-4523112948468173" data-ad-slot="4008251510"></ins>
+            <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+        </div>
+    </div>
+    <script>
+        var pageType = 'HTML';
+    </script>
+    <script src="//www.onlineviewer.net/onlineviewer.min.v5.js"></script>
+</body>
+
+</html>

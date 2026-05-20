@@ -618,7 +618,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
                 target="_blank"
                 className="flex items-center gap-1.5 px-3 py-1 bg-black/5 border border-black/10 hover:border-black/20 rounded-full text-black transition-all shadow-sm group"
               >
-                <div className="w-3.5 h-3.5 rounded-full bg-black group-hover:scale-110 transition-transform shadow-[0_0_8px_rgba(0,0,0,0.1)]"></div>
+                <img src="/logo.png" alt="Jobing AI" className="w-4 h-4 object-contain group-hover:scale-110 transition-transform" />
                 <span className="font-extrabold tracking-tight text-[13px] uppercase">
                   Jobing AI
                 </span>

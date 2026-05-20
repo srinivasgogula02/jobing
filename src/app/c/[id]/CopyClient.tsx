@@ -127,18 +127,20 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
   return (
     <div className="h-[100dvh] w-full overflow-hidden bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col font-sans transition-colors duration-300">
       {/* Top Navbar / Glassmorphism */}
-      <header className="sticky top-0 z-10 backdrop-blur-xl bg-white/70 dark:bg-neutral-900/70 border-b border-neutral-200 dark:border-neutral-800 p-4 shadow-sm">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <header className="sticky top-0 z-10 backdrop-blur-xl bg-white/70 dark:bg-neutral-900/70 border-b border-neutral-200 dark:border-neutral-800 px-3 sm:px-5 py-2.5 shadow-sm">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           
           {/* Logo / Title Area */}
-          <div className="flex items-center gap-3 w-full sm:w-auto overflow-hidden">
-            <Link href="/copy" className="bg-[#C1FF00] rounded-lg p-2 text-[#1a1a1a] shadow-md shadow-[#C1FF00]/20 shrink-0 hover:scale-105 hover:bg-[#aee600] transition-all cursor-pointer" title="Create New Note">
-              <Copy size={20} />
+          <div className="flex items-center gap-2 w-full sm:w-auto overflow-hidden">
+            <Link href="/copy" className="flex items-center gap-1.5 shrink-0" title="Jobing Notepad">
+              <img src="/logo.png" alt="Jobing Notepad" className="w-5 h-5 object-contain hover:scale-105 transition-transform" />
+              <span className="text-neutral-900 dark:text-[#C1FF00] text-xs font-black uppercase tracking-wider hidden sm:inline">Jobing Notepad</span>
             </Link>
+            <div className="h-4 w-px bg-neutral-300 dark:bg-[#333] mx-1 shrink-0"></div>
             {isEditingId ? (
               <form onSubmit={handleChangeId} className="flex items-center gap-2 flex-1 sm:flex-none min-w-0">
                 <div className="flex bg-neutral-100 dark:bg-neutral-800 rounded-md ring-1 ring-neutral-300 dark:ring-neutral-700 overflow-hidden focus-within:ring-blue-500 transition-shadow flex-1 sm:flex-none">
-                  <span className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-neutral-500 bg-neutral-200 dark:bg-neutral-900 border-r border-neutral-300 dark:border-neutral-700 select-none flex items-center shrink-0">
+                  <span className="px-2 py-1 text-xs text-neutral-500 bg-neutral-200 dark:bg-neutral-900 border-r border-neutral-300 dark:border-neutral-700 select-none flex items-center shrink-0">
                      {hostname}/c/
                   </span>
                   <input
@@ -149,17 +151,17 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                       setIdError("");
                     }}
                     autoFocus
-                    className="bg-transparent border-none outline-none py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm w-20 sm:w-48 placeholder:text-neutral-400 flex-1 min-w-0"
+                    className="bg-transparent border-none outline-none py-1 px-2 text-xs w-full sm:w-32 placeholder:text-neutral-400 flex-1 min-w-0"
                     placeholder="custom-id"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={checkingId}
-                  className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 shrink-0"
+                  className="p-1 text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors disabled:opacity-50 shrink-0"
                   title="Save Custom ID"
                 >
-                  {checkingId ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  {checkingId ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 </button>
                 <button
                   type="button"
@@ -168,43 +170,42 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                     setIdError("");
                     setNewId(currentId);
                   }}
-                  className="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 bg-neutral-200 dark:bg-neutral-800 rounded-md transition-colors shrink-0"
+                  className="p-1 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 bg-neutral-200 dark:bg-neutral-800 rounded transition-colors shrink-0"
                   title="Cancel"
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               </form>
             ) : (
-              <div className="flex items-center gap-2 group cursor-pointer bg-neutral-100/50 hover:bg-neutral-200 dark:bg-neutral-800/50 dark:hover:bg-neutral-800 px-2 sm:px-3 py-1.5 border border-neutral-200 dark:border-neutral-700/50 rounded-md transition-colors flex-1 sm:flex-none shadow-sm min-w-0" onClick={() => setIsEditingId(true)} title="Tap to change custom URL">
-                <h1 className="font-semibold text-sm sm:text-lg flex items-center min-w-0 overflow-hidden">
-                  <span className="text-neutral-400 dark:text-neutral-500 font-normal mr-0.5 sm:mr-1 shrink-0">{hostname}/c/</span>
-                  <span className="truncate">{currentId}</span>
-                </h1>
-                <div className="flex items-center text-[10px] sm:text-xs gap-1 text-neutral-500 bg-neutral-200/50 dark:bg-neutral-700/50 px-1 sm:px-1.5 py-0.5 rounded opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
-                  <Edit size={12} />
-                  <span>Edit URL</span>
-                </div>
+              <div
+                className="flex items-center gap-1.5 group cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors min-w-0 overflow-hidden"
+                onClick={() => setIsEditingId(true)}
+                title="Edit custom URL"
+              >
+                <span className="text-neutral-500 text-xs font-medium shrink-0 truncate">{hostname}/c/</span>
+                <span className="text-neutral-900 dark:text-[#C1FF00] text-xs font-bold truncate">{currentId}</span>
+                <Edit size={12} className="text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-[#C1FF00] transition-colors shrink-0" />
               </div>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-nowrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0 overflow-hidden">
+          <div className="flex flex-nowrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0 overflow-hidden shrink-0">
             <button
               onClick={() => setShowGuide(!showGuide)}
               className={cn(
-                "p-2 rounded-lg transition-colors border flex shrink-0",
+                "p-1.5 rounded transition-colors flex shrink-0",
                 showGuide 
-                  ? "bg-neutral-100 dark:bg-neutral-800 text-[#8bb800] border-transparent" 
-                  : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  ? "bg-neutral-200 dark:bg-neutral-800 text-[#8bb800]" 
+                  : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-800"
               )}
               title="How it Works"
             >
-              <Info size={16} />
+              <Info size={14} />
             </button>
             {/* Status Indicator */}
             {saveStatus !== "idle" && (
-              <div className="flex items-center text-xs font-medium text-neutral-500">
+              <div className="flex items-center text-[10px] sm:text-xs font-medium text-neutral-500">
                 {saveStatus === "saving" && (
                   <span className="flex items-center gap-1 text-blue-500"><Loader2 size={12} className="animate-spin" /> Saving</span>
                 )}
@@ -222,24 +223,24 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                 <button
                   onClick={handleSaveShare}
                   disabled={saveStatus === "saving"}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#C1FF00] text-black hover:bg-[#aee600] transition transform hover:scale-[1.02] active:scale-95 shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-[#C1FF00] text-black hover:bg-[#aee600] transition transform hover:scale-[1.02] active:scale-95 shadow-sm whitespace-nowrap"
                 >
-                  {saveStatus === "saving" ? <Loader2 size={16} className="animate-spin" /> : <Share size={16} />}
+                  {saveStatus === "saving" ? <Loader2 size={14} className="animate-spin" /> : <Share size={14} />}
                   Create Share
                 </button>
               )
             ) : (
               isEditingContent ? (
                 <>
-                  <button onClick={() => setIsEditingContent(false)} className="px-3 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 transition">
+                  <button onClick={() => setIsEditingContent(false)} className="px-3 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 transition">
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveShare}
                     disabled={saveStatus === "saving"}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#C1FF00] text-black hover:bg-[#aee600] transition transform hover:scale-[1.02] active:scale-95 shadow-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-[#C1FF00] text-black hover:bg-[#aee600] transition transform hover:scale-[1.02] active:scale-95 shadow-sm whitespace-nowrap"
                   >
-                    {saveStatus === "saving" ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {saveStatus === "saving" ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     Save Note
                   </button>
                 </>
@@ -247,29 +248,29 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                 <>
                   <button
                     onClick={() => setIsEditingContent(true)}
-                    className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition whitespace-nowrap"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition whitespace-nowrap"
                   >
-                    <Edit size={16} />
+                    <Edit size={14} />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={handleCopyLink}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition whitespace-nowrap"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition whitespace-nowrap"
                     title="Copy Link"
                   >
-                    {copiedLink ? <Check size={16} className="text-green-500" /> : <LinkIcon size={16} />}
-                    <span className={cn(copiedLink && "text-green-500 font-semibold")}>
+                    {copiedLink ? <Check size={14} className="text-green-500" /> : <LinkIcon size={14} />}
+                    <span className={cn(copiedLink && "text-green-500")}>
                       {copiedLink ? "Copied!" : "Link"}
                     </span>
                   </button>
                   
                   <button
                     onClick={handleCopyStealthLink}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition group relative whitespace-nowrap"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition group relative whitespace-nowrap"
                     title="Copy Private Stealth Link"
                   >
-                    {copiedStealthLink ? <Check size={16} className="text-green-500" /> : <EyeOff size={16} />}
-                    <span className={cn(copiedStealthLink && "text-green-500 font-semibold")}>
+                    {copiedStealthLink ? <Check size={14} className="text-green-500" /> : <EyeOff size={14} />}
+                    <span className={cn(copiedStealthLink && "text-green-500")}>
                       {copiedStealthLink ? "Copied!" : "Private Link"}
                     </span>
                     {!copiedStealthLink && (
@@ -282,13 +283,13 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                   <button
                     onClick={handleCopyContent}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-semibold rounded-lg transition transform active:scale-95 whitespace-nowrap",
+                      "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded transition transform active:scale-95 whitespace-nowrap",
                       copiedContent 
                         ? "bg-green-500 text-white shadow-[0_4px_12px_-4px_rgba(34,197,94,0.5)]"
                         : "bg-[#C1FF00] text-[#1a1a1a] hover:bg-[#aee600] hover:shadow-[0_4px_12px_-4px_rgba(193,255,0,0.4)]"
                     )}
                   >
-                    {copiedContent ? <Check size={16} /> : <Copy size={16} />}
+                    {copiedContent ? <Check size={14} /> : <Copy size={14} />}
                     <span>
                       {copiedContent ? "Copied!" : "Copy"}
                     </span>
@@ -425,7 +426,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
               target="_blank" 
               className="flex items-center gap-1.5 px-3 py-1 bg-black/5 border border-black/10 hover:border-black/20 rounded-full text-black transition-all shadow-sm group"
             >
-              <div className="w-3.5 h-3.5 rounded-full bg-black group-hover:scale-110 transition-transform shadow-[0_0_8px_rgba(0,0,0,0.1)]"></div>
+              <img src="/logo.png" alt="Jobing AI" className="w-4 h-4 object-contain group-hover:scale-110 transition-transform" />
               <span className="font-extrabold tracking-tight text-[13px] uppercase">Jobing AI</span>
             </a>
           </div>

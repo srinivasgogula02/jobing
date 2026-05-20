@@ -128,7 +128,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
     <div className="h-[100dvh] w-full overflow-hidden bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col font-sans transition-colors duration-300">
       {/* Top Navbar / Glassmorphism */}
       <header className="sticky top-0 z-10 backdrop-blur-xl bg-white/70 dark:bg-neutral-900/70 border-b border-neutral-200 dark:border-neutral-800 px-3 sm:px-5 py-2.5 shadow-sm">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           
           {/* Logo / Title Area */}
           <div className="flex items-center gap-2 w-full sm:w-auto overflow-hidden">
@@ -302,7 +302,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
         
         {/* Error message for ID change */}
         {idError && (
-          <div className="max-w-6xl mx-auto mt-2 text-sm text-red-500 flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+          <div className="w-full mt-2 text-sm text-red-500 flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
             <X size={14} /> {idError}
           </div>
         )}

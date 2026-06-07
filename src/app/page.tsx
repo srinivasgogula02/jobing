@@ -98,10 +98,7 @@ export default async function Home() {
             <br className="md:hidden" />
             Need
             <br className="hidden md:block" />
-            <span className="relative inline-block mt-2">
-              <span className="relative z-10">To Get Hired.</span>
-              <span className="absolute bottom-1 sm:bottom-2 left-0 right-0 h-3 sm:h-4 bg-[#C1FF00]/40 -z-0 rounded-sm" />
-            </span>
+            <span className="bg-[#C1FF00] px-2 py-0.5 rounded">To Get Hired.</span>
           </h1>
 
           <p className="text-lg md:text-xl text-[#6b7280] max-w-2xl mx-auto mb-10 leading-relaxed font-medium">

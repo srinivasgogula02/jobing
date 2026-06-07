@@ -212,9 +212,6 @@ export default async function Home() {
       <section id="ecosystem" className="py-16 md:py-24 px-5">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16 md:mb-24">
-            <span className="inline-block px-4 py-1.5 mb-5 text-[12px] font-bold tracking-widest uppercase bg-[#f5f5f4] text-[#6b7280] rounded-full border border-[#e5e5e5]">
-              THE PIPELINE
-            </span>
             <h2 className="text-3xl md:text-5xl font-extrabold text-[#1a1a1a] tracking-tight mb-4">
               Your Entire Career Hunt. <br className="hidden md:block" />
               <span className="bg-[#C1FF00] px-2 py-0.5 rounded">Automated by AI.</span>
@@ -305,9 +302,6 @@ export default async function Home() {
       <section id="free-tools" className="py-16 md:py-24 px-5 bg-[#fafafa] border-y border-[#f0f0f0]">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 mb-5 text-[12px] font-bold tracking-widest uppercase bg-[#f5f5f4] text-[#6b7280] rounded-full border border-[#e5e5e5]">
-              THE ECOSYSTEM
-            </span>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#1a1a1a] tracking-tight mb-4">
               Explore Our Free Tools
             </h2>

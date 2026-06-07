@@ -27,21 +27,6 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   return (
     <div className="min-h-screen bg-white font-sans text-neutral-900 selection:bg-[#C1FF00] selection:text-black">
-      {/* ─────── Top Announcement Banner ─────── */}
-      <div className="w-full bg-[#1a1a1a] text-white px-4 py-2.5 flex items-center justify-center relative z-[60] border-b border-black">
-        <div className="group flex flex-wrap items-center justify-center text-center gap-2 sm:gap-3 text-[12px] sm:text-[13px] font-medium">
-          <span className="hidden sm:flex items-center justify-center bg-[#C1FF00] text-[#1a1a1a] px-2 py-[2px] rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow-[0_0_8px_rgba(193,255,0,0.4)] animate-pulse">
-            LIVE
-          </span>
-          <span className="opacity-95 text-neutral-200">
-            Join 11,000+ users deploying AI agents to automate their job search.
-          </span>
-          <AuthButton mode="sign-up" className="text-[#C1FF00] flex items-center gap-1 font-bold whitespace-nowrap hover:opacity-80 transition-opacity">
-            Deploy Your AI <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </AuthButton>
-        </div>
-      </div>
-
       {/* ─────── SEO & GEO JSON-LD ─────── */}
       <script
         type="application/ld+json"

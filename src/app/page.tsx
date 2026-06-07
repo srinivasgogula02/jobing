@@ -2,9 +2,7 @@ import { AuthButton } from "@/components/AuthButton";
 import {
   ArrowRight,
   FileText,
-  Sparkles,
   Zap,
-  Brain,
   Download,
   ClipboardPaste,
   Shield,
@@ -28,20 +26,6 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   return (
     <div className="min-h-screen bg-white font-sans text-neutral-900 selection:bg-[#C1FF00] selection:text-black">
-      {/* ─────── Top Announcement Banner ─────── */}
-      <div className="w-full bg-[#1a1a1a] text-white px-4 py-2.5 flex items-center justify-center relative z-[60] border-b border-black">
-        <div className="group flex flex-wrap items-center justify-center text-center gap-2 sm:gap-3 text-[12px] sm:text-[13px] font-medium">
-          <span className="hidden sm:flex items-center justify-center bg-[#C1FF00] text-[#1a1a1a] px-2 py-[2px] rounded-[4px] text-[10px] font-extrabold uppercase tracking-wider shadow-[0_0_8px_rgba(193,255,0,0.4)] animate-pulse">
-            LIVE
-          </span>
-          <span className="opacity-95 text-neutral-200">
-            Join 11,000+ users deploying AI agents to automate their job search.
-          </span>
-          <AuthButton mode="sign-up" className="text-[#C1FF00] flex items-center gap-1 font-bold whitespace-nowrap hover:opacity-80 transition-opacity">
-            Deploy Your AI <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </AuthButton>
-        </div>
-      </div>
 
       {/* ─────── SEO & GEO JSON-LD ─────── */}
       <script
@@ -67,7 +51,7 @@ export default async function Home() {
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#f0f0f0]">
         <div className="max-w-6xl mx-auto flex justify-between items-center px-5 md:px-10 py-4">
           <Link href="/" className="text-lg font-extrabold text-[#1a1a1a] tracking-tight flex items-center gap-2">
-            <Brain size={20} className="text-[#8bb800]" />
+            <div className="w-8 h-8 bg-[#8bb800] rounded-lg flex items-center justify-center text-white font-bold">J</div>
             Jobing AI
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#6b7280]">
@@ -91,15 +75,9 @@ export default async function Home() {
 
       {/* ─────── Hero ─────── */}
       <section className="pt-16 md:pt-28 pb-16 px-5 text-center relative overflow-hidden">
-        {/* Decorative blurs */}
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="max-w-4xl mx-auto relative z-10 flex flex-col items-center">
           <div className="inline-flex mx-auto items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#e5e5e5] shadow-sm mb-8">
-            <span className="flex items-center justify-center bg-[#C1FF00]/20 rounded-full p-1">
-              <Sparkles size={12} className="text-[#8bb800]" />
-            </span>
             <span className="text-[13px] font-medium text-[#6b7280]">
               Trusted by <strong className="text-[#1a1a1a]">11,000+</strong> users worldwide
             </span>
@@ -122,7 +100,6 @@ export default async function Home() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
             <AuthButton mode="sign-up" className="btn-primary flex items-center justify-center gap-2 px-8 py-4 text-base font-bold rounded-xl shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] active:scale-95 transition-all w-full sm:w-auto">
-              <Brain size={18} />
               Deploy Your AI Agent Now
             </AuthButton>
             <a href="#ecosystem" className="btn-secondary px-8 py-4 text-base font-bold rounded-xl w-full sm:w-auto">
@@ -293,7 +270,7 @@ export default async function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-6">
             {[
-              { value: "11,200+", label: "Active AI Agents", icon: Brain },
+              { value: "11,200+", label: "Active AI Agents", icon: Users },
               { value: "100k+", label: "Resumes Tailored", icon: FileText },
               { value: "87%", label: "Callback Rate", icon: BarChart3 },
               { value: "1,500+", label: "Offers Accepted", icon: Target },
@@ -461,7 +438,6 @@ export default async function Home() {
             Join 11,000+ professionals who stopped getting ghosted and started getting hired.
           </p>
           <AuthButton mode="sign-up" className="btn-primary flex items-center justify-center gap-3 px-10 py-5 text-lg font-bold shadow-[0_0_30px_rgba(193,255,0,0.2)] hover:shadow-[0_0_50px_rgba(193,255,0,0.4)] hover:scale-[1.02] active:scale-95 transition-all mx-auto">
-            <Brain size={20} />
             Deploy Your AI Agent Now
           </AuthButton>
           <p className="mt-6 text-sm text-[#6b7280]">Instant access · Cancel anytime</p>
@@ -473,7 +449,7 @@ export default async function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <Brain size={20} className="text-[#8bb800]" />
+              <div className="w-6 h-6 bg-[#8bb800] rounded-lg flex items-center justify-center text-white font-bold text-sm">J</div>
               <span className="font-extrabold text-[#1a1a1a] text-lg">Jobing AI</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-medium text-[#6b7280]">

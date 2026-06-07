@@ -1,4 +1,5 @@
 import { AuthButton } from "@/components/AuthButton";
+import Image from "next/image";
 import {
   ArrowRight,
   FileText,
@@ -50,9 +51,15 @@ export default async function Home() {
       {/* ─────── Nav ─────── */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#f0f0f0]">
         <div className="max-w-6xl mx-auto flex justify-between items-center px-5 md:px-10 py-4">
-          <Link href="/" className="text-lg font-extrabold text-[#1a1a1a] tracking-tight flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#8bb800] rounded-lg flex items-center justify-center text-white font-bold">J</div>
-            Jobing AI
+          <Link href="/" className="text-lg font-extrabold text-[#1a1a1a] tracking-tight flex items-center gap-3">
+            <Image
+              src="/logo.png"
+              alt="Jobing AI"
+              width={52}
+              height={20}
+              className="object-contain h-5 w-auto"
+              priority
+            />
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#6b7280]">
             <a href="#ecosystem" className="hover:text-[#1a1a1a] transition-colors">The Ecosystem</a>
@@ -448,10 +455,15 @@ export default async function Home() {
       <footer className="py-10 px-5 border-t border-[#f0f0f0] bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[#8bb800] rounded-lg flex items-center justify-center text-white font-bold text-sm">J</div>
-              <span className="font-extrabold text-[#1a1a1a] text-lg">Jobing AI</span>
-            </div>
+            <Link href="/" className="flex items-center gap-3">
+              <Image
+                src="/logo.png"
+                alt="Jobing AI"
+                width={52}
+                height={20}
+                className="object-contain h-5 w-auto"
+              />
+            </Link>
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-medium text-[#6b7280]">
               <a href="#ecosystem" className="hover:text-[#1a1a1a] transition-colors">The Ecosystem</a>
               <Link href="/pages" className="hover:text-[#1a1a1a] transition-colors">Jobing Pages</Link>

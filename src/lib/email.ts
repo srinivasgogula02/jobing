@@ -203,36 +203,39 @@ export async function sendBroadcastBatch(
   // Resend returns { data: [{ id }, ...] } aligned to payload order.
   const ids: Array<{ id?: string }> = (data as any)?.data || [];
   const nowIso = new Date().toISOString();
-  let sent = 0;
 
-  for (let i = 0; i < batch.length; i++) {
-    const sub = batch[i];
-    const messageId = ids[i]?.id || null;
+  // Log all sends in a single batch insert. The UNIQUE(broadcast_id,
+  // subscriber_id) constraint + ignoreDuplicates makes this idempotent, so a
+  // retry never double-logs. Batching keeps the function well under its timeout.
+  const sendRows = batch.map((sub, i) => ({
+    broadcast_id: broadcast.id,
+    subscriber_id: sub.id,
+    email: sub.email,
+    status: "sent",
+    resend_message_id: ids[i]?.id || null,
+    sent_at: nowIso,
+  }));
 
-    const { error: logErr } = await supabase.from("email_sends").insert({
-      broadcast_id: broadcast.id,
-      subscriber_id: sub.id,
-      email: sub.email,
-      status: "sent",
-      resend_message_id: messageId,
-      sent_at: nowIso,
+  const { error: logErr } = await supabase
+    .from("email_sends")
+    .upsert(sendRows, {
+      onConflict: "broadcast_id,subscriber_id",
+      ignoreDuplicates: true,
     });
 
-    if (logErr) {
-      console.error(`log insert failed for ${sub.email}:`, logErr);
-      continue;
-    }
-
-    await supabase
-      .from("email_subscribers")
-      .update({
-        last_emailed_at: nowIso,
-        emails_sent_count: (sub.emails_sent_count || 0) + 1,
-      })
-      .eq("id", sub.id);
-
-    sent++;
+  if (logErr) {
+    console.error("batch log insert failed:", logErr);
+    return { sent: 0, failed: batch.length, remaining: -1, completed: false };
   }
+
+  // Bump last_emailed_at + emails_sent_count for everyone in one round trip.
+  const sentIds = batch.map((s) => s.id);
+  const { error: rpcErr } = await supabase.rpc("mark_emails_sent", {
+    p_ids: sentIds,
+  });
+  if (rpcErr) console.error("mark_emails_sent rpc failed:", rpcErr);
+
+  const sent = batch.length;
 
   // Recompute totals + completion.
   const { count } = await supabase

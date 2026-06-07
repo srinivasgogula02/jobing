@@ -39,11 +39,25 @@ function firstName(name: string | null): string {
   return name.trim().split(/\s+/)[0] || "there";
 }
 
+// URL-safe slug from the first name, e.g. "Srinivas" -> "srinivas".
+function nameSlug(name: string | null): string {
+  const first = firstName(name);
+  const slug = first
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug && slug !== "there" ? slug : "you";
+}
+
 export function renderEmailHtml(
   markdownBody: string,
   subscriber: Pick<Subscriber, "name" | "unsubscribe_token">
 ): string {
-  const bodyHtml = marked.parse(markdownBody, { async: false }) as string;
+  // Personalize body placeholders before rendering markdown.
+  const personalizedBody = markdownBody
+    .replace(/\{\{\s*first_name\s*\}\}/g, firstName(subscriber.name))
+    .replace(/\{\{\s*slug\s*\}\}/g, nameSlug(subscriber.name));
+  const bodyHtml = marked.parse(personalizedBody, { async: false }) as string;
   const unsubUrl = `${APP_URL}/api/email/unsubscribe?token=${subscriber.unsubscribe_token}`;
   const greeting = `Hi ${firstName(subscriber.name)},`;
 
@@ -65,7 +79,7 @@ export function renderEmailHtml(
       </div>
     </div>
     <div style="margin-top:24px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.6;">
-      <p style="margin:0 0 6px;">Jobing AI — Deploy your AI agent to get hired.</p>
+      <p style="margin:0 0 6px;">Jobing AI. Deploy your AI agent to get hired.</p>
       <p style="margin:0;">
         Don't want these emails?
         <a href="${unsubUrl}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>.
@@ -252,7 +266,7 @@ export async function sendTestEmail(
   toEmail: string
 ): Promise<{ ok: boolean; error?: string }> {
   const resend = getResend();
-  const fakeSub = { name: null, unsubscribe_token: "test-token" };
+  const fakeSub = { name: "Srinivas", unsubscribe_token: "test-token" };
   const { error } = await resend.emails.send({
     from: FROM,
     to: [toEmail],

@@ -2,7 +2,6 @@ import { AuthButton } from "@/components/AuthButton";
 import {
   ArrowRight,
   FileText,
-  Sparkles,
   Zap,
   Brain,
   Download,
@@ -67,7 +66,7 @@ export default async function Home() {
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#f0f0f0]">
         <div className="max-w-6xl mx-auto flex justify-between items-center px-5 md:px-10 py-4">
           <Link href="/" className="text-lg font-extrabold text-[#1a1a1a] tracking-tight flex items-center gap-2">
-            <Brain size={20} className="text-[#8bb800]" />
+            <img src="/logo.png" alt="Jobing AI" className="w-7 h-7 rounded-lg object-contain" />
             Jobing AI
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#6b7280]">
@@ -90,16 +89,9 @@ export default async function Home() {
       </nav>
 
       {/* ─────── Hero ─────── */}
-      <section className="pt-16 md:pt-28 pb-16 px-5 text-center relative overflow-hidden">
-        {/* Decorative blurs */}
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-[#C1FF00]/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute -top-20 -right-40 w-[400px] h-[400px] bg-[#C1FF00]/10 rounded-full blur-[100px] pointer-events-none" />
-
+      <section className="pt-16 md:pt-28 pb-16 px-5 text-center relative overflow-hidden bg-white">
         <div className="max-w-4xl mx-auto relative z-10 flex flex-col items-center">
-          <div className="inline-flex mx-auto items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-[#e5e5e5] shadow-sm mb-8">
-            <span className="flex items-center justify-center bg-[#C1FF00]/20 rounded-full p-1">
-              <Sparkles size={12} className="text-[#8bb800]" />
-            </span>
+          <div className="inline-flex mx-auto items-center px-3 py-1.5 rounded-full bg-white border border-[#e5e5e5] shadow-sm mb-8">
             <span className="text-[13px] font-medium text-[#6b7280]">
               Trusted by <strong className="text-[#1a1a1a]">11,000+</strong> users worldwide
             </span>

@@ -28,7 +28,7 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
     { name: "Profile", href: "/profile", icon: User },
     { name: "Blog", href: "/blog", icon: FileText },
     { name: "Jobs", href: "#jobs", icon: Briefcase, comingSoon: true },
-    { name: "Upskill", href: "#upskill", icon: GraduationCap, comingSoon: true },
+    { name: "Upskill", href: "/upskill", icon: GraduationCap },
     { name: "Extension", href: "#extension", icon: Puzzle, comingSoon: true },
   ];
 

@@ -16,6 +16,8 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/pricing(.*)',
   '/blog(.*)',
   '/api/webhooks(.*)',
+  '/api/email(.*)',
+  '/api/cron(.*)',
   '/copy(.*)',
   '/c(.*)',
   '/p(.*)',

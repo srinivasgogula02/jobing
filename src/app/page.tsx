@@ -1,6 +1,4 @@
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { AuthButton } from "@/components/AuthButton";
 import {
   ArrowRight,
   FileText,
@@ -28,9 +26,6 @@ import { Pricing } from "@/components/Pricing";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const user = await currentUser();
-  if (user) redirect("/tools");
-
   return (
     <div className="min-h-screen bg-white font-sans text-neutral-900 selection:bg-[#C1FF00] selection:text-black">
       {/* ─────── Top Announcement Banner ─────── */}
@@ -42,11 +37,9 @@ export default async function Home() {
           <span className="opacity-95 text-neutral-200">
             Join 11,000+ users deploying AI agents to automate their job search.
           </span>
-          <SignUpButton forceRedirectUrl="/tools">
-            <button className="text-[#C1FF00] flex items-center gap-1 font-bold whitespace-nowrap hover:opacity-80 transition-opacity">
-              Deploy Your AI <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-          </SignUpButton>
+          <AuthButton mode="sign-up" className="text-[#C1FF00] flex items-center gap-1 font-bold whitespace-nowrap hover:opacity-80 transition-opacity">
+            Deploy Your AI <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+          </AuthButton>
         </div>
       </div>
 
@@ -86,16 +79,12 @@ export default async function Home() {
             <a href="#faq" className="hover:text-[#1a1a1a] transition-colors">FAQ</a>
           </div>
           <div className="flex items-center gap-2.5">
-            <SignInButton forceRedirectUrl="/tools">
-              <button className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#1a1a1a] transition-colors hidden sm:block">
-                Login
-              </button>
-            </SignInButton>
-            <SignUpButton forceRedirectUrl="/tools">
-              <button className="btn-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2">
-                Deploy Agent
-              </button>
-            </SignUpButton>
+            <AuthButton mode="sign-in" className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#1a1a1a] transition-colors hidden sm:block">
+              Login
+            </AuthButton>
+            <AuthButton mode="sign-up" className="btn-primary px-5 py-2.5 text-sm font-bold flex items-center gap-2">
+              Deploy Agent
+            </AuthButton>
           </div>
         </div>
       </nav>
@@ -132,12 +121,10 @@ export default async function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-            <SignUpButton forceRedirectUrl="/tools">
-              <button className="btn-primary flex items-center justify-center gap-2 px-8 py-4 text-base font-bold rounded-xl shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] active:scale-95 transition-all w-full sm:w-auto">
-                <Brain size={18} />
-                Deploy Your AI Agent Now
-              </button>
-            </SignUpButton>
+            <AuthButton mode="sign-up" className="btn-primary flex items-center justify-center gap-2 px-8 py-4 text-base font-bold rounded-xl shadow-lg shadow-[#C1FF00]/25 hover:scale-[1.02] active:scale-95 transition-all w-full sm:w-auto">
+              <Brain size={18} />
+              Deploy Your AI Agent Now
+            </AuthButton>
             <a href="#ecosystem" className="btn-secondary px-8 py-4 text-base font-bold rounded-xl w-full sm:w-auto">
               See How It Works
             </a>
@@ -473,12 +460,10 @@ export default async function Home() {
           <p className="text-[#9ca3af] text-lg md:text-xl mb-10 max-w-lg mx-auto font-medium">
             Join 11,000+ professionals who stopped getting ghosted and started getting hired.
           </p>
-          <SignUpButton forceRedirectUrl="/tools">
-            <button className="btn-primary flex items-center justify-center gap-3 px-10 py-5 text-lg font-bold shadow-[0_0_30px_rgba(193,255,0,0.2)] hover:shadow-[0_0_50px_rgba(193,255,0,0.4)] hover:scale-[1.02] active:scale-95 transition-all mx-auto">
-              <Brain size={20} />
-              Deploy Your AI Agent Now
-            </button>
-          </SignUpButton>
+          <AuthButton mode="sign-up" className="btn-primary flex items-center justify-center gap-3 px-10 py-5 text-lg font-bold shadow-[0_0_30px_rgba(193,255,0,0.2)] hover:shadow-[0_0_50px_rgba(193,255,0,0.4)] hover:scale-[1.02] active:scale-95 transition-all mx-auto">
+            <Brain size={20} />
+            Deploy Your AI Agent Now
+          </AuthButton>
           <p className="mt-6 text-sm text-[#6b7280]">Instant access · Cancel anytime</p>
         </div>
       </section>

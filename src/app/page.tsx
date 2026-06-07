@@ -1,4 +1,6 @@
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import {
   ArrowRight,
   FileText,
@@ -26,6 +28,9 @@ import { Pricing } from "@/components/Pricing";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const user = await currentUser();
+  if (user) redirect("/tools");
+
   return (
     <div className="min-h-screen bg-white font-sans text-neutral-900 selection:bg-[#C1FF00] selection:text-black">
       {/* ─────── Top Announcement Banner ─────── */}

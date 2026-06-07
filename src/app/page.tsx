@@ -52,7 +52,7 @@ export default async function Home() {
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#f0f0f0]">
         <div className="max-w-6xl mx-auto flex justify-between items-center px-5 md:px-10 py-4">
           <Link href="/" className="text-lg font-extrabold text-[#1a1a1a] tracking-tight flex items-center gap-2">
-            <div className="rounded-lg overflow-hidden">
+            <div className="rounded-md overflow-hidden">
               <Image
                 src="/logo.png"
                 alt="Jobing AI"
@@ -94,7 +94,9 @@ export default async function Home() {
           </div>
 
           <h1 className="text-[2rem] sm:text-5xl lg:text-[4.5rem] font-black tracking-tighter leading-[1.05] text-[#1a1a1a] mb-6">
-            The Only Platform You Need
+            The Only Platform You
+            <br className="md:hidden" />
+            Need
             <br className="hidden md:block" />
             <span className="relative inline-block mt-2">
               <span className="relative z-10">To Get Hired.</span>
@@ -459,7 +461,7 @@ export default async function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Link href="/" className="flex items-center gap-2">
-              <div className="rounded-lg overflow-hidden">
+              <div className="rounded-md overflow-hidden">
                 <Image
                   src="/logo.png"
                   alt="Jobing AI"

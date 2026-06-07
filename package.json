@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync:subscribers": "node scripts/sync-subscribers.js"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",
@@ -21,10 +22,12 @@
     "date-fns": "^4.1.0",
     "dodopayments": "^2.23.2",
     "lucide-react": "^0.577.0",
+    "marked": "^18.0.5",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
+    "resend": "^6.12.4",
     "standardwebhooks": "^1.0.0",
     "svix": "^1.87.0",
     "tailwind-merge": "^3.5.0"

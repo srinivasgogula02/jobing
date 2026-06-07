@@ -55,8 +55,12 @@ export async function POST(req: Request) {
     const eventType = evt.type
 
     if (eventType === 'user.created' || eventType === 'user.updated') {
-        const { id, username, first_name, last_name, image_url } = evt.data
+        const { id, username, first_name, last_name, image_url, email_addresses, primary_email_address_id } = evt.data
         const name = [first_name, last_name].filter(Boolean).join(' ')
+
+        const primaryEmail = (email_addresses || []).find(
+            (e: any) => e.id === primary_email_address_id
+        )?.email_address || (email_addresses || [])[0]?.email_address || null
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -87,6 +91,26 @@ export async function POST(req: Request) {
         if (error) {
             console.error('Error syncing user to Supabase:', error)
             return new Response(`Error syncing user to Supabase: ${error.message} (Code: ${error.code})`, { status: 500 })
+        }
+
+        // Keep the email marketing list fresh. Only upsert the email/name; never
+        // reset status or last_emailed_at for an existing subscriber.
+        if (primaryEmail) {
+            const { error: subError } = await supabaseAdmin
+                .from('email_subscribers')
+                .upsert(
+                    {
+                        clerk_user_id: id,
+                        email: primaryEmail,
+                        name: name || null,
+                        source: 'clerk',
+                        updated_at: new Date().toISOString(),
+                    },
+                    { onConflict: 'email' }
+                )
+            if (subError) {
+                console.error('Error syncing email_subscribers:', subError)
+            }
         }
 
         // Always sync has_credits to Clerk on new user creation

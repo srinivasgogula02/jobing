@@ -112,10 +112,10 @@ export default async function Home() {
           </div>
 
           <h1 className="text-[2rem] sm:text-5xl lg:text-[4.5rem] font-black tracking-tighter leading-[1.05] text-[#1a1a1a] mb-6">
-            Your AI
+            The Only Platform You Need
             <br className="hidden md:block" />
             <span className="relative inline-block mt-2">
-              <span className="relative z-10">Gets You Hired.</span>
+              <span className="relative z-10">To Get Hired.</span>
               <span className="absolute bottom-1 sm:bottom-2 left-0 right-0 h-3 sm:h-4 bg-[#C1FF00]/40 -z-0 rounded-sm" />
             </span>
           </h1>

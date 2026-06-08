@@ -133,6 +133,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-[#8bb800] pl-4 sm:pl-5 py-2 my-6 sm:my-8 text-[17px] md:text-lg font-medium italic text-[#1a1a1a] bg-[#fafafa] rounded-r-lg" {...props} />,
                 code: ({node, ...props}) => <code className="bg-[#f5f5f4] text-[#ef4444] px-1.5 py-0.5 rounded text-[13px] sm:text-sm font-mono border border-[#e5e5e5] break-words" {...props} />,
                 pre: ({node, ...props}) => <pre className="bg-[#1a1a1a] text-[#f5f5f4] p-4 sm:p-5 rounded-xl my-6 sm:my-8 overflow-x-auto text-[13px] md:text-sm font-mono shadow-lg shadow-black/10" {...props} />,
+                img: ({node, alt, ...props}) => (
+                  <figure className="my-8 sm:my-10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img alt={alt || ""} className="w-full h-auto rounded-xl border border-[#e5e5e5] bg-[#fafafa]" {...props} />
+                    {alt && (
+                      <figcaption className="mt-3 text-center text-[13px] font-medium text-[#9ca3af]">{alt}</figcaption>
+                    )}
+                  </figure>
+                ),
               }}
             >
               {blog.content}

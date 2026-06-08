@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveNote, checkIdTaken } from "@/app/actions/copy";
+import { track } from "@/lib/analytics";
 import { 
   Check, 
   Copy, 
@@ -14,7 +15,8 @@ import {
   Share,
   Save,
   EyeOff,
-  Info
+  Info,
+  Sparkles
 } from "lucide-react";
 import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -57,6 +59,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
     const url = `${window.location.origin}/c/${currentId}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
+    track("note_link_copied", { note_id: currentId });
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
@@ -64,13 +67,34 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
     const url = `${window.location.origin}/p/${currentId}`;
     navigator.clipboard.writeText(url);
     setCopiedStealthLink(true);
+    track("note_private_link_copied", { note_id: currentId });
     setTimeout(() => setCopiedStealthLink(false), 2000);
   };
 
   const handleCopyContent = () => {
     navigator.clipboard.writeText(content);
     setCopiedContent(true);
+    track("note_content_copied", { note_id: currentId, length: content.length });
     setTimeout(() => setCopiedContent(false), 2000);
+  };
+
+  const handleExplainWithAI = () => {
+    const text = content.trim();
+    if (!text) return;
+    // Keep the URL well under browser/proxy length limits. Encoded code can ~3x in
+    // size, so cap the raw snippet and tell the model when we've truncated.
+    const MAX_CHARS = 4000;
+    const snippet =
+      text.length > MAX_CHARS
+        ? `${text.slice(0, MAX_CHARS)}\n\n…(truncated — ${text.length - MAX_CHARS} more characters)`
+        : text;
+    const prompt = `Explain this in simple terms. If it's code, walk through what it does step by step and call out anything important:\n\n${snippet}`;
+    track("note_ai_explain", { note_id: currentId, length: text.length });
+    window.open(
+      `https://chatgpt.com/?prompt=${encodeURIComponent(prompt)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   };
 
   const handleChangeId = async (e: React.FormEvent) => {
@@ -96,6 +120,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
       setIdError("This ID is already taken. Please use another.");
       setCheckingId(false);
     } else {
+      track("note_custom_id_set", { note_id: cleanId });
       if (isNew) {
         setCurrentId(cleanId);
         setIsEditingId(false);
@@ -113,6 +138,10 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
     const result = await saveNote(currentId, content);
     if (result.success) {
       setSaveStatus("saved");
+      track(isNew ? "note_share_created" : "note_edited", {
+        note_id: currentId,
+        length: content.length,
+      });
       setTimeout(() => setSaveStatus("idle"), 2000);
       if (isNew) {
         router.push(`/c/${currentId}`);
@@ -246,6 +275,16 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                 </>
               ) : (
                 <>
+                  {content.trim().length > 0 && (
+                    <button
+                      onClick={handleExplainWithAI}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-900/50 transition whitespace-nowrap"
+                      title="Explain this with AI (opens ChatGPT)"
+                    >
+                      <Sparkles size={14} />
+                      <span>Explain</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => setIsEditingContent(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition whitespace-nowrap"
@@ -431,7 +470,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
             </a>
           </div>
           <p className="text-black/50 text-xs sm:text-sm font-medium text-center sm:text-right">
-            Stop getting rejected. <a href="/" target="_blank" className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold">Tailor your resume in 30 seconds</a>.
+            Stop getting rejected. <a href="/" target="_blank" onClick={() => track("tool_cta_click", { from: "copy_footer", target: "resume" })} className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold">Tailor your resume in 30 seconds</a>.
           </p>
         </div>
       </footer>

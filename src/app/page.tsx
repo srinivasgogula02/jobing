@@ -466,7 +466,9 @@ export default async function Home() {
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-medium text-[#6b7280]">
               <a href="#ecosystem" className="hover:text-[#1a1a1a] transition-colors">The Ecosystem</a>
               <Link href="/pages" className="hover:text-[#1a1a1a] transition-colors">Jobing Pages</Link>
-              <Link href="/copy" className="hover:text-[#1a1a1a] transition-colors">Jobing Notepad</Link>
+              <Link href="/online-notepad" className="hover:text-[#1a1a1a] transition-colors">Online Notepad</Link>
+              <Link href="/online-clipboard" className="hover:text-[#1a1a1a] transition-colors">Online Clipboard</Link>
+              <Link href="/share-text" className="hover:text-[#1a1a1a] transition-colors">Share Text</Link>
               <a href="#pricing" className="hover:text-[#1a1a1a] transition-colors">Pricing</a>
             </div>
           </div>

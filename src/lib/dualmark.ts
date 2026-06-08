@@ -175,6 +175,81 @@ Read the latest at [${SITE_URL}/upskill](${SITE_URL}/upskill).
 `;
 }
 
+function renderOnlineNotepad(): string {
+  return `# Online Notepad — Free, Fast, No Login
+
+Jobing's online notepad is a free, instantly-loading text editor. Open a blank
+page, write or paste up to 100,000 characters, and save it to a shareable short
+link like ${SITE_URL}/c/my-notes. No account, no installation, works on every
+device.
+
+## Key features
+
+- **Instant load** — the editor is the page; start typing immediately.
+- **Custom short links** — rename any note to a memorable URL (e.g. /c/homework).
+- **Built-in clipboard** — copy the note's text or link with one tap.
+- **Cross-device** — open a saved note from any browser, anywhere.
+- **Private stealth links** — swap /c/ for /p/ for a low-key share page.
+
+## How it works
+
+1. Open the notepad at [${SITE_URL}/copy](${SITE_URL}/copy).
+2. Write or paste your text.
+3. Hit Create Share to get a link, optionally with a custom name.
+
+Free, no sign-up required. Try it at [${SITE_URL}/online-notepad](${SITE_URL}/online-notepad).
+`;
+}
+
+function renderOnlineClipboard(): string {
+  return `# Online Clipboard — Copy & Share Text Across Devices
+
+Jobing's online clipboard lets you copy text on one device and paste it on
+another by opening a shared short link. It's a free cloud clipboard — no account,
+nothing to install — that doubles as an online notepad.
+
+## Key features
+
+- **Copy & paste anywhere** — paste on one device, open the link on another.
+- **One-tap share link** — saving and sharing your clipboard is the same action.
+- **Phone ↔ laptop** — move a URL or snippet between your devices in seconds.
+- **Private mode** — use a /p/ stealth link when it isn't for everyone.
+- **Fast** — holds up to 100,000 characters and opens instantly.
+
+## How it works
+
+1. Open the clipboard at [${SITE_URL}/copy](${SITE_URL}/copy).
+2. Paste your text and hit Create Share to get a short link.
+3. Open that link on any other device and tap Copy.
+
+Free, no login. Try it at [${SITE_URL}/online-clipboard](${SITE_URL}/online-clipboard).
+`;
+}
+
+function renderShareText(): string {
+  return `# Share Text Online — Instant Link for Any Text
+
+Jobing lets you share text online by turning any block of text into a clean short
+link like ${SITE_URL}/c/notes. Paste, share, done — no login, no app, no friction.
+
+## Key features
+
+- **Instant share link** — paste your text and get a short URL in one tap.
+- **Editable & reusable** — update the note and the same link stays current.
+- **Memorable custom URLs** — rename links to something like /c/wifi.
+- **Any device** — recipients need nothing installed; it opens in their browser.
+- **Private option** — share a /p/ stealth link for discretion.
+
+## How it works
+
+1. Open the editor at [${SITE_URL}/copy](${SITE_URL}/copy).
+2. Paste your text and hit Create Share.
+3. Copy the link and send it anywhere.
+
+Free, no account needed. Try it at [${SITE_URL}/share-text](${SITE_URL}/share-text).
+`;
+}
+
 function renderPrivacy(): string {
   return `# Privacy Policy
 
@@ -281,6 +356,9 @@ export const dualmarkConfig: DualmarkNextConfig = {
     { pattern: "/about", render: renderAbout },
     { pattern: "/pricing", render: renderPricing },
     { pattern: "/tools", render: renderTools },
+    { pattern: "/online-notepad", render: renderOnlineNotepad },
+    { pattern: "/online-clipboard", render: renderOnlineClipboard },
+    { pattern: "/share-text", render: renderShareText },
     { pattern: "/upskill", render: renderUpskill },
     { pattern: "/privacy", render: renderPrivacy },
     { pattern: "/terms", render: renderTerms },

@@ -25,6 +25,19 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Jobing",
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     title: "Jobing AI | The AI Resume Builder That Gets You Hired",
     description: "Instantly tailor your experience to any job description and bypass the ATS. Stop getting ghosted.",
@@ -75,13 +88,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Only ship analytics from real (production) traffic. This keeps local dev and
+  // build/preview noise out of GA4 + the Meta pixel — the reports were showing
+  // 127.0.0.1 / localhost referrals that distorted source and conversion data.
+  const analyticsEnabled = process.env.NODE_ENV === "production";
+
   return (
     <html lang="en">
       <head>
+        {analyticsEnabled && (
         <Script
           strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=G-XKEFJF05QL"
         />
+        )}
+        {analyticsEnabled && (
         <Script
           id="google-analytics"
           strategy="afterInteractive"
@@ -94,6 +115,8 @@ export default function RootLayout({
             `,
           }}
         />
+        )}
+        {analyticsEnabled && (
         <Script
           id="meta-pixel"
           strategy="afterInteractive"
@@ -112,14 +135,18 @@ export default function RootLayout({
             `,
           }}
         />
+        )}
+        {analyticsEnabled && (
         <Script
           defer
           data-website-id="dfid_YXyFB08ieOLrn3aJRAI0F"
           data-domain="jobing.site"
           src="https://datafa.st/js/script.js"
         />
+        )}
       </head>
       <body className={`${instrumentSans.variable} antialiased`}>
+        {analyticsEnabled && (
         <noscript>
           <img
             height="1"
@@ -129,6 +156,7 @@ export default function RootLayout({
             alt=""
           />
         </noscript>
+        )}
         <ClerkProvider signInFallbackRedirectUrl="/tools" signUpFallbackRedirectUrl="/tools">
           {children}
         </ClerkProvider>

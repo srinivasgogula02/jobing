@@ -66,32 +66,21 @@ export function renderEmailHtml(
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<style>
-@media (max-width: 600px) {
-  .email-wrapper { padding: 16px 12px !important; }
-  .email-card { padding: 20px !important; }
-}
-</style>
 </head>
-<body style="margin:0;padding:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;">
-  <div class="email-wrapper" style="max-width:560px;margin:0 auto;padding:32px 20px;">
-    <div style="margin-bottom:24px;">
-      <span style="font-size:18px;font-weight:800;color:#1a1a1a;letter-spacing:-0.02em;">Jobing AI</span>
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;">
+  <img src="https://ugdrybcvyucwhuoyykfg.supabase.co/storage/v1/object/public/images/Chat-GPT-Image-Jun-8-2026-04-35-47-PM%20(1).png" alt="Jobing AI" style="width:100%;max-width:100%;height:auto;display:block;margin:0;">
+  <div style="padding:40px 32px;max-width:100%;">
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#1a1a1a;">${greeting}</p>
+    <div style="font-size:15px;line-height:1.65;color:#333333;">
+      ${bodyHtml}
     </div>
-    <div class="email-card" style="background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;padding:32px;">
-      <img src="https://ugdrybcvyucwhuoyykfg.supabase.co/storage/v1/object/public/images/Chat-GPT-Image-Jun-8-2026-04-35-47-PM%20(1).png" alt="Jobing AI" style="width:100%;max-width:100%;height:auto;display:block;margin:0 0 24px;border-radius:8px;">
-      <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#1a1a1a;">${greeting}</p>
-      <div style="font-size:15px;line-height:1.65;color:#333333;">
-        ${bodyHtml}
-      </div>
-    </div>
-    <div style="margin-top:24px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.6;">
-      <p style="margin:0 0 6px;">Jobing AI. Deploy your AI agent to get hired.</p>
-      <p style="margin:0;">
-        Don't want these emails?
-        <a href="${unsubUrl}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>.
-      </p>
-    </div>
+  </div>
+  <div style="padding:32px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.6;border-top:1px solid #e5e5e5;">
+    <p style="margin:0 0 12px;">Jobing AI. Deploy your AI agent to get hired.</p>
+    <p style="margin:0;">
+      Don't want these emails?
+      <a href="${unsubUrl}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>.
+    </p>
   </div>
 </body>
 </html>`;

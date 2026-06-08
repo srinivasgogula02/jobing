@@ -79,6 +79,7 @@ export function renderEmailHtml(
       <span style="font-size:18px;font-weight:800;color:#1a1a1a;letter-spacing:-0.02em;">Jobing AI</span>
     </div>
     <div class="email-card" style="background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;padding:32px;">
+      <img src="https://ugdrybcvyucwhuoyykfg.supabase.co/storage/v1/object/public/images/Chat-GPT-Image-Jun-8-2026-04-35-47-PM%20(1).png" alt="Jobing AI" style="width:100%;max-width:100%;height:auto;display:block;margin:0 0 24px;border-radius:8px;">
       <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#1a1a1a;">${greeting}</p>
       <div style="font-size:15px;line-height:1.65;color:#333333;">
         ${bodyHtml}

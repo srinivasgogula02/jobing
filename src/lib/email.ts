@@ -87,11 +87,11 @@ export function renderEmailHtml(
       </div>
       <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e5e5;text-align:center;">
         <div style="margin-bottom:20px;">
-          <img src="https://jobing.site/logo.png" alt="Jobing AI" style="height:32px;width:auto;border-radius:6px;display:inline-block;">
+          <img src="https://jobing.site/logo.png" alt="Jobing AI" style="height:32px;width:auto;border-radius:6px;display:inline-block;vertical-align:middle;margin-right:12px;">
+          <span style="font-size:18px;font-weight:800;color:#1a1a1a;letter-spacing:-0.02em;display:inline-block;vertical-align:middle;">Jobing AI</span>
         </div>
-        <p style="font-size:18px;font-weight:800;color:#1a1a1a;letter-spacing:-0.02em;margin:0 0 16px;">Jobing AI</p>
-        <p style="color:#9ca3af;font-size:12px;line-height:1.6;margin:0 0 12px;">Deploy your AI agent to get hired.</p>
-        <p style="color:#9ca3af;font-size:12px;margin:0;">
+        <p style="color:#9ca3af;font-size:12px;line-height:1.6;margin:0 0 12px;">Jobing AI. Deploy your AI agent to get hired.</p>
+        <p style="color:#9ca3af;font-size:12px;line-height:1.6;margin:0;">
           Don't want these emails?
           <a href="${unsubUrl}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>.
         </p>

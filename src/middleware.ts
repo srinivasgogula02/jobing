@@ -1,5 +1,51 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { createDualmarkMiddleware } from '@dualmark/nextjs'
+import { dualmarkConfig, hasMarkdownTwin, markdownTwinPath } from '@/lib/dualmark'
+
+// ─── DualMark (AEO) ───────────────────────────────────────────────────────────
+//
+// Content negotiation for AI assistants. We run DualMark *before* Clerk's auth
+// checks so that `.md` requests and known AI bots (GPTBot, ClaudeBot,
+// PerplexityBot, …) are served clean markdown twins of our public pages without
+// being bounced to a sign-in page. See src/lib/dualmark.ts for the config.
+//
+const dualmark = createDualmarkMiddleware(dualmarkConfig)
+
+// DualMark "took over" the request when it rewrites to the /md namespace or
+// returns a 406 (client accepts neither HTML nor Markdown). A plain passthrough
+// (NextResponse.next) sets x-middleware-next instead and falls through to Clerk.
+function dualmarkIntercepted(res: Response): boolean {
+  return res.status === 406 || res.headers.has('x-middleware-rewrite')
+}
+
+// A request DualMark may negotiate: a real top-level document fetch. Excludes
+// non-GET/HEAD methods (server actions, form posts) and React Server Component
+// navigations/prefetches. Next strips the `RSC` request header before it reaches
+// middleware, but those requests always carry `Accept: text/x-component`, which
+// we use to identify them. Negotiating these internal payloads would 406 and
+// break client-side navigation.
+function isNegotiableDocumentRequest(req: { method: string; headers: Headers }): boolean {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return false;
+  const accept = req.headers.get('accept') ?? '';
+  if (accept.includes('text/x-component')) return false;
+  if (req.headers.has('rsc') || req.headers.has('next-router-prefetch')) return false;
+  return true;
+}
+
+// Advertise the markdown twin on HTML responses that actually have one, so AI
+// crawlers can discover it: `Link: <…/about.md>; rel="alternate"; type="text/markdown"`.
+function withAlternate(res: NextResponse, pathname: string): NextResponse {
+  if (hasMarkdownTwin(pathname)) {
+    const twin = `${markdownTwinPath(pathname)}`
+    res.headers.append('Link', `<${twin}>; rel="alternate"; type="text/markdown"`)
+    const vary = res.headers.get('Vary')
+    if (!vary) res.headers.set('Vary', 'Accept')
+    else if (!vary.toLowerCase().split(',').map((s) => s.trim()).includes('accept'))
+      res.headers.set('Vary', `${vary}, Accept`)
+  }
+  return res
+}
 
 // ─── Route Tiers ──────────────────────────────────────────────────────────────
 //
@@ -24,7 +70,9 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/tools(.*)',
   '/pages(.*)',
   '/sitemap(.*)',
-  '/robots.txt'
+  '/robots.txt',
+  '/llms.txt',      // AI-agent discovery manifest
+  '/md(.*)'         // DualMark markdown twins (also reached via internal rewrite)
 ])
 
 // TIER 2 — Auth Required, No Payment Check:
@@ -44,18 +92,32 @@ const isAuthOnlyRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
 
+  // AEO: serve markdown twins to AI bots / `.md` / `Accept: text/markdown`
+  // BEFORE any auth check. If DualMark rewrites or returns 406, hand that back.
+  //
+  // Only negotiate top-level document GETs. RSC navigations/prefetches (which
+  // send `Accept: text/x-component`) and server-action POSTs are internal Next
+  // payloads — running content negotiation on them would 406 and break
+  // client-side navigation.
+  if (isNegotiableDocumentRequest(req)) {
+    const dm = await dualmark(req);
+    if (dualmarkIntercepted(dm)) {
+      return dm;
+    }
+  }
+
   // If logged-in user visits homepage, redirect them to /tools
   if (pathname === '/') {
     const { userId } = await auth();
     if (userId) {
       return NextResponse.redirect(new URL('/tools', req.url));
     }
-    return NextResponse.next();
+    return withAlternate(NextResponse.next(), pathname);
   }
 
   // TIER 1: Always accessible — skip all checks immediately
   if (isAlwaysPublicRoute(req)) {
-    return NextResponse.next();
+    return withAlternate(NextResponse.next(), pathname);
   }
 
   // For all non-public routes, require authentication

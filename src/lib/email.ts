@@ -66,13 +66,19 @@ export function renderEmailHtml(
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+@media (max-width: 600px) {
+  .email-wrapper { padding: 16px 12px !important; }
+  .email-card { padding: 20px !important; }
+}
+</style>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;">
-  <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+  <div class="email-wrapper" style="max-width:560px;margin:0 auto;padding:32px 20px;">
     <div style="margin-bottom:24px;">
       <span style="font-size:18px;font-weight:800;color:#1a1a1a;letter-spacing:-0.02em;">Jobing AI</span>
     </div>
-    <div style="background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;padding:32px;">
+    <div class="email-card" style="background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;padding:32px;">
       <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#1a1a1a;">${greeting}</p>
       <div style="font-size:15px;line-height:1.65;color:#333333;">
         ${bodyHtml}

@@ -66,10 +66,24 @@ export function renderEmailHtml(
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+@media (max-width: 600px) {
+  .email-img-wrapper { padding: 0; }
+  .email-img { width: 100%; max-width: none; }
+  .email-content { padding: 24px 16px; }
+}
+@media (min-width: 601px) {
+  .email-img-wrapper { padding: 0 32px; }
+  .email-img { width: 100%; max-width: 560px; }
+  .email-content { padding: 40px 32px; margin: 0 auto; max-width: 560px; }
+}
+</style>
 </head>
 <body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;">
-  <img src="https://ugdrybcvyucwhuoyykfg.supabase.co/storage/v1/object/public/images/Chat-GPT-Image-Jun-8-2026-04-35-47-PM%20(1).png" alt="Jobing AI" style="width:100%;max-width:100%;height:auto;display:block;margin:0;">
-  <div style="padding:40px 32px;max-width:100%;">
+  <div class="email-img-wrapper" style="text-align:center;">
+    <img class="email-img" src="https://ugdrybcvyucwhuoyykfg.supabase.co/storage/v1/object/public/images/Chat-GPT-Image-Jun-8-2026-04-35-47-PM%20(1).png" alt="Jobing AI" style="height:auto;display:inline-block;">
+  </div>
+  <div class="email-content">
     <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#1a1a1a;">${greeting}</p>
     <div style="font-size:15px;line-height:1.65;color:#333333;">
       ${bodyHtml}

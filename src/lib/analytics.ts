@@ -24,6 +24,7 @@ export type AnalyticsEvent =
   | "note_custom_id_set" // user picked a memorable custom slug
   | "note_edited" // an existing note was updated
   | "note_ai_explain" // opened the note content in ChatGPT to explain it
+  | "blog_shared" // shared a blog post via a share button
   | "tool_cta_click" // clicked a cross-sell/CTA out of a tool surface
   | "install_prompt_shown" // PWA add-to-home-screen surfaced
   | "install_accepted"; // PWA installed

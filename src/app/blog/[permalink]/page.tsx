@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Calendar, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import BlogShareButtons from "@/components/BlogShareButtons";
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -110,9 +111,18 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1a1a1a] tracking-tight leading-[1.15] mb-8">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#1a1a1a] tracking-tight leading-[1.15] mb-6">
             {blog.title}
           </h1>
+
+          {/* Share */}
+          <div className="mb-8 pb-6 border-b border-[#f0f0f0]">
+            <BlogShareButtons
+              url={`https://jobing.site/blog/${blog.permalink}`}
+              title={blog.title}
+              permalink={blog.permalink}
+            />
+          </div>
         </div>
 
 

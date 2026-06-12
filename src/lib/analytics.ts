@@ -27,7 +27,9 @@ export type AnalyticsEvent =
   | "blog_shared" // shared a blog post via a share button
   | "tool_cta_click" // clicked a cross-sell/CTA out of a tool surface
   | "install_prompt_shown" // PWA add-to-home-screen surfaced
-  | "install_accepted"; // PWA installed
+  | "install_accepted" // PWA installed
+  | "feedback_started" // user picked a sentiment on the feedback page (intent)
+  | "feedback_submitted"; // a feedback message was successfully sent
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";

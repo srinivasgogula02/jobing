@@ -215,6 +215,15 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
             About Us
           </Link>
           <Link
+            href="/feedback"
+            onClick={onClose}
+            className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${
+              pathname === "/feedback" ? "text-[#1a1a1a]" : "text-[#9ca3af] hover:text-[#1a1a1a]"
+            }`}
+          >
+            Feedback
+          </Link>
+          <Link
             href="/privacy"
             onClick={onClose}
             className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${

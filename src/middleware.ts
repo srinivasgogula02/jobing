@@ -59,6 +59,7 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/privacy(.*)',
   '/terms(.*)',
   '/contact(.*)',
+  '/feedback(.*)',  // anyone — incl. anonymous & unpaid — must be able to give feedback
   '/pricing(.*)',
   '/blog(.*)',
   '/api/webhooks(.*)',

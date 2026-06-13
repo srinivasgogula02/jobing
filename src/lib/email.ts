@@ -7,6 +7,11 @@ const DAILY_CAP = parseInt(process.env.DAILY_EMAIL_CAP || "100", 10);
 const FROM = process.env.MARKETING_FROM || "Jobing AI <updates@jobing.site>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://jobing.site";
 
+// Default brand banner shown at the top of every email when a broadcast does
+// not specify its own. Individual campaigns can override this per-broadcast.
+const DEFAULT_BANNER =
+  "https://ugdrybcvyucwhuoyykfg.supabase.co/storage/v1/object/public/images/Chat-GPT-Image-Jun-8-2026-04-35-47-PM%20(1).png";
+
 export function getAdminSupabase(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -31,6 +36,7 @@ export interface Broadcast {
   body_md: string;
   total_target: number;
   sent_count: number;
+  banner_url?: string | null;
 }
 
 // ── Rendering ────────────────────────────────────────────
@@ -51,8 +57,10 @@ function nameSlug(name: string | null): string {
 
 export function renderEmailHtml(
   markdownBody: string,
-  subscriber: Pick<Subscriber, "name" | "unsubscribe_token">
+  subscriber: Pick<Subscriber, "name" | "unsubscribe_token">,
+  bannerUrl?: string | null
 ): string {
+  const banner = bannerUrl || DEFAULT_BANNER;
   // Personalize body placeholders before rendering markdown.
   const personalizedBody = markdownBody
     .replace(/\{\{\s*first_name\s*\}\}/g, firstName(subscriber.name))
@@ -80,7 +88,7 @@ export function renderEmailHtml(
 <body style="margin:0;padding:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;">
   <div class="email-wrapper" style="max-width:560px;margin:0 auto;">
     <div class="email-card" style="background:#ffffff;border:1px solid #e5e5e5;border-radius:12px;">
-      <img src="https://ugdrybcvyucwhuoyykfg.supabase.co/storage/v1/object/public/images/Chat-GPT-Image-Jun-8-2026-04-35-47-PM%20(1).png" alt="Jobing AI" style="width:100%;height:auto;display:block;margin:0 0 24px;border-radius:8px;">
+      <img src="${banner}" alt="Jobing AI" style="width:100%;height:auto;display:block;margin:0 0 24px;border-radius:8px;">
       <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#1a1a1a;">${greeting}</p>
       <div style="font-size:15px;line-height:1.65;color:#333333;">
         ${bodyHtml}
@@ -201,7 +209,7 @@ export async function sendBroadcastBatch(
     from: FROM,
     to: [s.email],
     subject: broadcast.subject,
-    html: renderEmailHtml(broadcast.body_md, s),
+    html: renderEmailHtml(broadcast.body_md, s, broadcast.banner_url),
     headers: unsubHeaders(s.unsubscribe_token),
   }));
 
@@ -278,7 +286,8 @@ async function markCompleted(supabase: SupabaseClient, broadcastId: string) {
 export async function sendTestEmail(
   subject: string,
   markdownBody: string,
-  toEmail: string
+  toEmail: string,
+  bannerUrl?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   const resend = getResend();
   const fakeSub = { name: "Srinivas", unsubscribe_token: "test-token" };
@@ -286,7 +295,7 @@ export async function sendTestEmail(
     from: FROM,
     to: [toEmail],
     subject: `[TEST] ${subject}`,
-    html: renderEmailHtml(markdownBody, fakeSub),
+    html: renderEmailHtml(markdownBody, fakeSub, bannerUrl),
   });
   if (error) return { ok: false, error: String(error) };
   return { ok: true };

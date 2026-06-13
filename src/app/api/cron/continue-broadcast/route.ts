@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   const { data: pending, error } = await supabase
     .from("email_broadcasts")
-    .select("id, subject, body_md, total_target, sent_count")
+    .select("id, subject, body_md, banner_url, total_target, sent_count")
     .eq("status", "sending")
     .order("created_at", { ascending: true })
     .limit(1)

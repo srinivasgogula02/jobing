@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { subject?: string; markdown?: string; test?: boolean };
+  let body: {
+    subject?: string;
+    markdown?: string;
+    test?: boolean;
+    bannerUrl?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -29,6 +34,7 @@ export async function POST(req: NextRequest) {
 
   const subject = (body.subject || "").trim();
   const markdown = (body.markdown || "").trim();
+  const bannerUrl = (body.bannerUrl || "").trim() || null;
   if (!subject || !markdown) {
     return NextResponse.json(
       { error: "subject and markdown are required" },
@@ -45,7 +51,7 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-    const result = await sendTestEmail(subject, markdown, testEmail);
+    const result = await sendTestEmail(subject, markdown, testEmail, bannerUrl);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 502 });
     }
@@ -68,11 +74,12 @@ export async function POST(req: NextRequest) {
     .insert({
       subject,
       body_md: markdown,
+      banner_url: bannerUrl,
       status: "sending",
       total_target: totalTarget,
       sent_count: 0,
     })
-    .select("id, subject, body_md, total_target, sent_count")
+    .select("id, subject, body_md, banner_url, total_target, sent_count")
     .single();
 
   if (createErr || !created) {

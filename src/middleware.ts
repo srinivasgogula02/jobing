@@ -60,6 +60,7 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/terms(.*)',
   '/contact(.*)',
   '/feedback(.*)',  // anyone — incl. anonymous & unpaid — must be able to give feedback
+  '/score(.*)',     // AI-Readiness Score — anonymous by design (reel traffic, no login)
   '/pricing(.*)',
   '/blog(.*)',
   '/api/webhooks(.*)',
@@ -110,13 +111,10 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  // If logged-in user visits homepage, redirect them to /tools
+  // Redirect homepage to /score — the AI-Readiness Score is the new landing page.
+  // Logged-in users who explicitly navigate to /tools, /create, etc. still land there.
   if (pathname === '/') {
-    const { userId } = await auth();
-    if (userId) {
-      return NextResponse.redirect(new URL('/tools', req.url));
-    }
-    return withAlternate(NextResponse.next(), pathname);
+    return NextResponse.redirect(new URL('/score', req.url));
   }
 
   // TIER 1: Always accessible — skip all checks immediately

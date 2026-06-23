@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import { Sidebar } from "./Sidebar";
 import { UserButton, useUser, SignUpButton } from "@clerk/nextjs";
 import { Zap, Menu, ArrowRight } from "lucide-react";
@@ -14,13 +14,38 @@ interface DashboardShellProps {
   children: React.ReactNode;
   credits?: number;
   breadcrumbs?: { label: string; href?: string }[];
+  // When true, the content area drops its desktop gutter (md:p-6) so pages can
+  // render edge-to-edge against the sidebar, header, and right edge.
+  fullBleed?: boolean;
 }
 
-export function DashboardShell({ children, credits, breadcrumbs }: DashboardShellProps) {
+// Tablet range (md–lg). On tablets the sidebar should default to collapsed so it
+// doesn't eat horizontal space. useSyncExternalStore keeps this SSR-safe (server
+// snapshot = false) and avoids setState-in-effect.
+const TABLET_QUERY = "(min-width: 768px) and (max-width: 1023px)";
+function useIsTablet(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(TABLET_QUERY);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(TABLET_QUERY).matches,
+    () => false
+  );
+}
+
+export function DashboardShell({ children, credits, breadcrumbs, fullBleed }: DashboardShellProps) {
   const { isSignedIn, isLoaded } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
+
+  // Sidebar collapse: auto-collapse on tablet, expanded on desktop, with an
+  // explicit manual override once the user toggles it.
+  const isTablet = useIsTablet();
+  const [manualCollapsed, setManualCollapsed] = useState<boolean | null>(null);
+  const sidebarCollapsed = manualCollapsed ?? isTablet;
+  const toggleSidebar = () => setManualCollapsed((c) => !(c ?? isTablet));
 
   // Helper to format pagename (fallback)
   const getPageName = () => {
@@ -40,7 +65,7 @@ export function DashboardShell({ children, credits, breadcrumbs }: DashboardShel
         <Sidebar
           onClose={() => setMobileMenuOpen(false)}
           collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+          onToggleCollapse={toggleSidebar}
         />
       </div>
 
@@ -148,7 +173,7 @@ export function DashboardShell({ children, credits, breadcrumbs }: DashboardShel
             ) : null}
           </div>
         </header>
-        <main className="flex-1 flex flex-col min-h-0 overflow-auto p-0 md:p-6 slim-scrollbar">
+        <main className={`flex-1 flex flex-col min-h-0 overflow-auto slim-scrollbar ${fullBleed ? "p-0" : "p-0 md:p-6"}`}>
           {children}
         </main>
       </div>

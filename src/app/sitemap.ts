@@ -4,7 +4,7 @@ import { getPublishedBlogs } from './actions/blog';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch dynamic blog routes
   const blogs = await getPublishedBlogs();
-  
+
   const blogEntries: MetadataRoute.Sitemap = blogs.map((blog) => ({
     url: `https://jobing.site/blog/${blog.permalink}`,
     lastModified: new Date(blog.created_at),
@@ -43,6 +43,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.9,
+    },
+    {
+      url: 'https://jobing.site/yc',
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.85,
+    },
+    {
+      url: 'https://jobing.site/yc/hiring',
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.85,
     },
     {
       url: 'https://jobing.site/copy',

@@ -8,13 +8,14 @@ import { DashboardShell } from "./DashboardShell";
 interface DashboardLayoutProps {
   children: React.ReactNode;
   breadcrumbs?: { label: string; href?: string }[];
+  fullBleed?: boolean;
 }
 
-export async function DashboardLayout({ children, breadcrumbs }: DashboardLayoutProps) {
+export async function DashboardLayout({ children, breadcrumbs, fullBleed }: DashboardLayoutProps) {
   const credits = await getUserCredits();
 
   return (
-    <DashboardShell credits={credits} breadcrumbs={breadcrumbs}>
+    <DashboardShell credits={credits} breadcrumbs={breadcrumbs} fullBleed={fullBleed}>
       {children}
     </DashboardShell>
   );

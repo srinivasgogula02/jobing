@@ -63,6 +63,7 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/score(.*)',     // AI-Readiness Score — anonymous by design (reel traffic, no login)
   '/pricing(.*)',
   '/blog(.*)',
+  '/yc(.*)',         // YC companies explorer — public SEO surface, no login
   '/api/webhooks(.*)',
   '/api/email(.*)',
   '/api/cron(.*)',

@@ -69,6 +69,8 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/mcp(.*)',
   '/sse(.*)',
   '/.well-known(.*)',
+  '/oauth(.*)',
+  '/api/oauth(.*)',
   '/copy(.*)',
   '/c(.*)',
   '/p(.*)',

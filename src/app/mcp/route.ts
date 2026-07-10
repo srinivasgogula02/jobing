@@ -1,8 +1,7 @@
-import { verifyClerkToken } from "@clerk/mcp-tools/next";
-import { auth } from "@clerk/nextjs/server";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import { createConnectedNote, deployConnectedPage } from "@/lib/connected-tools";
+import { validateAccessToken } from "@/lib/oauth";
 
 const handler = createMcpHandler(
   (server) => {
@@ -81,8 +80,9 @@ const handler = createMcpHandler(
 const authHandler = withMcpAuth(
   handler,
   async (_, token) => {
-    const clerkAuth = await auth({ acceptsToken: "oauth_token" });
-    return verifyClerkToken(clerkAuth, token);
+    const userId = await validateAccessToken(token);
+    if (!userId || !token) return undefined;
+    return { token, clientId: "jobing-connected-client", scopes: ["mcp"], extra: { userId } };
   },
   {
     required: true,

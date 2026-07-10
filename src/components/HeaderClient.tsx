@@ -13,7 +13,7 @@ interface HeaderClientProps {
 }
 
 const NAV_LINKS = [
-    { href: "/create", label: "Create", icon: Plus },
+    { href: "/tools", label: "Tools", icon: Plus },
     { href: "/billing", label: "Billing", icon: Zap },
 ];
 
@@ -46,7 +46,7 @@ export function HeaderClient({ isSignedIn, username, credits }: HeaderClientProp
 
                                 {/* Create Button */}
                                 <Link
-                                    href="/create"
+                                    href="/tools"
                                     className="flex items-center gap-1.5 px-4 py-1.5 bg-black hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors text-sm"
                                 >
                                     <Plus size={16} />

@@ -3,11 +3,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  FileText, User, Settings, PlusCircle, CreditCard, LogOut,
-  ChevronDown, ChevronUp, Briefcase, GraduationCap, Puzzle,
+  FileText, Settings, CreditCard, LogOut,
+  ChevronDown, ChevronUp,
   LayoutGrid, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
-import { SignOutButton, SignUpButton, useUser } from "@clerk/nextjs";
+import { SignOutButton } from "@clerk/nextjs";
 import { useState } from "react";
 
 interface SidebarProps {
@@ -19,17 +19,9 @@ interface SidebarProps {
 export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { isSignedIn } = useUser();
-
   const navItems = [
     { name: "Tools", href: "/tools", icon: LayoutGrid },
-    { name: "Create Resume", href: "/create", icon: PlusCircle },
-    { name: "My Resumes", href: "/resumes", icon: FileText },
-    { name: "Profile", href: "/profile", icon: User },
     { name: "Blog", href: "/blog", icon: FileText },
-    { name: "Jobs", href: "#jobs", icon: Briefcase, comingSoon: true },
-    { name: "Upskill", href: "/upskill", icon: GraduationCap },
-    { name: "Extension", href: "#extension", icon: Puzzle, comingSoon: true },
   ];
 
   return (
@@ -69,37 +61,6 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
         {navItems.map((item) => {
           const isActive = pathname === item.href;
 
-          if (item.comingSoon) {
-            if (collapsed) {
-              return (
-                <div
-                  key={item.href}
-                  title={item.name}
-                  className="flex items-center justify-center w-9 h-9 mx-auto rounded-lg text-[#d1d5db] cursor-not-allowed"
-                >
-                  <item.icon size={17} />
-                </div>
-              );
-            }
-            return (
-              <div
-                key={item.href}
-                className="flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium text-[#9ca3af] cursor-not-allowed"
-              >
-                <div className="flex items-center gap-2.5">
-                  <item.icon size={16} />
-                  {item.name}
-                </div>
-                <span className="text-[8px] font-black bg-slate-100 text-[#9ca3af] px-1.5 py-0.5 rounded-md uppercase tracking-widest border border-slate-200/50 scale-[0.9] origin-right">
-                  Soon
-                </span>
-              </div>
-            );
-          }
-
-          const requiresAuth = item.href === "/create" || item.href === "/profile";
-          const promptLogin = requiresAuth && isSignedIn === false;
-
           if (collapsed) {
             const collapsedClass = `flex items-center justify-center w-9 h-9 mx-auto rounded-lg transition-all focus:outline-none ${
                   isActive
@@ -107,15 +68,6 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
                     : "hover:bg-[#fafafa] hover:text-[#1a1a1a]"
                 }`;
 
-            if (promptLogin) {
-              return (
-                <SignUpButton key={item.href} mode="modal" forceRedirectUrl={item.href}>
-                  <button title={item.name} className={collapsedClass}>
-                    <item.icon size={17} />
-                  </button>
-                </SignUpButton>
-              );
-            }
             return (
               <Link
                 key={item.href}
@@ -135,16 +87,6 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
                   : "hover:bg-[#fafafa] hover:text-[#1a1a1a]"
               }`;
 
-          if (promptLogin) {
-            return (
-              <SignUpButton key={item.href} mode="modal" forceRedirectUrl={item.href}>
-                <button className={expandedClass}>
-                  <item.icon size={16} />
-                  {item.name}
-                </button>
-              </SignUpButton>
-            );
-          }
           return (
             <Link
               key={item.href}

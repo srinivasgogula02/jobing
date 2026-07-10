@@ -17,7 +17,6 @@
 import type { DualmarkNextConfig } from "@dualmark/nextjs";
 import { toMarkdownPath } from "@dualmark/core";
 import { getPublishedBlogs } from "@/app/actions/blog";
-import { getPublishedDailyUpdates } from "@/app/actions/daily-updates";
 
 /** Public origin, no trailing slash. Override locally with NEXT_PUBLIC_SITE_URL. */
 export const SITE_URL = (
@@ -62,8 +61,7 @@ cancel anytime. See [Pricing](${SITE_URL}/pricing).
 
 ## Explore
 
-- [Free Tools](${SITE_URL}/tools) — Jobing Clipboard, ATS Resume Tailor, and more
-- [Upskill](${SITE_URL}/upskill) — daily AI-powered career updates
+- [Free Tools](${SITE_URL}/tools) — Jobing Clipboard, HTML Viewer, and more
 - [Blog](${SITE_URL}/blog) — resume, ATS, and job-search strategy
 - [About](${SITE_URL}/about) · [Pricing](${SITE_URL}/pricing)
 `;
@@ -123,55 +121,23 @@ Pricing starts around **₹249/month**. For current plans and checkout, visit
 }
 
 function renderTools(): string {
-  return `# Free AI Career & Productivity Tools
+  return `# Free Productivity Tools
 
-A suite of free, high-performance micro-tools by Jobing AI to accelerate your
-career and daily workflow. No login required for standard tools.
+A suite of fast, focused utilities by Jobing. No login required for standard tools.
 
 ## Tools
 
-- **ATS Resume Tailor** — paste a job description and get a hyper-customized,
-  ATS-optimized resume drafted for that exact role.
 - **Jobing Clipboard** — a fast, shareable online clipboard / stealth notes for
   moving text between devices.
-- **Resume Builder** — build a professional resume from scratch or by importing
-  an existing one.
+- **HTML Online Viewer** — edit HTML and see the result instantly in a private
+  live preview.
+- **LastMinute** — turn a study PDF into a concise revision sheet in ChatGPT.
 
 Explore everything at [${SITE_URL}/tools](${SITE_URL}/tools).
 
 ## Related
 
-- [Upskill — daily career updates](${SITE_URL}/upskill)
-- [Blog — resume & job-search strategy](${SITE_URL}/blog)
-`;
-}
-
-async function renderUpskill(): Promise<string> {
-  let recent: Awaited<ReturnType<typeof getPublishedDailyUpdates>> = [];
-  try {
-    recent = await getPublishedDailyUpdates();
-  } catch {
-    recent = [];
-  }
-
-  const list = recent
-    .slice(0, 15)
-    .map((u) => {
-      const date = new Date(u.created_at).toISOString().slice(0, 10);
-      const meta = [u.category, u.difficulty].filter(Boolean).join(" · ");
-      const suffix = meta ? ` _(${meta})_` : "";
-      return `- **${u.title}** — ${u.description} _(${date})_${suffix}`;
-    })
-    .join("\n");
-
-  return `# Upskill — Daily AI Career Updates
-
-Level up your career with daily, AI-powered insights on resume optimization, job
-search strategy, ATS, interviews, and industry trends.
-
-${list || "_Fresh updates are published daily — check back soon._"}
-
-Read the latest at [${SITE_URL}/upskill](${SITE_URL}/upskill).
+- [Blog](${SITE_URL}/blog)
 `;
 }
 
@@ -359,7 +325,6 @@ export const dualmarkConfig: DualmarkNextConfig = {
     { pattern: "/online-notepad", render: renderOnlineNotepad },
     { pattern: "/online-clipboard", render: renderOnlineClipboard },
     { pattern: "/share-text", render: renderShareText },
-    { pattern: "/upskill", render: renderUpskill },
     { pattern: "/privacy", render: renderPrivacy },
     { pattern: "/terms", render: renderTerms },
   ],
@@ -375,10 +340,7 @@ export const dualmarkConfig: DualmarkNextConfig = {
       "/sign-in",
       "/sign-up",
       "/billing",
-      "/create",
       "/edit",
-      "/profile",
-      "/resumes",
       "/copy",
       "/c",
       "/p",

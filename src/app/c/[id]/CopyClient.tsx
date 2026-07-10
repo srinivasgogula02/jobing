@@ -470,7 +470,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
             </a>
           </div>
           <p className="text-black/50 text-xs sm:text-sm font-medium text-center sm:text-right">
-            Stop getting rejected. <a href="/score" target="_blank" onClick={() => track("tool_cta_click", { from: "copy_footer", target: "score" })} className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold">Check your AI-Readiness Score</a>.
+            Need another utility? <a href="/tools" target="_blank" onClick={() => track("tool_cta_click", { from: "copy_footer", target: "tools" })} className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold">Explore Jobing tools</a>.
           </p>
         </div>
       </footer>

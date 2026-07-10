@@ -627,7 +627,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
             <p className="text-black/50 text-xs sm:text-sm font-medium text-center sm:text-right">
               Stop getting rejected.{" "}
               <a
-                href="/score"
+                href="/tools"
                 target="_blank"
                 className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold"
               >

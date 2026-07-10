@@ -52,7 +52,7 @@ export default async function PricingPage() {
                         publicMetadata: { is_paid: true, has_credits: true }
                     });
                     console.log(`[Auto-Sync] Backfilled is_paid=true for legacy user ${user.id}`);
-                    redirect('/create');
+                    redirect('/tools');
                 } catch (err) {
                     console.error("[Auto-Sync] Error syncing is_paid=true to Clerk:", err);
                 }
@@ -74,7 +74,7 @@ export default async function PricingPage() {
             if (isActuallyPaid || (pricingMode === 'freemium' && jwtHasCredits)) {
                 // If they are on pricing but already have everything, send them to create
                 // unless they just came from a successful payment (handied by Dodo, but good to be safe)
-                redirect('/create');
+                redirect('/tools');
             }
         }
     }

@@ -1,6 +1,7 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
+import { auth } from "@clerk/nextjs/server";
 
 const ID_REGEX = /^[a-zA-Z0-9-_]+$/;
 const MAX_ID_LENGTH = 64;
@@ -16,7 +17,7 @@ export async function getNote(id: string) {
 
   const { data, error } = await supabase
     .from("copies")
-    .select("content")
+    .select("content, user_id")
     .eq("id", id)
     .single();
 
@@ -38,11 +39,25 @@ export async function saveNote(id: string, content: string) {
     return { success: false, error: "Content exceeds maximum length of 100,000 characters." };
   }
 
-  const { error } = await supabase.from("copies").upsert({
+  const { userId } = await auth();
+  const { data: existing } = await supabase
+    .from("copies")
+    .select("user_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (existing?.user_id && existing.user_id !== userId) {
+    return { success: false, error: "This note belongs to another account." };
+  }
+
+  const payload: { id: string; content: string; updated_at: string; user_id?: string } = {
     id,
     content,
     updated_at: new Date().toISOString(),
-  });
+  };
+  if (userId) payload.user_id = userId;
+
+  const { error } = await supabase.from("copies").upsert(payload);
 
   if (error) {
     console.error("Error saving note:", error);

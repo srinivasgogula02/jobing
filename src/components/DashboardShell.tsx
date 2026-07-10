@@ -79,7 +79,7 @@ export function DashboardShell({ children, credits, breadcrumbs, fullBleed }: Da
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-2 overflow-hidden flex-nowrap min-w-0">
-              <Link href="/create" className="flex items-center shrink-0">
+              <Link href="/" className="flex items-center shrink-0">
                 <span className="font-bold text-[14px] text-[#1a1a1a] tracking-tight hover:text-[#8bb800] transition-colors">Jobing AI</span>
               </Link>
               
@@ -106,35 +106,6 @@ export function DashboardShell({ children, credits, breadcrumbs, fullBleed }: Da
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-4 mr-2">
-              <span className="text-[11px] font-bold text-[#9ca3af] uppercase tracking-widest flex items-center gap-1.5">
-                find jobs on <span className="text-[#e5e5e5] font-light">&gt;</span>
-              </span>
-              <a 
-                href="https://www.linkedin.com/jobs/" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-[11px] font-bold text-[#6b7280] hover:text-[#1a1a1a] transition-colors uppercase tracking-widest"
-              >
-                LinkedIn
-              </a>
-              <a 
-                href="https://www.indeed.com/" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-[11px] font-bold text-[#6b7280] hover:text-[#1a1a1a] transition-colors uppercase tracking-widest"
-              >
-                Indeed
-              </a>
-              <a 
-                href="https://www.naukri.com/" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-[11px] font-bold text-[#6b7280] hover:text-[#1a1a1a] transition-colors uppercase tracking-widest"
-              >
-                Naukri
-              </a>
-            </div>
             {isLoaded && isSignedIn ? (
               <>
                 {typeof credits === "number" && (

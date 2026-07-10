@@ -10,9 +10,9 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Jobing AI | The AI Resume Builder That Gets You Hired",
-  description: "Stop getting ghosted. Paste any job description to instantly tailor your resume and bypass ATS algorithms. Build professional, highly-optimized resumes in seconds.",
-  keywords: ["AI Resume Builder", "ATS Resume Score", "Tailor Resume to Job", "Resume Maker", "ChatGPT Resume", "Jobing AI", "ATS Optimizer"],
+  title: "Jobing | Simple, Useful Web Tools",
+  description: "Fast, focused tools for sharing text, previewing HTML, and getting everyday work done.",
+  keywords: ["online clipboard", "online notepad", "HTML viewer", "productivity tools", "Jobing"],
   authors: [{ name: "Jobing" }],
   creator: "Jobing AI",
   publisher: "Jobing AI",
@@ -39,8 +39,8 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   openGraph: {
-    title: "Jobing AI | The AI Resume Builder That Gets You Hired",
-    description: "Instantly tailor your experience to any job description and bypass the ATS. Stop getting ghosted.",
+    title: "Jobing | Simple, Useful Web Tools",
+    description: "Fast, focused tools for sharing text, previewing HTML, and getting everyday work done.",
     url: "https://jobing.site",
     siteName: "Jobing AI",
     images: [
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
         url: "/og-image.png", // Recommended to generate this later
         width: 1200,
         height: 630,
-        alt: "Jobing AI - Resume Builder",
+        alt: "Jobing web tools",
       },
     ],
     locale: "en_US",
@@ -56,8 +56,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Jobing AI | AI Resume Builder",
-    description: "Instantly tailor your experience to any job description and bypass the ATS in seconds.",
+    title: "Jobing | Simple, Useful Web Tools",
+    description: "Fast, focused tools for sharing text, previewing HTML, and getting everyday work done.",
     images: ["/og-image.png"],
     creator: "@jobing_ai",
   },

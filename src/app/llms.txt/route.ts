@@ -28,7 +28,6 @@ export async function GET() {
       links: [
         { title: "Home", href: md("/index"), description: "What Jobing AI does." },
         { title: "Tools", href: md("/tools"), description: "Free AI career tools." },
-        { title: "Upskill", href: md("/upskill"), description: "Daily career updates." },
         { title: "Pricing", href: md("/pricing"), description: "Plans and pricing." },
         { title: "About", href: md("/about"), description: "Mission and vision." },
       ],
@@ -60,8 +59,7 @@ export async function GET() {
   return createLlmsTxtHandler({
     brandName: "Jobing AI",
     description:
-      "Jobing AI deploys a personal AI agent that finds jobs, writes ATS-beating " +
-      "resumes tailored to every role, and emails recruiters on your behalf.",
+      "Jobing AI builds fast, focused web tools for sharing notes, previewing HTML, and getting everyday work done.",
     sections,
     cacheControl: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
   }).GET();

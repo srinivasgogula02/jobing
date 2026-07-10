@@ -60,13 +60,15 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/terms(.*)',
   '/contact(.*)',
   '/feedback(.*)',  // anyone — incl. anonymous & unpaid — must be able to give feedback
-  '/score(.*)',     // AI-Readiness Score — anonymous by design (reel traffic, no login)
   '/pricing(.*)',
   '/blog(.*)',
   '/yc(.*)',         // YC companies explorer — public SEO surface, no login
   '/api/webhooks(.*)',
   '/api/email(.*)',
   '/api/cron(.*)',
+  '/mcp(.*)',
+  '/sse(.*)',
+  '/.well-known(.*)',
   '/copy(.*)',
   '/c(.*)',
   '/p(.*)',
@@ -81,15 +83,28 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/md(.*)'         // DualMark markdown twins (also reached via internal rewrite)
 ])
 
+// Removed product surfaces must reach Next.js so they resolve to a real 404.
+// Without this passthrough, Clerk treats them as protected routes and redirects
+// anonymous visitors to sign-in before the router can report "not found".
+const isRetiredRoute = createRouteMatcher([
+  '/create(.*)',
+  '/edit(.*)',
+  '/resumes(.*)',
+  '/profile(.*)',
+  '/upskill(.*)',
+  '/score(.*)',
+  '/api/generate-resume(.*)',
+  '/api/profile(.*)',
+  '/api/resumes(.*)',
+  '/api/chat/profile(.*)',
+])
+
 // TIER 2 — Auth Required, No Payment Check:
 //   User must be signed in, but no subscription/credit check applied.
 //   Good for billing, account management, etc.
 //
 const isAuthOnlyRoute = createRouteMatcher([
   '/billing(.*)',
-  '/create(.*)',
-  '/profile(.*)',
-  '/resumes(.*)'
 ])
 
 // TIER 3 — Protected: Auth + payment/credit check applied to everything else.
@@ -112,10 +127,8 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  // Redirect homepage to /score — the AI-Readiness Score is the new landing page.
-  // Logged-in users who explicitly navigate to /tools, /create, etc. still land there.
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/score', req.url));
+  if (isRetiredRoute(req)) {
+    return NextResponse.next();
   }
 
   // TIER 1: Always accessible — skip all checks immediately

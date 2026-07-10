@@ -20,7 +20,7 @@
     "@dualmark/converters": "^0.8.0",
     "@dualmark/core": "^0.7.0",
     "@dualmark/nextjs": "^0.8.0",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "1.26.0",
     "@supabase/supabase-js": "^2.99.0",
     "ai": "^6.0.116",
     "clsx": "^2.1.1",

@@ -60,15 +60,14 @@ export async function POST(req: NextRequest) {
 
   // Real broadcast — create the row, send the first batch within today's budget.
   const supabase = getAdminSupabase();
-  const totalTarget = await countActiveSubscribers(supabase);
-
+  // Use one explicit timestamp for both audience counting and the campaign row.
+  // This freezes eligibility exactly without relying on an unsupported draft
+  // status as an intermediate state.
+  const audienceCutoff = new Date().toISOString();
+  const totalTarget = await countActiveSubscribers(supabase, audienceCutoff);
   if (totalTarget === 0) {
-    return NextResponse.json(
-      { error: "no active subscribers" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "no active subscribers" }, { status: 400 });
   }
-
   const { data: created, error: createErr } = await supabase
     .from("email_broadcasts")
     .insert({
@@ -78,8 +77,9 @@ export async function POST(req: NextRequest) {
       status: "sending",
       total_target: totalTarget,
       sent_count: 0,
+      created_at: audienceCutoff,
     })
-    .select("id, subject, body_md, banner_url, total_target, sent_count")
+    .select("id, subject, body_md, banner_url, total_target, sent_count, created_at")
     .single();
 
   if (createErr || !created) {

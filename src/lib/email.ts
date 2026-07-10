@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { marked } from "marked";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { campaignBatchLimit } from "./email-campaign-policy";
 
 // ── Config ───────────────────────────────────────────────
 const DAILY_CAP = parseInt(process.env.DAILY_EMAIL_CAP || "100", 10);
@@ -36,6 +37,7 @@ export interface Broadcast {
   body_md: string;
   total_target: number;
   sent_count: number;
+  created_at: string;
   banner_url?: string | null;
 }
 
@@ -138,7 +140,7 @@ export async function todaysBudgetRemaining(supabase: SupabaseClient): Promise<n
 // ── Audience selection ───────────────────────────────────
 export async function pickNextBatch(
   supabase: SupabaseClient,
-  broadcastId: string,
+  broadcast: Pick<Broadcast, "id" | "created_at">,
   limit: number
 ): Promise<Subscriber[]> {
   if (limit <= 0) return [];
@@ -147,7 +149,7 @@ export async function pickNextBatch(
   const { data: sentRows, error: sentErr } = await supabase
     .from("email_sends")
     .select("subscriber_id")
-    .eq("broadcast_id", broadcastId);
+    .eq("broadcast_id", broadcast.id);
 
   if (sentErr) {
     console.error("sent lookup error:", sentErr);
@@ -161,6 +163,9 @@ export async function pickNextBatch(
     .from("email_subscribers")
     .select("id, email, name, unsubscribe_token, emails_sent_count")
     .eq("status", "active")
+    // Freeze membership at campaign creation. Suppression remains live, but
+    // subscribers added later can never leak into an older campaign.
+    .lte("created_at", broadcast.created_at)
     .order("last_emailed_at", { ascending: true, nullsFirst: true })
     .limit(limit + sentIds.size);
 
@@ -186,22 +191,30 @@ export async function sendBroadcastBatch(
   requestedLimit: number
 ): Promise<BatchResult> {
   const budget = await todaysBudgetRemaining(supabase);
-  const limit = Math.min(requestedLimit, budget);
+  const { count: sentBefore } = await supabase
+    .from("email_sends")
+    .select("id", { count: "exact", head: true })
+    .eq("broadcast_id", broadcast.id);
+  const totalSentBefore = sentBefore || 0;
+  const limit = campaignBatchLimit(
+    requestedLimit,
+    budget,
+    broadcast.total_target,
+    totalSentBefore,
+  );
 
-  const batch = await pickNextBatch(supabase, broadcast.id, limit);
+  const batch = await pickNextBatch(supabase, broadcast, limit);
 
   if (batch.length === 0) {
-    // Nothing left to send for this broadcast today. Determine if complete.
-    const { count } = await supabase
-      .from("email_sends")
-      .select("id", { count: "exact", head: true })
-      .eq("broadcast_id", broadcast.id);
-    const totalSent = count || 0;
-    const remaining = Math.max(0, broadcast.total_target - totalSent);
-    if (remaining === 0) {
+    const remaining = Math.max(0, broadcast.total_target - totalSentBefore);
+    // A zero daily budget means "continue tomorrow", not "complete". With a
+    // positive limit, an empty batch means all remaining snapshot members are
+    // now suppressed and the campaign is terminal even below its target.
+    const completed = remaining === 0 || limit > 0;
+    if (completed) {
       await markCompleted(supabase, broadcast.id);
     }
-    return { sent: 0, failed: 0, remaining, completed: remaining === 0 };
+    return { sent: 0, failed: 0, remaining: completed ? 0 : remaining, completed };
   }
 
   const resend = getResend();
@@ -301,10 +314,15 @@ export async function sendTestEmail(
   return { ok: true };
 }
 
-export async function countActiveSubscribers(supabase: SupabaseClient): Promise<number> {
-  const { count } = await supabase
+export async function countActiveSubscribers(
+  supabase: SupabaseClient,
+  createdBefore?: string,
+): Promise<number> {
+  let query = supabase
     .from("email_subscribers")
     .select("id", { count: "exact", head: true })
     .eq("status", "active");
+  if (createdBefore) query = query.lte("created_at", createdBefore);
+  const { count } = await query;
   return count || 0;
 }

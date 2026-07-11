@@ -38,9 +38,8 @@ export function PostHogIdentify() {
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || process.env.NODE_ENV !== "production") return;
 
-    // Do not force-start on safe routes: PostHog's remote sample rate must remain
-    // authoritative. Once a session reaches sensitive content, keep it stopped
-    // until a new page lifecycle receives a fresh sampling decision.
+    // Do not force-start: PostHog's remote sample rate remains authoritative.
+    // Private-link pages stop an active replay for the rest of this page lifecycle.
     if (isSensitiveReplayPath(pathname)) posthog.stopSessionRecording();
   }, [pathname]);
 

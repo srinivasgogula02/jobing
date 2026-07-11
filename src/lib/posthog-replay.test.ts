@@ -2,24 +2,28 @@ import { describe, expect, it } from "vitest";
 import { isSensitiveReplayPath } from "./posthog-replay";
 
 describe("PostHog session replay privacy", () => {
+  it.each(["/p", "/p/private-note"])("never records private-link route %s", (pathname) => {
+    expect(isSensitiveReplayPath(pathname)).toBe(true);
+  });
+
   it.each([
+    "/",
+    "/about",
     "/billing",
     "/c/team-notes",
+    "/connector",
     "/copy",
     "/feedback",
     "/mcp",
     "/oauth/authorize",
     "/online-clipboard",
     "/online-notepad",
-    "/p/private-note",
     "/pages/page-id/edit",
+    "/pricing",
     "/share-text",
-  ])("never records sensitive route %s", (pathname) => {
-    expect(isSensitiveReplayPath(pathname)).toBe(true);
-  });
-
-  it.each(["/", "/about", "/connector", "/pricing", "/tools"]) (
-    "allows replay on non-sensitive route %s",
+    "/tools",
+  ]) (
+    "allows replay on product route %s",
     (pathname) => {
       expect(isSensitiveReplayPath(pathname)).toBe(false);
     },

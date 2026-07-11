@@ -32,7 +32,9 @@ jobs:
         run: npm install --global npm@11.6.2
 
       - name: Install locked dependencies
-        run: npm ci
+        # Sentry/Next's build toolchain contains both AJV 6 and AJV 8 peers.
+        # Install the committed tree without platform-specific peer re-resolution.
+        run: npm ci --legacy-peer-deps
 
       - name: Run tests
         run: npm run test:ci

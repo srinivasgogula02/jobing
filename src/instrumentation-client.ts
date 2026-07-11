@@ -22,7 +22,7 @@ if (posthogToken && process.env.NODE_ENV === "production") {
   const replayAllowed = !isSensitiveReplayPath(window.location.pathname);
 
   posthog.init(posthogToken, {
-    api_host: "/ingest",
+    api_host: "https://t.jobing.site",
     ui_host: "https://us.posthog.com",
     defaults: "2026-01-30",
     person_profiles: "identified_only",

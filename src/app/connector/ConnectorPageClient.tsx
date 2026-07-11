@@ -1,48 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Check, Copy, ExternalLink, LockKeyhole, PlugZap } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, Check, Copy, LockKeyhole } from "lucide-react";
 
 const MCP_URL = "https://jobing.site/mcp";
 
-const platforms = [
+const clients = [
   { name: "ChatGPT", icon: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" },
   { name: "Claude", icon: "https://cdn.simpleicons.org/claude/D97757" },
   { name: "Gemini", icon: "https://cdn.simpleicons.org/googlegemini/8AB4F8" },
   { name: "Cursor", icon: "https://cdn.simpleicons.org/cursor/FFFFFF" },
 ];
 
-const setupGuides = [
+const guides = [
   {
-    name: "ChatGPT",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg",
-    steps: [
-      "Open ChatGPT settings and go to Apps & Connectors.",
-      "Choose the option to create or add a custom connector.",
-      `Use ${MCP_URL} as the MCP server URL, then connect.`,
-      "Sign in to Jobing and approve access when the authorization page opens.",
-    ],
+    client: "ChatGPT",
+    where: "Settings → Apps & Connectors → Add connector",
+    detail: "Choose a custom connector, paste the server URL, then continue to Jobing AI to approve access.",
   },
   {
-    name: "Claude",
-    logo: "https://cdn.simpleicons.org/claude/D97757",
-    steps: [
-      "Open Claude settings and select Connectors.",
-      "Choose Add custom connector and give it the name Jobing.",
-      `Paste ${MCP_URL} as the remote MCP server URL.`,
-      "Continue, sign in to Jobing, and approve the requested access.",
-    ],
+    client: "Claude",
+    where: "Settings → Connectors → Add custom connector",
+    detail: "Name it Jobing AI, paste the server URL, and complete the browser sign-in when Claude opens it.",
   },
   {
-    name: "Any MCP client",
-    logo: null,
-    steps: [
-      "Open your AI tool’s MCP or integrations settings.",
-      "Add a remote HTTP MCP server.",
-      `Enter ${MCP_URL} as the endpoint. No client secret is required.`,
-      "Complete the browser-based OAuth sign-in and return to your AI tool.",
-    ],
+    client: "Other MCP clients",
+    where: "Integrations → Remote MCP server",
+    detail: "Use the same endpoint with Streamable HTTP and OAuth. No client secret or personal API key is required.",
   },
 ];
 
@@ -52,151 +38,139 @@ export function ConnectorPageClient() {
   async function copyEndpoint() {
     await navigator.clipboard.writeText(MCP_URL);
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0e1219] text-[#f2f4f7] selection:bg-[#c6f24e] selection:text-[#0e1219]">
-      <nav className="mx-auto flex h-20 max-w-[1180px] items-center justify-between border-x border-[#262d3a] px-5 sm:px-8">
-        <Link href="/" className="text-lg font-bold tracking-[-0.04em]">Jobing</Link>
-        <div className="flex items-center gap-5 text-sm text-[#aab1bd]">
-          <a href="#setup" className="hidden transition-colors hover:text-white sm:block">Setup guide</a>
-          <Link href="/tools" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#c6f24e] px-4 font-bold text-[#0e1219] transition-colors hover:bg-[#d3fa69] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c6f24e]">
-            Explore tools <ArrowRight size={15} />
+    <main className="min-h-screen bg-[#0e1219] text-[#f2f4f7] selection:bg-[#c6f24e] selection:text-[#0e1219]">
+      <header className="border-b border-[#262d3a]">
+        <div className="mx-auto flex h-[72px] max-w-[1120px] items-center justify-between px-5 sm:px-8">
+          <Link href="/" className="flex items-center gap-3" aria-label="Jobing AI home">
+            <Image src="/logo.png" alt="" width={34} height={34} className="h-8 w-8 rounded-[8px]" priority />
+            <span className="text-[15px] font-semibold tracking-[-0.02em]">Jobing AI</span>
           </Link>
+          <nav className="flex items-center gap-5 text-sm text-[#9aa2af]">
+            <a href="#setup" className="hidden hover:text-white sm:block">Setup</a>
+            <Link href="/tools" className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-[#39414e] px-4 font-medium text-white hover:border-[#566170] hover:bg-[#161b25] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c6f24e]">
+              Open Jobing AI <ArrowUpRight size={15} />
+            </Link>
+          </nav>
         </div>
-      </nav>
+      </header>
 
-      <section className="relative mx-auto grid max-w-[1180px] border border-[#262d3a] lg:grid-cols-[1.05fr_.95fr]">
-        <div className="relative z-10 px-5 py-16 sm:px-10 sm:py-24 lg:px-14 lg:py-32">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-[#37404f] bg-[#161b25] px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-[#c6f24e]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#c6f24e] shadow-[0_0_12px_#c6f24e]" />
-            Remote MCP connector
-          </div>
-          <h1 className="max-w-[720px] text-[clamp(2.8rem,7vw,5.8rem)] font-semibold leading-[0.94] tracking-[-0.065em]">
-            Give your AI<br />a place to <span className="text-[#c6f24e]">do things.</span>
+      <section className="mx-auto grid max-w-[1120px] gap-14 px-5 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-24 lg:grid-cols-[1fr_420px] lg:items-center lg:gap-20">
+        <div>
+          <p className="mb-7 font-mono text-[11px] uppercase tracking-[0.18em] text-[#c6f24e]">Jobing AI connector · MCP</p>
+          <h1 className="max-w-[720px] text-[clamp(2.7rem,6vw,4.85rem)] font-medium leading-[1.01] tracking-[-0.058em]">
+            Let your AI finish the work, not just describe it.
           </h1>
-          <p className="mt-8 max-w-xl text-[17px] leading-7 text-[#aab1bd] sm:text-lg">
-            Connect Jobing once, then create notes and deploy pages directly from ChatGPT, Claude, or any AI client that supports remote MCP servers.
+          <p className="mt-7 max-w-[620px] text-[17px] leading-7 text-[#9ba3b0] sm:text-lg">
+            Connect Jobing AI to ChatGPT, Claude, or another MCP client. Ask it to create a shareable note or publish a working web page—and get the link back in the same conversation.
           </p>
 
-          <div className="mt-10 max-w-xl rounded-xl border border-[#343c49] bg-[#161b25] p-2 shadow-[0_24px_80px_rgba(0,0,0,.28)]">
-            <div className="flex items-center gap-3 rounded-lg bg-[#0e1219] p-2 pl-4">
-              <span className="min-w-0 flex-1 truncate font-mono text-sm text-[#d8dce3]">{MCP_URL}</span>
-              <button onClick={copyEndpoint} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md bg-[#c6f24e] px-4 text-sm font-bold text-[#0e1219] transition-colors hover:bg-[#d3fa69] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" aria-label="Copy MCP server URL">
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                <span className="hidden sm:inline">{copied ? "Copied" : "Copy URL"}</span>
+          <div className="mt-10 max-w-[620px] border-y border-[#303744] py-5">
+            <div className="flex items-center gap-3">
+              <code className="min-w-0 flex-1 truncate font-mono text-[13px] text-[#d5d9df]">{MCP_URL}</code>
+              <button onClick={copyEndpoint} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md bg-[#c6f24e] px-4 text-sm font-semibold text-[#0e1219] hover:bg-[#d4fa6e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+                {copied ? "Copied" : "Copy server URL"}
               </button>
             </div>
           </div>
-          <p className="mt-4 flex items-center gap-2 text-xs text-[#737d8d]"><LockKeyhole size={13} /> OAuth sign-in · no API key to paste · revoke anytime</p>
-        </div>
 
-        <div className="relative min-h-[460px] overflow-hidden border-t border-[#262d3a] bg-[#111620] lg:min-h-0 lg:border-l lg:border-t-0">
-          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(#303846_1px,transparent_1px),linear-gradient(90deg,#303846_1px,transparent_1px)] [background-size:52px_52px]" />
-          <div className="absolute left-1/2 top-1/2 h-[72%] w-px -translate-x-1/2 -translate-y-1/2 bg-[#3c4656]" />
-          <div className="absolute left-[18%] right-[18%] top-1/2 h-px bg-[#3c4656]" />
-          <div className="absolute left-1/2 top-1/2 z-10 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl border border-[#c6f24e]/50 bg-[#161b25] shadow-[0_0_80px_rgba(198,242,78,.12)]">
-            <PlugZap className="text-[#c6f24e]" size={28} />
-            <span className="mt-2 font-mono text-xs font-semibold uppercase tracking-[.16em]">Jobing</span>
-          </div>
-          {platforms.map((platform, index) => {
-            const positions = ["left-[12%] top-[18%]", "right-[12%] top-[18%]", "left-[12%] bottom-[18%]", "right-[12%] bottom-[18%]"];
-            return (
-              <div key={platform.name} className={`absolute z-10 flex h-20 w-20 items-center justify-center rounded-2xl border border-[#343d4b] bg-[#1a202b] shadow-xl sm:h-24 sm:w-24 ${positions[index]}`}>
-                {/* External brand assets remain visually isolated from user content. */}
+          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <span className="text-xs text-[#727b89]">Works with</span>
+            {clients.map((client) => (
+              <span key={client.name} className="flex items-center gap-2 text-xs font-medium text-[#bbc1ca]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={platform.icon} alt={`${platform.name} logo`} className="h-8 w-8 sm:h-10 sm:w-10" />
-                <span className="absolute -bottom-6 text-[11px] font-medium text-[#8b93a1]">{platform.name}</span>
-              </div>
-            );
-          })}
+                <img src={client.icon} alt="" className="h-5 w-5 object-contain" />
+                {client.name}
+              </span>
+            ))}
+            <span className="text-xs text-[#727b89]">+ any remote MCP client</span>
+          </div>
+        </div>
+
+        <aside className="border border-[#343c49] bg-[#141923] shadow-[0_28px_80px_rgba(0,0,0,.24)]" aria-label="Example connector authorization receipt">
+          <div className="flex items-center justify-between border-b border-[#303744] px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <Image src="/logo.png" alt="" width={26} height={26} className="h-6 w-6 rounded-md" />
+              <span className="text-sm font-semibold">Jobing AI</span>
+            </div>
+            <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[.12em] text-[#71d6a5]"><span className="h-1.5 w-1.5 rounded-full bg-[#71d6a5]" /> Connected</span>
+          </div>
+          <div className="p-5 sm:p-6">
+            <p className="font-mono text-[10px] uppercase tracking-[.15em] text-[#727b89]">Authorization receipt</p>
+            <dl className="mt-6 space-y-4 text-sm">
+              <div className="grid grid-cols-[94px_1fr] gap-4"><dt className="text-[#727b89]">Account</dt><dd className="text-right text-[#d9dde3]">Your Jobing AI account</dd></div>
+              <div className="grid grid-cols-[94px_1fr] gap-4"><dt className="text-[#727b89]">Protocol</dt><dd className="text-right font-mono text-xs text-[#d9dde3]">OAuth 2.1 + PKCE</dd></div>
+              <div className="grid grid-cols-[94px_1fr] gap-4"><dt className="text-[#727b89]">Access</dt><dd className="text-right text-[#d9dde3]">Create notes · Deploy pages</dd></div>
+            </dl>
+            <div className="my-6 border-t border-dashed border-[#343c49]" />
+            <div className="space-y-3 font-mono text-[11px] leading-5 text-[#8f98a6]">
+              <p><span className="mr-3 text-[#71d6a5]">✓</span>Identity verified</p>
+              <p><span className="mr-3 text-[#71d6a5]">✓</span>Tools discovered: 2</p>
+              <p><span className="mr-3 text-[#71d6a5]">✓</span>Ready for requests</p>
+            </div>
+          </div>
+          <div className="border-t border-[#303744] bg-[#10151d] px-5 py-3 text-center font-mono text-[10px] text-[#646d7a]">No password or API key shared with the AI client</div>
+        </aside>
+      </section>
+
+      <section className="border-y border-[#262d3a] bg-[#111620]">
+        <div className="mx-auto grid max-w-[1120px] divide-y divide-[#262d3a] px-5 sm:px-8 md:grid-cols-2 md:divide-x md:divide-y-0">
+          <article className="py-14 md:pr-12 lg:py-16 lg:pr-20">
+            <p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#727b89]">Available action 01</p>
+            <h2 className="mt-5 text-2xl font-medium tracking-[-.035em]">Create a note</h2>
+            <p className="mt-3 max-w-md leading-7 text-[#8f98a6]">Turn an answer, meeting summary, checklist, or draft into a shareable Jobing AI note.</p>
+            <blockquote className="mt-7 border-l border-[#c6f24e] pl-4 text-sm leading-6 text-[#cbd0d8]">“Save the final launch checklist as a note and give me the link.”</blockquote>
+          </article>
+          <article className="py-14 md:pl-12 lg:py-16 lg:pl-20">
+            <p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#727b89]">Available action 02</p>
+            <h2 className="mt-5 text-2xl font-medium tracking-[-.035em]">Deploy a page</h2>
+            <p className="mt-3 max-w-md leading-7 text-[#8f98a6]">Publish generated HTML as a live page and receive a public URL without changing tabs.</p>
+            <blockquote className="mt-7 border-l border-[#c6f24e] pl-4 text-sm leading-6 text-[#cbd0d8]">“Deploy this project update as a page and send me the URL.”</blockquote>
+          </article>
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1180px] border-x border-b border-[#262d3a] px-5 py-20 sm:px-10 lg:px-14">
-        <div className="grid gap-12 lg:grid-cols-[.7fr_1.3fr]">
+      <section id="setup" className="mx-auto max-w-[1120px] scroll-mt-10 px-5 py-20 sm:px-8 sm:py-28">
+        <div className="grid gap-10 lg:grid-cols-[300px_1fr] lg:gap-20">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[.16em] text-[#c6f24e]">Available now</p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-[-.04em] sm:text-4xl">Two useful actions.<br />One connection.</h2>
+            <p className="font-mono text-[11px] uppercase tracking-[.17em] text-[#c6f24e]">Setup guide</p>
+            <h2 className="mt-5 text-3xl font-medium leading-tight tracking-[-.045em]">Add one server URL to the AI you already use.</h2>
+            <p className="mt-5 text-sm leading-6 text-[#818a98]">Menu names can change between plans and client versions. The endpoint and authorization flow do not.</p>
           </div>
-          <div className="grid border-l border-t border-[#303744] sm:grid-cols-2">
-            <article className="border-b border-r border-[#303744] bg-[#161b25] p-7 sm:p-9">
-              <span className="font-mono text-xs text-[#c6f24e]">TOOL / 01</span>
-              <h3 className="mt-8 text-2xl font-semibold tracking-tight">Create a note</h3>
-              <p className="mt-3 leading-6 text-[#8b93a1]">Ask your AI to save structured text as a Jobing note and return a shareable link.</p>
-              <p className="mt-7 border-l-2 border-[#c6f24e] pl-4 text-sm italic text-[#cbd0d8]">“Create a note with these meeting decisions.”</p>
-            </article>
-            <article className="border-b border-r border-[#303744] bg-[#161b25] p-7 sm:p-9">
-              <span className="font-mono text-xs text-[#c6f24e]">TOOL / 02</span>
-              <h3 className="mt-8 text-2xl font-semibold tracking-tight">Deploy a page</h3>
-              <p className="mt-3 leading-6 text-[#8b93a1]">Turn HTML into a hosted page and get a public URL without leaving the conversation.</p>
-              <p className="mt-7 border-l-2 border-[#c6f24e] pl-4 text-sm italic text-[#cbd0d8]">“Deploy this landing page and send me the link.”</p>
-            </article>
+          <div className="border-t border-[#303744]">
+            {guides.map((guide, index) => (
+              <article key={guide.client} className="grid gap-4 border-b border-[#303744] py-8 sm:grid-cols-[48px_170px_1fr] sm:gap-5">
+                <span className="font-mono text-xs text-[#697381]">0{index + 1}</span>
+                <h3 className="font-semibold text-[#e7e9ed]">{guide.client}</h3>
+                <div>
+                  <p className="font-mono text-xs leading-5 text-[#c6f24e]">{guide.where}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#8f98a6]">{guide.detail}</p>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <section id="setup" className="mx-auto max-w-[1180px] scroll-mt-8 border-x border-b border-[#262d3a] px-5 py-20 sm:px-10 lg:px-14 lg:py-28">
-        <div className="max-w-2xl">
-          <p className="font-mono text-xs uppercase tracking-[.16em] text-[#c6f24e]">Setup</p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Connected in a few minutes.</h2>
-          <p className="mt-5 text-lg leading-7 text-[#8b93a1]">The exact menu label can vary by plan and client version. The server URL stays the same.</p>
-        </div>
-
-        <div className="mt-12 divide-y divide-[#303744] border-y border-[#303744]">
-          {setupGuides.map((guide) => (
-            <article key={guide.name} className="grid gap-7 py-10 lg:grid-cols-[260px_1fr] lg:py-12">
-              <div className="flex items-center gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white">
-                  {guide.logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={guide.logo} alt={`${guide.name} logo`} className="h-7 w-7" />
-                  ) : <PlugZap className="text-[#111827]" size={25} />}
-                </span>
-                <h3 className="text-xl font-semibold">{guide.name}</h3>
-              </div>
-              <ol className="grid gap-5 sm:grid-cols-2">
-                {guide.steps.map((step, index) => (
-                  <li key={step} className="flex gap-3 text-sm leading-6 text-[#b5bbc6]">
-                    <span className="mt-0.5 font-mono text-xs text-[#c6f24e]">{String(index + 1).padStart(2, "0")}</span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto grid max-w-[1180px] border-x border-b border-[#262d3a] lg:grid-cols-2">
-        <div className="border-b border-[#262d3a] px-5 py-16 sm:px-10 lg:border-b-0 lg:border-r lg:px-14 lg:py-20">
-          <LockKeyhole className="text-[#c6f24e]" size={28} />
-          <h2 className="mt-7 text-3xl font-semibold tracking-[-.04em]">Your account stays yours.</h2>
-          <p className="mt-4 max-w-lg leading-7 text-[#8b93a1]">Jobing uses browser-based OAuth with PKCE. Your AI client never sees your password, and access tokens are stored as one-way hashes. Disconnect the connector from your AI tool whenever you want.</p>
-        </div>
-        <div className="px-5 py-16 sm:px-10 lg:px-14 lg:py-20">
-          <p className="font-mono text-xs uppercase tracking-[.16em] text-[#c6f24e]">Built to grow</p>
-          <h2 className="mt-7 text-3xl font-semibold tracking-[-.04em]">New tools arrive automatically.</h2>
-          <p className="mt-4 max-w-lg leading-7 text-[#8b93a1]">Connect once. As Jobing adds more actions, compatible AI clients can discover them without a new endpoint or another account connection.</p>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-[1180px] border-x border-b border-[#262d3a] px-5 py-20 text-center sm:px-10 lg:py-28">
-        <p className="font-mono text-xs uppercase tracking-[.16em] text-[#c6f24e]">One URL. Your AI. Real actions.</p>
-        <h2 className="mx-auto mt-5 max-w-3xl text-4xl font-semibold tracking-[-.05em] sm:text-6xl">Move work out of the chat and into the world.</h2>
-        <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <button onClick={copyEndpoint} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#c6f24e] px-6 font-bold text-[#0e1219] hover:bg-[#d3fa69] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c6f24e]">
-            {copied ? <Check size={17} /> : <Copy size={17} />} {copied ? "Endpoint copied" : "Copy connector URL"}
+      <section className="border-y border-[#262d3a] bg-[#111620]">
+        <div className="mx-auto grid max-w-[1120px] gap-10 px-5 py-16 sm:px-8 md:grid-cols-[1fr_auto] md:items-center md:py-20">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.15em] text-[#71d6a5]"><LockKeyhole size={14} /> Browser-based authorization</div>
+            <h2 className="mt-5 max-w-2xl text-3xl font-medium tracking-[-.04em]">Your AI gets permission—not your password.</h2>
+            <p className="mt-4 max-w-2xl leading-7 text-[#8f98a6]">Jobing AI uses OAuth with PKCE. Tokens are stored as one-way hashes, access can be revoked, and new connector tools appear automatically after you connect.</p>
+          </div>
+          <button onClick={copyEndpoint} className="inline-flex min-h-12 items-center justify-center gap-2 self-start rounded-md bg-[#c6f24e] px-5 font-semibold text-[#0e1219] hover:bg-[#d4fa6e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:self-center">
+            {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? "Server URL copied" : "Copy server URL"}
           </button>
-          <Link href="/tools" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-[#3a4351] px-6 font-semibold text-white hover:bg-[#161b25] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-            See what Jobing can do <ExternalLink size={16} />
-          </Link>
         </div>
       </section>
 
-      <footer className="mx-auto flex max-w-[1180px] flex-col gap-4 border-x border-[#262d3a] px-5 py-8 text-xs text-[#737d8d] sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-14">
-        <span>© 2026 Jobing AI</span>
+      <footer className="mx-auto flex max-w-[1120px] flex-col gap-5 px-5 py-8 text-xs text-[#6f7886] sm:flex-row sm:items-center sm:justify-between sm:px-8">
+        <div className="flex items-center gap-2.5"><Image src="/logo.png" alt="" width={22} height={22} className="h-5 w-5 rounded-[5px]" /><span>Jobing AI · 2026</span></div>
         <div className="flex gap-5"><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link><a href="mailto:hello@jobing.site" className="hover:text-white">Support</a></div>
       </footer>
     </main>

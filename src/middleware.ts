@@ -79,6 +79,7 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/online-clipboard(.*)',
   '/share-text(.*)',
   '/tools(.*)',
+  '/connector(.*)',
   '/pages(.*)',
   '/sitemap(.*)',
   '/robots.txt',

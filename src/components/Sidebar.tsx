@@ -6,6 +6,7 @@ import {
   FileText, Settings, CreditCard, LogOut,
   ChevronDown, ChevronUp,
   LayoutGrid, PanelLeftClose, PanelLeftOpen,
+  PlugZap,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { useState } from "react";
@@ -21,6 +22,7 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
   const [settingsOpen, setSettingsOpen] = useState(false);
   const navItems = [
     { name: "Tools", href: "/tools", icon: LayoutGrid },
+    { name: "AI Connector", href: "/connector", icon: PlugZap },
     { name: "Blog", href: "/blog", icon: FileText },
   ];
 

@@ -49,7 +49,18 @@ declare global {
 }
 
 export function track(event: AnalyticsEvent, params: EventParams = {}): void {
-  if (!isBrowser() || isLocalhost()) return;
+  if (!isBrowser()) return;
+
+  // PostHog receives events in all environments (it handles debug/dev suppression internally).
+  try {
+    import("posthog-js").then(({ default: posthog }) => {
+      posthog.capture(event, params);
+    });
+  } catch {
+    /* analytics must never break the product */
+  }
+
+  if (isLocalhost()) return;
 
   // Strip undefined values so GA4 doesn't record empty params.
   const clean: EventParams = {};

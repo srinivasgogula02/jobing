@@ -2,6 +2,7 @@ import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { WebhookEvent, clerkClient } from '@clerk/nextjs/server'
 import { supabase } from '@/lib/supabase'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -124,6 +125,10 @@ export async function POST(req: Request) {
             } catch (clerkErr) {
                 console.error('[Clerk Webhook] Error syncing has_credits to Clerk:', clerkErr);
             }
+
+            const posthog = getPostHogClient();
+            posthog.identify({ distinctId: id, properties: { username: username || undefined, name: name || undefined } });
+            posthog.capture({ distinctId: id, event: 'user_signed_up', properties: { source: 'clerk' } });
         }
     }
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Instrument_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import Script from "next/script";
+import { PostHogIdentify } from "@/components/PostHogIdentify";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -158,6 +159,7 @@ export default function RootLayout({
         </noscript>
         )}
         <ClerkProvider signInFallbackRedirectUrl="/tools" signUpFallbackRedirectUrl="/tools">
+          <PostHogIdentify />
           {children}
         </ClerkProvider>
       </body>

@@ -29,6 +29,8 @@
     "marked": "^18.0.5",
     "mcp-handler": "^1.1.0",
     "next": "^16.2.10",
+    "posthog-js": "^1.399.2",
+    "posthog-node": "^5.40.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",

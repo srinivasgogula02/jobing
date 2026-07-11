@@ -127,8 +127,22 @@ export async function POST(req: Request) {
             }
 
             const posthog = getPostHogClient();
-            posthog?.identify({ distinctId: id, properties: { username: username || undefined, name: name || undefined } });
-            posthog?.capture({ distinctId: id, event: 'user_signed_up', properties: { source: 'clerk' } });
+            if (posthog) {
+                const results = await Promise.allSettled([
+                    posthog.identifyImmediate({
+                        distinctId: id,
+                        properties: { username: username || undefined, name: name || undefined },
+                    }),
+                    posthog.captureImmediate({
+                        distinctId: id,
+                        event: 'user_signed_up',
+                        properties: { source: 'clerk' },
+                    }),
+                ]);
+                for (const result of results) {
+                    if (result.status === 'rejected') console.error('PostHog delivery failed:', result.reason);
+                }
+            }
         }
     }
 

@@ -105,11 +105,11 @@ export async function cancelSubscription(subscriptionId: string) {
             .eq('subscription_id', subscriptionId);
 
         const posthog = getPostHogClient();
-        posthog?.capture({
+        await posthog?.captureImmediate({
             distinctId: user.id,
             event: 'subscription_cancelled_by_user',
             properties: { subscription_id: subscriptionId },
-        });
+        }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
 
         return { success: true as const };
     } catch (error: any) {

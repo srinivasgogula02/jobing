@@ -65,7 +65,7 @@ export async function POST(req: Request) {
                 });
                 const posthog = getPostHogClient();
                 const activatedDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
-                posthog?.capture({
+                await posthog?.captureImmediate({
                     distinctId: activatedDistinctId,
                     event: 'subscription_activated',
                     properties: {
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
                         event_type: event.type,
                         currency: event.data.currency,
                     },
-                });
+                }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
                 break;
             }
 
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
                 });
                 const posthog = getPostHogClient();
                 const cancelledDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
-                posthog?.capture({
+                await posthog?.captureImmediate({
                     distinctId: cancelledDistinctId,
                     event: 'subscription_cancelled',
                     properties: {
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
                         event_type: event.type,
                         currency: event.data.currency,
                     },
-                });
+                }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
                 break;
             }
 
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
                 sendMetaPurchaseEvent(event.data).catch(console.error);
                 const posthog = getPostHogClient();
                 const paymentDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
-                posthog?.capture({
+                await posthog?.captureImmediate({
                     distinctId: paymentDistinctId,
                     event: 'payment_succeeded',
                     properties: {
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
                         currency: event.data.currency,
                         subscription_id: event.data.subscription_id,
                     },
-                });
+                }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
                 break;
             }
 

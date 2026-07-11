@@ -52,9 +52,13 @@ export function track(event: AnalyticsEvent, params: EventParams = {}): void {
   if (!isBrowser()) return;
 
   if (!isLocalhost() && process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN) try {
-    import("posthog-js").then(({ default: posthog }) => {
-      posthog.capture(event, params);
-    });
+    void import("posthog-js")
+      .then(({ default: posthog }) => {
+        posthog.capture(event, params);
+      })
+      .catch(() => {
+        /* analytics must never break the product */
+      });
   } catch {
     /* analytics must never break the product */
   }

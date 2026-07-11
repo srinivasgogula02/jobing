@@ -2,6 +2,13 @@ import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { rateLimit } from '@/lib/rate-limit';
+
+const ALLOWED_MODELS = new Set([
+    'google/gemini-2.0-flash-lite',
+    'openai/gpt-4o-mini',
+    'anthropic/claude-3-5-haiku-latest',
+]);
 
 // Create providers with custom base URL pointing to Vercel AI Gateway
 const google = createGoogleGenerativeAI({
@@ -27,7 +34,21 @@ export async function POST(req: Request) {
             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
         }
 
+        if (!rateLimit(`ai:${user.id}`, 30, 60_000)) {
+            return Response.json({ error: 'Too many requests' }, { status: 429 });
+        }
+
         const { messages, systemPrompt, model = 'google/gemini-2.0-flash-lite' } = await req.json();
+
+        if (!Array.isArray(messages) || messages.length > 100 || JSON.stringify(messages).length > 100_000) {
+            return Response.json({ error: 'Invalid or oversized messages' }, { status: 400 });
+        }
+        if (typeof model !== 'string' || !ALLOWED_MODELS.has(model)) {
+            return Response.json({ error: 'Unsupported model' }, { status: 400 });
+        }
+        if (systemPrompt !== undefined && (typeof systemPrompt !== 'string' || systemPrompt.length > 8_000)) {
+            return Response.json({ error: 'Invalid system prompt' }, { status: 400 });
+        }
 
         const systemInstruction = systemPrompt?.trim() || "You are a helpful assistant.";
 
@@ -46,6 +67,7 @@ export async function POST(req: Request) {
             model: selectedModel,
             system: systemInstruction,
             messages: messages as any,
+            maxOutputTokens: 2048,
         });
 
         return result.toTextStreamResponse();

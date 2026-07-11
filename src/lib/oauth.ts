@@ -272,18 +272,22 @@ export async function rotateRefreshToken(input: {
  * hot path (every MCP call), so it's a single indexed hash lookup.
  */
 export async function validateAccessToken(token: string | null | undefined): Promise<string | null> {
+    const info = await validateAccessTokenInfo(token);
+    return info?.userId ?? null;
+}
+
+export async function validateAccessTokenInfo(token: string | null | undefined) {
     if (!token || !token.startsWith("jbat_")) return null;
     const sb = getSupabaseAdmin();
 
     const { data } = await sb
         .from("oauth_tokens")
-        .select("user_id, access_expires_at")
+        .select("user_id, client_id, scope, access_expires_at")
         .eq("access_token_hash", sha256(token))
         .eq("is_revoked", false)
         .maybeSingle();
 
     if (!data) return null;
     if (new Date(data.access_expires_at).getTime() < Date.now()) return null;
-    return data.user_id;
+    return { userId: data.user_id as string, clientId: data.client_id as string, scope: data.scope as string, expiresAt: new Date(data.access_expires_at).getTime() / 1000 };
 }
-

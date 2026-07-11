@@ -1,7 +1,8 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import { createConnectedNote, deployConnectedPage } from "@/lib/connected-tools";
-import { validateAccessToken } from "@/lib/oauth";
+import { validateAccessTokenInfo } from "@/lib/oauth";
+import { rateLimit, requestIp } from "@/lib/rate-limit";
 
 const handler = createMcpHandler(
   (server) => {
@@ -80,9 +81,9 @@ const handler = createMcpHandler(
 const authHandler = withMcpAuth(
   handler,
   async (_, token) => {
-    const userId = await validateAccessToken(token);
-    if (!userId || !token) return undefined;
-    return { token, clientId: "jobing-connected-client", scopes: ["mcp"], extra: { userId } };
+    const info = await validateAccessTokenInfo(token);
+    if (!info || !token) return undefined;
+    return { token, clientId: info.clientId, scopes: info.scope.split(/\s+/), expiresAt: info.expiresAt, extra: { userId: info.userId } };
   },
   {
     required: true,
@@ -90,4 +91,8 @@ const authHandler = withMcpAuth(
   },
 );
 
-export { authHandler as GET, authHandler as POST };
+function securedHandler(req: Request) {
+  if (!rateLimit(`mcp:${requestIp(req)}`, 120, 60_000)) return new Response("Too many requests", { status: 429 });
+  return authHandler(req);
+}
+export { securedHandler as GET, securedHandler as POST };

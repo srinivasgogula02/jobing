@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { consumeAuthCode, issueTokens, rotateRefreshToken, verifyPkceS256 } from "@/lib/oauth";
+import { rateLimit, requestIp } from "@/lib/rate-limit";
 
 // OAuth 2.0 token endpoint. Accepts application/x-www-form-urlencoded (required
 // by RFC 6749 / the ChatGPT docs) and supports two grants:
@@ -26,6 +27,7 @@ function tokenResponse(body: unknown) {
 }
 
 export async function POST(request: NextRequest) {
+    if (!rateLimit(`oauth-token:${requestIp(request)}`, 60, 60_000)) return oauthError("slow_down", "Too many token requests", 429);
     // Must accept form-urlencoded; reject JSON-only callers cleanly.
     let form: URLSearchParams;
     try {
@@ -103,4 +105,3 @@ export async function POST(request: NextRequest) {
 export function OPTIONS() {
     return new NextResponse(null, { status: 204, headers: CORS });
 }
-

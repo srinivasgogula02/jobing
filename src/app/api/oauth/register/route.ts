@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registerClient } from "@/lib/oauth";
+import { rateLimit, requestIp } from "@/lib/rate-limit";
 
 // RFC 7591 Dynamic Client Registration. ChatGPT POSTs its client metadata
 // (application/json) on a fresh connection and gets back a client_id. We only
@@ -25,6 +26,9 @@ function isHttpsOrLoopback(uri: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+    if (!rateLimit(`oauth-register:${requestIp(request)}`, 10, 60 * 60_000)) {
+        return NextResponse.json({ error: "rate_limit_exceeded" }, { status: 429, headers: CORS });
+    }
     let body: Record<string, unknown>;
     try {
         body = await request.json();
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const redirectUris = Array.isArray(body.redirect_uris) ? (body.redirect_uris as unknown[]) : [];
-    const cleaned = redirectUris.filter((u): u is string => typeof u === "string" && isHttpsOrLoopback(u));
+    const cleaned = [...new Set(redirectUris.filter((u): u is string => typeof u === "string" && u.length <= 2048 && isHttpsOrLoopback(u)))].slice(0, 10);
 
     if (cleaned.length === 0) {
         return NextResponse.json(
@@ -45,7 +49,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const clientName = typeof body.client_name === "string" ? body.client_name : undefined;
+    const clientName = typeof body.client_name === "string" ? body.client_name.trim().slice(0, 100) : undefined;
 
     try {
         const client = await registerClient({ redirect_uris: cleaned, client_name: clientName });
@@ -71,4 +75,3 @@ export async function POST(request: NextRequest) {
 export function OPTIONS() {
     return new NextResponse(null, { status: 204, headers: CORS });
 }
-

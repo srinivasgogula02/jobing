@@ -3,6 +3,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { dodo } from "@/lib/dodo";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 function getSupabaseAdmin() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -102,6 +103,13 @@ export async function cancelSubscription(subscriptionId: string) {
             .from('subscriptions')
             .update({ cancel_at_next_billing_date: true })
             .eq('subscription_id', subscriptionId);
+
+        const posthog = getPostHogClient();
+        posthog.capture({
+            distinctId: user.id,
+            event: 'subscription_cancelled_by_user',
+            properties: { subscription_id: subscriptionId },
+        });
 
         return { success: true as const };
     } catch (error: any) {

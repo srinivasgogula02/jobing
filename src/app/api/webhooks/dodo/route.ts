@@ -3,6 +3,7 @@ import { Webhook } from 'standardwebhooks';
 import { createClient } from '@supabase/supabase-js';
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendMetaPurchaseEvent } from '@/lib/metaCAPI';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
             case "subscription.active":
             case "subscription.plan_changed":
             case "subscription.renewed":
-            case "subscription.on_hold":
+            case "subscription.on_hold": {
                 await manageSubscription(event);
                 await updateSubscriptionTierAndCredits({
                     dodoCustomerId: event.data.customer.customer_id,
@@ -62,11 +63,24 @@ export async function POST(req: Request) {
                     clerkUserId: event.data.metadata?.clerk_user_id || null,
                     productId: event.data.product_id,
                 });
+                const posthog = getPostHogClient();
+                const activatedDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
+                posthog.capture({
+                    distinctId: activatedDistinctId,
+                    event: 'subscription_activated',
+                    properties: {
+                        subscription_id: event.data.subscription_id,
+                        product_id: event.data.product_id,
+                        event_type: event.type,
+                        currency: event.data.currency,
+                    },
+                });
                 break;
+            }
 
             case "subscription.cancelled":
             case "subscription.expired":
-            case "subscription.failed":
+            case "subscription.failed": {
                 await manageSubscription(event);
                 await updateSubscriptionTierAndCredits({
                     dodoCustomerId: event.data.customer.customer_id,
@@ -74,13 +88,38 @@ export async function POST(req: Request) {
                     isActive: false,
                     clerkUserId: event.data.metadata?.clerk_user_id || null,
                 });
+                const posthog = getPostHogClient();
+                const cancelledDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
+                posthog.capture({
+                    distinctId: cancelledDistinctId,
+                    event: 'subscription_cancelled',
+                    properties: {
+                        subscription_id: event.data.subscription_id,
+                        event_type: event.type,
+                        currency: event.data.currency,
+                    },
+                });
                 break;
+            }
 
             // Payment events
-            case "payment.succeeded":
+            case "payment.succeeded": {
                 await managePayment(event);
                 sendMetaPurchaseEvent(event.data).catch(console.error);
+                const posthog = getPostHogClient();
+                const paymentDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
+                posthog.capture({
+                    distinctId: paymentDistinctId,
+                    event: 'payment_succeeded',
+                    properties: {
+                        payment_id: event.data.payment_id,
+                        total_amount: event.data.total_amount,
+                        currency: event.data.currency,
+                        subscription_id: event.data.subscription_id,
+                    },
+                });
                 break;
+            }
 
             case "payment.failed":
             case "payment.processing":

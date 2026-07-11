@@ -1,9 +1,13 @@
-import posthog from "posthog-js";
+// This file configures the initialization of Sentry on the client.
+// The added config here will be used whenever a users loads a page in their browser.
+// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+
 import * as Sentry from "@sentry/nextjs";
+import posthog from "posthog-js";
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  environment: process.env.NODE_ENV,
+  environment: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.NODE_ENV,
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1,
   tracePropagationTargets: [/^\//, /^https:\/\/jobing\.site/],
   sendDefaultPii: false,
@@ -11,10 +15,10 @@ Sentry.init({
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
-const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
+const posthogToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 
-if (token && process.env.NODE_ENV === "production") {
-  posthog.init(token, {
+if (posthogToken && process.env.NODE_ENV === "production") {
+  posthog.init(posthogToken, {
     api_host: "/ingest",
     ui_host: "https://us.posthog.com",
     defaults: "2026-01-30",

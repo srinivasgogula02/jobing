@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
+import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
 
 export function PostHogIdentify() {
@@ -10,6 +11,11 @@ export function PostHogIdentify() {
 
   useEffect(() => {
     if (!isLoaded) return;
+
+    // A stable, non-PII user ID makes crash-free user and release adoption
+    // metrics meaningful without sending names or email addresses to Sentry.
+    Sentry.setUser(user ? { id: user.id } : null);
+
     if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || process.env.NODE_ENV !== "production") return;
     if (user) {
       posthog.identify(user.id, {

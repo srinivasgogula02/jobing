@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { withDualmark } from "@dualmark/nextjs";
+import { withSentryConfig } from "@sentry/nextjs";
 
 // AEO / DualMark: the public pages below each have a Markdown twin, and our
 // middleware negotiates Markdown vs HTML based on the `Accept` request header, so
@@ -97,6 +98,15 @@ const nextConfig: NextConfig = {
 // withDualmark adds the DualMark packages to transpilePackages and validates the
 // site URL at boot. We pass a minimal config here (the full AEO config lives in
 // src/lib/dualmark.ts) to keep next.config decoupled from the server-action graph.
-export default withDualmark(nextConfig, {
+const dualmarkConfig = withDualmark(nextConfig, {
   siteUrl: (process.env.NEXT_PUBLIC_SITE_URL || "https://jobing.site").replace(/\/+$/, ""),
+});
+
+export default withSentryConfig(dualmarkConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+  silent: !process.env.CI,
 });

@@ -66,6 +66,7 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
   '/api/email(.*)',
   '/api/cron(.*)',
+  '/monitoring(.*)',
   '/mcp(.*)',
   '/sse(.*)',
   '/.well-known(.*)',

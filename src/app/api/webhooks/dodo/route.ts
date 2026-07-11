@@ -65,7 +65,7 @@ export async function POST(req: Request) {
                 });
                 const posthog = getPostHogClient();
                 const activatedDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
-                posthog.capture({
+                posthog?.capture({
                     distinctId: activatedDistinctId,
                     event: 'subscription_activated',
                     properties: {
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
                 });
                 const posthog = getPostHogClient();
                 const cancelledDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
-                posthog.capture({
+                posthog?.capture({
                     distinctId: cancelledDistinctId,
                     event: 'subscription_cancelled',
                     properties: {
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
                 sendMetaPurchaseEvent(event.data).catch(console.error);
                 const posthog = getPostHogClient();
                 const paymentDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
-                posthog.capture({
+                posthog?.capture({
                     distinctId: paymentDistinctId,
                     event: 'payment_succeeded',
                     properties: {

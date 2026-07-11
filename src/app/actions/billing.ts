@@ -105,7 +105,7 @@ export async function cancelSubscription(subscriptionId: string) {
             .eq('subscription_id', subscriptionId);
 
         const posthog = getPostHogClient();
-        posthog.capture({
+        posthog?.capture({
             distinctId: user.id,
             event: 'subscription_cancelled_by_user',
             properties: { subscription_id: subscriptionId },

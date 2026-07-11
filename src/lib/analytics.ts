@@ -51,8 +51,7 @@ declare global {
 export function track(event: AnalyticsEvent, params: EventParams = {}): void {
   if (!isBrowser()) return;
 
-  // PostHog receives events in all environments (it handles debug/dev suppression internally).
-  try {
+  if (!isLocalhost() && process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN) try {
     import("posthog-js").then(({ default: posthog }) => {
       posthog.capture(event, params);
     });

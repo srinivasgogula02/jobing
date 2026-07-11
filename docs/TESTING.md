@@ -17,7 +17,6 @@ npm run typecheck    # verify TypeScript without creating a build
 - OAuth registration redirect safety, CORS, and controlled failures
 - OAuth code exchange, client and redirect binding, refresh rotation, and invalid grants
 - Connector note/page ID rules, ownership fields, size limits, duplicates, and storage errors
-- PostHog replay exclusions for sensitive routes
 - Request limiting and forwarded IP extraction
 - Email campaign batch and subscriber timing rules
 

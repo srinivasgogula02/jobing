@@ -29,7 +29,9 @@ describe("Pages Runtime document route", () => {
     expect(await response.text()).toContain("<h1>FreshMart</h1>");
     expect(mocks.getPublicPage).toHaveBeenCalledWith("freshmart-job-application");
     expect(response.headers.get("origin-agent-cluster")).toBe("?1");
-    expect(response.headers.get("permissions-policy")).toContain("document-domain=()");
+    expect(response.headers.get("permissions-policy")).toBe(
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    );
     expect(response.headers.get("vercel-cdn-cache-control")).toBe("public, s-maxage=15, stale-while-revalidate=45");
     expect(response.headers.get("etag")).toMatch(/^"[A-Za-z0-9_-]+"$/);
   });

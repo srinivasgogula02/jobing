@@ -29,7 +29,7 @@ const documentHeaders = {
   "cross-origin-opener-policy": "same-origin",
   "cross-origin-resource-policy": "same-origin",
   "origin-agent-cluster": "?1",
-  "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), document-domain=()",
+  "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-permitted-cross-domain-policies": "none",
   "x-content-type-options": "nosniff",

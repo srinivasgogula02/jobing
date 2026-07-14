@@ -83,6 +83,9 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/share-text(.*)',
   '/tools(.*)',
   '/connector',
+  '/forms',
+  '/forms/api/health',
+  '/forms/api/internal(.*)',
   '/pages(.*)',
   '/sitemap(.*)',
   '/robots.txt',
@@ -113,6 +116,7 @@ const isRetiredRoute = createRouteMatcher([
 const isAuthOnlyRoute = createRouteMatcher([
   '/billing(.*)',
   '/connector/manage(.*)',
+  '/forms/app(.*)',
 ])
 
 // TIER 3 — Protected: Auth + payment/credit check applied to everything else.

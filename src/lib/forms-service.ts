@@ -6,7 +6,7 @@ import { z } from "zod";
 const REQUEST_TIMEOUT_MS = 8_000;
 export const MAX_FORMS_INTERNAL_REQUEST_BYTES = 256 * 1024;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
-const PRODUCTION_FORMS_ORIGIN = "https://forms.jobing.site";
+const PRODUCTION_FORMS_BASE_URL = "https://jobing.site/forms";
 const OPERATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~:/-]{7,199}$/;
 const KEY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SAFE_ERROR_CODE_PATTERN = /^[a-z][a-z0-9_]{0,99}$/;
@@ -149,7 +149,7 @@ function configurationError() {
   return new FormsServiceError("invalid_configuration", "Forms is not configured correctly.", 503);
 }
 
-function parseOrigin(value: string, allowLocalHttp: boolean) {
+function parseBaseUrl(value: string, allowLocalHttp: boolean) {
   let url: URL;
   try {
     url = new URL(value);
@@ -161,33 +161,40 @@ function parseOrigin(value: string, allowLocalHttp: boolean) {
   if (url.protocol !== "https:" && !(allowLocalHttp && isLocal && url.protocol === "http:")) {
     throw configurationError();
   }
-  if (url.username || url.password || url.search || url.hash || (url.pathname !== "/" && url.pathname !== "")) {
+  const pathname = url.pathname.replace(/\/+$/, "");
+  if (
+    url.username
+    || url.password
+    || url.search
+    || url.hash
+    || pathname !== "/forms"
+  ) {
     throw configurationError();
   }
-  return url.origin;
+  return `${url.origin}${pathname}`;
 }
 
-function productionFormsOrigins() {
-  const origins = new Set([PRODUCTION_FORMS_ORIGIN]);
-  const configured = process.env.FORMS_SERVICE_ALLOWED_ORIGINS;
-  if (!configured) return origins;
+function productionFormsBaseUrls() {
+  const baseUrls = new Set([PRODUCTION_FORMS_BASE_URL]);
+  const configured = process.env.FORMS_SERVICE_ALLOWED_BASE_URLS;
+  if (!configured) return baseUrls;
 
   for (const entry of configured.split(",")) {
     const value = entry.trim();
     if (!value) throw configurationError();
-    origins.add(parseOrigin(value, false));
+    baseUrls.add(parseBaseUrl(value, false));
   }
-  return origins;
+  return baseUrls;
 }
 
-function formsOrigin() {
+function formsBaseUrl() {
   const configured = process.env.FORMS_SERVICE_URL;
   if (!configured) throw new FormsServiceError("not_configured", "Forms is not configured for this deployment.", 503);
-  const origin = parseOrigin(configured, process.env.NODE_ENV !== "production");
-  if (process.env.NODE_ENV === "production" && !productionFormsOrigins().has(origin)) {
+  const baseUrl = parseBaseUrl(configured, process.env.NODE_ENV !== "production");
+  if (process.env.NODE_ENV === "production" && !productionFormsBaseUrls().has(baseUrl)) {
     throw configurationError();
   }
-  return origin;
+  return baseUrl;
 }
 
 function signingConfiguration() {
@@ -303,10 +310,12 @@ async function postSerializedToForms(path: string, rawBody: string) {
   if (Buffer.byteLength(rawBody, "utf8") > MAX_FORMS_INTERNAL_REQUEST_BYTES) {
     throw new FormsServiceError("request_too_large", "The Forms request is too large.", 413);
   }
-  const url = `${formsOrigin()}${path}`;
+  const baseUrl = formsBaseUrl();
+  const url = `${baseUrl}${path}`;
+  const signedPath = `/forms${path}`;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const headers = signatureHeaders(path, rawBody);
+    const headers = signatureHeaders(signedPath, rawBody);
     let response: Response;
     try {
       response = await fetch(url, {

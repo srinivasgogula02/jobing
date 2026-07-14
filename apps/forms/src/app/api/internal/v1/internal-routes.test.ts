@@ -34,10 +34,11 @@ function signedRequest(path: string, value: unknown, nonce = `nonce_${crypto.ran
   const rawBody = JSON.stringify(value);
   const timestamp = Math.floor(Date.now() / 1000);
   const bodySha256 = sha256Hex(rawBody);
-  const signature = signInternalPayload(SECRET, { method: "POST", path, timestamp, nonce, bodySha256 });
+  const routedPath = `/forms${path}`;
+  const signature = signInternalPayload(SECRET, { method: "POST", path: routedPath, timestamp, nonce, bodySha256 });
   return {
     rawBody,
-    request: new Request(`https://forms.jobing.site${path}`, {
+    request: new Request(`https://jobing.site${routedPath}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -79,7 +80,7 @@ beforeEach(() => {
 
 describe("Forms internal routes", () => {
   it("rejects oversized bodies before buffering or touching the database", async () => {
-    const request = new Request("https://forms.jobing.site/api/internal/v1/forms", {
+    const request = new Request("https://jobing.site/forms/api/internal/v1/forms", {
       method: "POST",
       headers: { "content-type": "application/json", "content-length": String(256 * 1024 + 1) },
     });

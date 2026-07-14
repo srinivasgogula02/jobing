@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  basePath: "/forms",
   poweredByHeader: false,
   // This repository intentionally has independent lockfiles for the main app
   // and Forms. Keep Turbopack and output tracing inside the Forms project root.

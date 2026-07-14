@@ -30,7 +30,7 @@ export function resolveClerkAuthorizedParties(
 ) {
   const configuredOrigins = configured?.split(",").map((origin) => origin.trim()).filter(Boolean);
   const defaults = environment === "production"
-    ? ["https://jobing.site", "https://forms.jobing.site"]
+    ? ["https://jobing.site"]
     : ["http://localhost:3000", "http://localhost:3001"];
   const origins = configuredOrigins?.length ? configuredOrigins : defaults;
 

@@ -8,14 +8,14 @@ database, deployment environment, or runtime credentials.
 
 Implemented now:
 
-- A dedicated `forms.jobing.site` Next.js control-plane deployment.
-- Shared Clerk authentication across `jobing.site` and `forms.jobing.site`.
+- A dedicated Forms Next.js deployment served through `jobing.site/forms`.
+- Shared Clerk authentication on the primary `jobing.site` origin.
 - An isolated Neon schema with workspace, entitlement, draft, immutable version,
   endpoint reservation, audit, idempotency, nonce, and outbox foundations.
 - HMAC-signed, replay-protected internal APIs for workspace projection, creating
   drafts, listing forms, and publishing definitions.
 - MCP tools in the main deployment for creating, listing, and publishing definitions.
-- A minimal authenticated dashboard and database-aware `/api/health` endpoint.
+- A minimal authenticated dashboard and database-aware `/forms/api/health` endpoint.
 
 Not implemented in Phase 1:
 
@@ -34,62 +34,56 @@ Create two Vercel projects from this Git repository:
 | Vercel project | Root Directory | Domain | Database |
 | --- | --- | --- | --- |
 | `jobing-web` | `.` | `jobing.site` | Existing Supabase |
-| `jobing-forms` | `apps/forms` | `forms.jobing.site` | New Neon project |
+| `jobing-forms` | `apps/forms` | `jobing.site/forms` via the main project rewrite | New Neon project |
 
 Use Node.js 22 and the committed npm 11.6.2 lockfiles. Keep Git-based preview
-deployments enabled for both projects. Do not point `forms.jobing.site` at the main
-Vercel project.
+deployments enabled for both projects. The Forms build has `basePath: "/forms"`;
+the main deployment proxies `/forms` and `/forms/:path*` to the stable
+`jobing-forms.vercel.app` production alias.
 
 ### Identity
 
-Use the same Clerk instance and keys in both Vercel projects. Configure `jobing.site`
-as the primary application and Forms as its satellite. Add `forms.jobing.site` to the
-same Clerk instance/domain configuration and set these production values on Forms:
+Use the same Clerk instance and keys in both Vercel projects. Forms is reached on the
+primary Jobing origin, so no paid Clerk satellite domain or cross-domain cookie is
+required. Set these production values on Forms:
 
 ```text
-NEXT_PUBLIC_CLERK_IS_SATELLITE=true
-NEXT_PUBLIC_CLERK_DOMAIN=forms.jobing.site
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=https://jobing.site/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://jobing.site/sign-up
+NEXT_PUBLIC_FORMS_SITE_URL=https://jobing.site/forms
+CLERK_AUTHORIZED_PARTIES=https://jobing.site
 ```
 
 Before rollout, verify that the primary deployment serves the configured `/sign-in`
-and `/sign-up` URLs and returns satellite users to Forms after authentication.
+and `/sign-up` URLs and returns users to Forms after authentication.
 The primary Jobing project must set:
 
 ```text
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-CLERK_AUTHORIZED_PARTIES=https://jobing.site,https://forms.jobing.site
+CLERK_AUTHORIZED_PARTIES=https://jobing.site
 ```
 
-Forms sign-in buttons use Clerk's redirect flow, not a satellite-hosted modal. Both
-sign-in and sign-up completion are forced back to the configured Forms origin at
-`/app`; the return path is fixed in code and is never read from request input.
+Forms sign-in buttons use Clerk's redirect flow. Both sign-in and sign-up completion
+are forced back to `https://jobing.site/forms/app`; the return path is fixed in code
+and is never read from request input.
 
 Retain the exact authorized parties:
 
 ```text
 https://jobing.site
-https://forms.jobing.site
 ```
 
-`satelliteAutoSync: true` makes the Forms deployment complete Clerk's satellite
-handshake on a user's first visit, so an existing `jobing.site` session is recognized
-without another sign-in. `authorizedParties` is an origin/CSRF defense; it is not the cross-deployment session
-mechanism. The Clerk satellite configuration provides that mechanism. Do not create a
+The browser remains on `jobing.site`, so its existing Clerk session is sent to the
+Forms path automatically. Vercel proxies the request to the independently deployed
+Forms application without exposing the child hostname to the user. Do not create a
 custom `Domain=.jobing.site` session cookie.
 
 ### Authenticated previews
 
-Do not treat arbitrary per-deployment `*.vercel.app` URLs as verified Clerk
-satellites. To test cross-domain authentication in preview, assign Forms a stable
-preview domain (for example, `forms-preview.jobing.site`), register that exact host
-as a satellite in the same Clerk instance, and scope all Forms URL/domain and
-`CLERK_AUTHORIZED_PARTIES` values to that Vercel preview environment. Configure a
-matching stable primary preview origin when the preview must be isolated from
-production. Ephemeral Vercel URLs remain suitable for build and signed-out UI checks,
-but cross-domain authentication on them is intentionally not considered verified.
+Do not treat the child project's `*.vercel.app` URL as an authenticated user-facing
+origin. Test through a stable primary preview URL with its `/forms` rewrite and scope
+all Forms URL and `CLERK_AUTHORIZED_PARTIES` values to that primary preview origin.
 The matching main-app preview must also use a non-production Supabase project,
 service-role key, and preview-specific `OAUTH_ISSUER`. Issuer binding prevents
 cross-issuer authorization as defense in depth; it does not make production
@@ -104,13 +98,11 @@ Required:
 ```text
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 CLERK_SECRET_KEY
-NEXT_PUBLIC_CLERK_IS_SATELLITE=true
-NEXT_PUBLIC_CLERK_DOMAIN=forms.jobing.site
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=https://jobing.site/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://jobing.site/sign-up
 NEXT_PUBLIC_JOBING_SITE_URL=https://jobing.site
-NEXT_PUBLIC_FORMS_SITE_URL=https://forms.jobing.site
-CLERK_AUTHORIZED_PARTIES=https://jobing.site,https://forms.jobing.site
+NEXT_PUBLIC_FORMS_SITE_URL=https://jobing.site/forms
+CLERK_AUTHORIZED_PARTIES=https://jobing.site
 DATABASE_URL
 FORMS_INTERNAL_KEY_ID
 FORMS_INTERNAL_SECRET
@@ -137,25 +129,25 @@ Keep all existing Clerk and Supabase variables. Add:
 ```text
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-CLERK_AUTHORIZED_PARTIES=https://jobing.site,https://forms.jobing.site
+CLERK_AUTHORIZED_PARTIES=https://jobing.site
 CLERK_WEBHOOK_SECRET
 OAUTH_ISSUER=https://jobing.site
-FORMS_SERVICE_URL=https://forms.jobing.site
+FORMS_SERVICE_URL=https://jobing.site/forms
 FORMS_INTERNAL_KEY_ID
 FORMS_INTERNAL_SECRET
 CRON_SECRET
 ```
 
-Production calls are pinned to `https://forms.jobing.site`. A stable preview Forms
-origin must be explicitly listed in the matching main-app preview environment:
+Production calls are pinned to `https://jobing.site/forms`. A stable preview Forms
+base URL must be explicitly listed in the matching main-app preview environment:
 
 ```text
-FORMS_SERVICE_ALLOWED_ORIGINS=https://forms-preview.jobing.site
+FORMS_SERVICE_ALLOWED_BASE_URLS=https://preview.jobing.site/forms
 ```
 
-This server-only comma-separated allowlist accepts exact HTTPS origins only. Do not
-add wildcard hosts or arbitrary Vercel deployment URLs, and leave it unset in the
-main production environment unless another fixed production origin is intentional.
+This server-only comma-separated allowlist accepts exact HTTPS `/forms` base URLs.
+Do not add wildcard hosts or direct child deployment URLs, and leave it unset in the
+main production environment unless another fixed primary origin is intentional.
 
 The HMAC key ID and secret must match the Forms project's current pair. Generate a
 different random secret of at least 32 bytes for development, preview, and production.
@@ -204,7 +196,7 @@ Before the matching application code is promoted:
    `jobing_forms_control` and `jobing_forms_sync`; do not grant owner, worker,
    ingest, public, or auditor roles.
 6. Set that runtime login as `DATABASE_URL`, run `npm run db:verify` with both
-   database URLs present, then verify `/api/health`. The verifier connects through
+   database URLs present, then verify `/forms/api/health`. The verifier connects through
    the actual runtime URL and rejects owner, superuser, `BYPASSRLS`, object-owner,
    base-table, or over-broad function privileges.
 
@@ -245,7 +237,7 @@ workspace-sync preflight. The database independently rejects definitions over
 3. Configure the Clerk webhook and prove signed `user.created`, `user.updated`, and
    `user.deleted` preview deliveries before accepting users.
 4. Deploy `jobing-forms` to a preview with Neon preview credentials.
-5. Verify `GET /api/health`, authentication, signed workspace sync, draft creation,
+5. Verify `GET /forms/api/health`, authentication, signed workspace sync, draft creation,
    list, publish, idempotent retry, and stale-revision rejection.
 6. Promote Forms to production while the main app still has no Forms service URL.
 7. Add the production `FORMS_SERVICE_URL` and matching HMAC key to `jobing-web`.

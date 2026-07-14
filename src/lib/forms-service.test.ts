@@ -78,7 +78,7 @@ const projection = {
 beforeEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
-  vi.stubEnv("FORMS_SERVICE_URL", "https://forms.jobing.site");
+  vi.stubEnv("FORMS_SERVICE_URL", "https://jobing.site/forms");
   vi.stubEnv("FORMS_INTERNAL_KEY_ID", "phase1");
   vi.stubEnv("FORMS_INTERNAL_SECRET", "a-secret-that-is-at-least-thirty-two-characters");
 });
@@ -113,7 +113,7 @@ describe("Forms internal request signing", () => {
 
     await createConnectorForm(actor, form, "operation-123");
 
-    expect(fetchMock.mock.calls[0][0]).toBe("https://forms.jobing.site/api/internal/v1/workspaces/sync");
+    expect(fetchMock.mock.calls[0][0]).toBe("https://jobing.site/forms/api/internal/v1/workspaces/sync");
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
       operationId: "phase1-personal-workspace:user_123:v1",
       workspace: { sourceWorkspaceId: "user_123", sourceVersion: 1 },
@@ -123,9 +123,18 @@ describe("Forms internal request signing", () => {
     const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     const headers = init.headers as Record<string, string>;
     const body = String(init.body);
-    expect(url).toBe("https://forms.jobing.site/api/internal/v1/forms");
+    expect(url).toBe("https://jobing.site/forms/api/internal/v1/forms");
     expect(headers["x-jobing-content-sha256"]).toBe(crypto.createHash("sha256").update(body).digest("hex"));
-    expect(headers["x-jobing-signature"]).toMatch(/^v1=/);
+    expect(headers["x-jobing-signature"]).toBe(`v1=${signFormsRequest(
+      "a-secret-that-is-at-least-thirty-two-characters",
+      {
+        method: "POST",
+        path: "/forms/api/internal/v1/forms",
+        timestamp: Number(headers["x-jobing-timestamp"]),
+        nonce: headers["x-jobing-nonce"],
+        bodySha256: headers["x-jobing-content-sha256"],
+      },
+    )}`);
     expect(JSON.parse(body)).toMatchObject({ operationId: "operation-123", actor, form });
   });
 
@@ -163,7 +172,7 @@ describe("Forms internal request signing", () => {
   it("rejects unsafe or incomplete service configuration before fetching", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    vi.stubEnv("FORMS_SERVICE_URL", "http://forms.jobing.site");
+    vi.stubEnv("FORMS_SERVICE_URL", "http://jobing.site/forms");
 
     await expect(createConnectorForm(actor, form, "operation-123")).rejects.toBeInstanceOf(FormsServiceError);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -256,27 +265,27 @@ describe("Forms internal request signing", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("pins production to forms.jobing.site unless an origin is explicitly allowed", async () => {
+  it("pins production to the Jobing Forms base URL unless a base URL is explicitly allowed", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("FORMS_SERVICE_URL", "https://forms.jobing.site.attacker.example");
+    vi.stubEnv("FORMS_SERVICE_URL", "https://jobing.site.attacker.example/forms");
 
     await expect(createConnectorForm(actor, form, "operation-123")).rejects.toMatchObject({ code: "invalid_configuration" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("supports an explicit HTTPS production origin allowlist", async () => {
+  it("supports an explicit HTTPS production base URL allowlist", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(workspaceResponse), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify(createdResponse), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("FORMS_SERVICE_URL", "https://forms-preview.example.com");
-    vi.stubEnv("FORMS_SERVICE_ALLOWED_ORIGINS", "https://forms-preview.example.com");
+    vi.stubEnv("FORMS_SERVICE_URL", "https://preview.example.com/forms");
+    vi.stubEnv("FORMS_SERVICE_ALLOWED_BASE_URLS", "https://preview.example.com/forms");
 
     await createConnectorForm(actor, form, "operation-123");
-    expect(fetchMock.mock.calls[0][0]).toBe("https://forms-preview.example.com/api/internal/v1/workspaces/sync");
+    expect(fetchMock.mock.calls[0][0]).toBe("https://preview.example.com/forms/api/internal/v1/workspaces/sync");
   });
 
   it("validates signing key IDs and secret bytes before fetching", async () => {

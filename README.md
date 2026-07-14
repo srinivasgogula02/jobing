@@ -5,7 +5,7 @@ This repository contains two independently installed and deployed Next.js applic
 | Application | Repository root | Production domain | Database |
 | --- | --- | --- | --- |
 | Main Jobing app and MCP connector | `.` | `jobing.site` | Existing Supabase project |
-| Jobing Forms control plane | `apps/forms` | `forms.jobing.site` | Separate Neon project |
+| Jobing Forms control plane | `apps/forms` | `jobing.site/forms` | Separate Neon project |
 
 They use the same Clerk instance so users connect and sign in once. They use separate
 Vercel projects, environment variables, database credentials, build outputs, and
@@ -16,11 +16,11 @@ The primary Jobing project must serve Clerk at `/sign-in` and `/sign-up`:
 ```text
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-CLERK_AUTHORIZED_PARTIES=https://jobing.site,https://forms.jobing.site
+CLERK_AUTHORIZED_PARTIES=https://jobing.site
 ```
 
 Forms uses redirect-mode Clerk CTAs and always returns completed sign-in or sign-up
-to the fixed `https://forms.jobing.site/app` destination. It does not accept a return
+to the fixed `https://jobing.site/forms/app` destination. It does not accept a return
 URL from the visitor.
 
 ## Local development
@@ -33,7 +33,8 @@ npm --prefix apps/forms ci
 npm --prefix apps/forms run dev
 ```
 
-The main app runs on port 3000 and Forms runs on port 3001.
+The main app runs on port 3000 and Forms runs on port 3001. Open Forms through
+`http://localhost:3000/forms`; the main development server proxies it to port 3001.
 
 ## Checks
 

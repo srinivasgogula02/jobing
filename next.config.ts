@@ -22,6 +22,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 const RSC_VARY =
   "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch";
 
+const FORMS_DEPLOYMENT_ORIGIN = process.env.FORMS_DEPLOYMENT_ORIGIN
+  || (process.env.NODE_ENV === "development"
+    ? "http://localhost:3001"
+    : "https://jobing-forms.vercel.app");
+
 // HTML pages with a twin: keep Next's RSC tokens (needed for correct RSC/prefetch
 // cache keys) and add `Accept`.
 const HTML_TWIN_SOURCES = [
@@ -55,6 +60,14 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      {
+        source: "/forms",
+        destination: `${FORMS_DEPLOYMENT_ORIGIN}/forms`,
+      },
+      {
+        source: "/forms/:path*",
+        destination: `${FORMS_DEPLOYMENT_ORIGIN}/forms/:path*`,
+      },
       {
         source: "/ingest/static/:path*",
         destination: "https://us-assets.i.posthog.com/static/:path*",

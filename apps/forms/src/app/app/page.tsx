@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function FormsDashboardPage() {
   const { userId } = await auth();
-  if (!userId) redirect("/");
+  if (!userId) redirect("/forms");
 
   const forms = await listFormsForActor(userId);
 

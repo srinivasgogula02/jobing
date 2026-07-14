@@ -35,13 +35,13 @@ jobs:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
-      CLERK_AUTHORIZED_PARTIES: https://jobing.site,https://forms.jobing.site
+      CLERK_AUTHORIZED_PARTIES: https://jobing.site
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
       SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
       NEXT_PUBLIC_SITE_URL: https://jobing.site
       OAUTH_ISSUER: https://jobing.site
-      FORMS_SERVICE_URL: https://forms.jobing.site
+      FORMS_SERVICE_URL: https://jobing.site/forms
       FORMS_INTERNAL_KEY_ID: ci-phase1
       FORMS_INTERNAL_SECRET: ci-forms-secret-with-at-least-thirty-two-bytes
       CRON_SECRET: ci-cron-secret-with-at-least-thirty-two-bytes
@@ -113,13 +113,11 @@ jobs:
       # A syntactically valid, non-production Clerk key lets Next compile the
       # provider boundary. CI never receives production application secrets.
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
-      NEXT_PUBLIC_CLERK_IS_SATELLITE: "true"
-      NEXT_PUBLIC_CLERK_DOMAIN: forms.jobing.site
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: https://jobing.site/sign-in
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: https://jobing.site/sign-up
       NEXT_PUBLIC_JOBING_SITE_URL: http://localhost:3000
-      NEXT_PUBLIC_FORMS_SITE_URL: http://localhost:3001
-      CLERK_AUTHORIZED_PARTIES: http://localhost:3000,http://localhost:3001
+      NEXT_PUBLIC_FORMS_SITE_URL: http://localhost:3000/forms
+      CLERK_AUTHORIZED_PARTIES: http://localhost:3000
       DATABASE_MIGRATION_URL: postgresql://postgres:postgres@localhost:5432/jobing_forms_ci
       DATABASE_URL: postgresql://jobing_forms_ci_runtime:ci-runtime-password@localhost:5432/jobing_forms_ci
 

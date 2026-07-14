@@ -3,8 +3,11 @@ import { resolveClerkAuthorizedParties } from "@/lib/clerk-config";
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/forms",
   "/api/health",
+  "/forms/api/health",
   "/api/internal(.*)",
+  "/forms/api/internal(.*)",
 ]);
 
 export default clerkMiddleware(
@@ -15,7 +18,6 @@ export default clerkMiddleware(
   },
   {
     authorizedParties: resolveClerkAuthorizedParties(),
-    satelliteAutoSync: true,
   },
 );
 

@@ -1,13 +1,16 @@
 import type { NextConfig } from "next";
+import { fileURLToPath } from "node:url";
+
+const formsRoot = fileURLToPath(new URL(".", import.meta.url));
 
 const nextConfig: NextConfig = {
   basePath: "/forms",
   poweredByHeader: false,
   // This repository intentionally has independent lockfiles for the main app
   // and Forms. Keep Turbopack and output tracing inside the Forms project root.
-  outputFileTracingRoot: process.cwd(),
+  outputFileTracingRoot: formsRoot,
   turbopack: {
-    root: process.cwd(),
+    root: formsRoot,
   },
   async headers() {
     return [

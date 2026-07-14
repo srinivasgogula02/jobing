@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import {
-    CreditCard, ReceiptText, Calendar, Download, Zap,
-    Loader2, AlertTriangle, CheckCircle2, RotateCcw, ArrowRight, ArrowUpRight
+    CreditCard, ReceiptText, Calendar, Download,
+    Loader2, AlertTriangle, CheckCircle2, RotateCcw, ArrowRight
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -45,19 +45,9 @@ interface Payment {
     card_type: string | null;
 }
 
-interface UserRow {
-    id: string;
-    credits: number;
-    current_subscription_id: string | null;
-    dodo_customer_id: string | null;
-}
-
 interface BillingDashboardProps {
     subscription: Subscription | null;
-    userRow: UserRow | null;
     invoices: Payment[];
-    userName: string;
-    userEmail: string;
     isLiveMode: boolean;
 }
 
@@ -66,7 +56,6 @@ interface BillingDashboardProps {
 // ─────────────────────────────────
 export function BillingDashboard({
     subscription,
-    userRow,
     invoices,
     isLiveMode,
 }: BillingDashboardProps) {
@@ -80,33 +69,7 @@ export function BillingDashboard({
     return (
         <div className="w-full max-w-3xl mx-auto px-4 py-6 md:px-0 md:py-0">
             <div className="mb-6">
-                <p className="text-[#6b7280] font-medium">Manage your plan, monthly allowance, and payment history.</p>
-            </div>
-
-            {/* Credits Card */}
-            <div className="mb-8 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm text-slate-500 font-medium mb-1">Connector allowance</p>
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-full bg-[#C1FF00]/20 flex items-center justify-center">
-                                <Zap size={20} className="text-[#8bb800] fill-[#8bb800]" />
-                            </div>
-                            <span className="text-4xl font-bold text-[#1a1a1a]">
-                                {(userRow?.credits || 0).toLocaleString()}
-                            </span>
-                        </div>
-                    </div>
-                    {!subscription && (
-                        <Link
-                            href="/pricing"
-                            className="yellow-glow px-5 py-2.5 bg-[#C1FF00] hover:opacity-90 text-[#1a1a1a] text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2"
-                        >
-                            <ArrowUpRight size={16} />
-                            See plans
-                        </Link>
-                    )}
-                </div>
+                <p className="text-[#6b7280] font-medium">Manage your plan and payment history.</p>
             </div>
 
             {/* Tabs */}
@@ -198,7 +161,7 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
                 </div>
                 <h3 className="text-xl font-bold text-slate-950 mb-2">No active subscription</h3>
                 <p className="text-slate-500 mb-8 max-w-sm mx-auto font-medium">
-                    Choose a plan to increase your Forms limits and connector allowance. Cancel anytime.
+                    Choose a plan to increase your Forms limits and support level. Cancel anytime.
                 </p>
                 <Link
                     href="/pricing"

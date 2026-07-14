@@ -9,7 +9,6 @@ import { useState } from "react";
 interface HeaderClientProps {
     isSignedIn: boolean;
     username?: string | null;
-    credits: number;
 }
 
 const NAV_LINKS = [
@@ -17,7 +16,7 @@ const NAV_LINKS = [
     { href: "/billing", label: "Billing", icon: Zap },
 ];
 
-export function HeaderClient({ isSignedIn, username, credits }: HeaderClientProps) {
+export function HeaderClient({ isSignedIn, username }: HeaderClientProps) {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -38,12 +37,6 @@ export function HeaderClient({ isSignedIn, username, credits }: HeaderClientProp
                         <>
                             {/* Desktop Nav */}
                             <div className="hidden md:flex items-center gap-4 border-r border-slate-200 pr-4 mr-2">
-                                {/* Credits Display */}
-                                <Link href="/billing" className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
-                                    <Zap size={14} className="text-[#8bb800] fill-[#8bb800]" />
-                                    <span>{credits.toLocaleString()}</span>
-                                </Link>
-
                                 {/* Create Button */}
                                 <Link
                                     href="/tools"

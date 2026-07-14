@@ -15,7 +15,7 @@ const comparison = [
   { label: "Published pages", pro: "Unlimited", elite: "Unlimited" },
   { label: "Custom forms", pro: "25", elite: "100" },
   { label: "Responses each month", pro: "5,000", elite: "25,000" },
-  { label: "AI connector actions", pro: "Included", elite: "Higher allowance" },
+  { label: "AI connector", pro: "Included", elite: "Included" },
   { label: "Support", pro: "Standard", elite: "Priority" },
 ] as const;
 

@@ -13,7 +13,6 @@ import { DEFAULT_AUTH_DESTINATION } from "@/lib/app-navigation";
 
 interface DashboardShellProps {
   children: React.ReactNode;
-  credits?: number;
   breadcrumbs?: { label: string; href?: string }[];
   // When true, the content area drops its desktop gutter (md:p-6) so pages can
   // render edge-to-edge against the sidebar, header, and right edge.
@@ -36,7 +35,7 @@ function useIsTablet(): boolean {
   );
 }
 
-export function DashboardShell({ children, credits, breadcrumbs, fullBleed }: DashboardShellProps) {
+export function DashboardShell({ children, breadcrumbs, fullBleed }: DashboardShellProps) {
   const { isSignedIn, isLoaded } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -109,15 +108,6 @@ export function DashboardShell({ children, credits, breadcrumbs, fullBleed }: Da
           <div className="flex items-center gap-3">
             {isLoaded && isSignedIn ? (
               <>
-                {typeof credits === "number" && (
-                  <Link 
-                    href="/billing" 
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-                  >
-                    <Zap size={14} className="text-[#8bb800] fill-[#8bb800]" />
-                    <span>{credits.toLocaleString()}</span>
-                  </Link>
-                )}
                 <UserButton
                   appearance={{
                     elements: {

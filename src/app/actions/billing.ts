@@ -13,6 +13,10 @@ function getSupabaseAdmin() {
     return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+function providerErrorMessage(error: unknown, fallback: string) {
+    return error instanceof Error && error.message ? error.message : fallback;
+}
+
 // ---------------------
 // Get user subscription + profile
 // ---------------------
@@ -24,12 +28,12 @@ export async function getUserSubscription() {
 
     const { data: userRow, error: userErr } = await supabase
         .from('users')
-        .select('id, credits, current_subscription_id, dodo_customer_id')
+        .select('current_subscription_id')
         .eq('id', user.id)
         .single();
 
     if (userErr || !userRow) {
-        return { success: true as const, data: { subscription: null, user: null } };
+        return { success: true as const, data: { subscription: null } };
     }
 
     let subscription = null;
@@ -44,7 +48,7 @@ export async function getUserSubscription() {
 
     return {
         success: true as const,
-        data: { subscription, user: userRow },
+        data: { subscription },
     };
 }
 
@@ -113,10 +117,10 @@ export async function cancelSubscription(subscriptionId: string) {
         }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
 
         return { success: true as const };
-    } catch (error: any) {
+    } catch (error: unknown) {
         return {
             success: false as const,
-            error: error.message || "Failed to cancel subscription"
+            error: providerErrorMessage(error, "Failed to cancel subscription")
         };
     }
 }
@@ -147,10 +151,10 @@ export async function restoreSubscription(subscriptionId: string) {
             .eq('subscription_id', subscriptionId);
 
         return { success: true as const };
-    } catch (error: any) {
+    } catch (error: unknown) {
         return {
             success: false as const,
-            error: error.message || "Failed to restore subscription"
+            error: providerErrorMessage(error, "Failed to restore subscription")
         };
     }
 }
@@ -180,10 +184,10 @@ export async function changePlan(subscriptionId: string, newProductId: string) {
         });
 
         return { success: true as const };
-    } catch (error: any) {
+    } catch (error: unknown) {
         return {
             success: false as const,
-            error: error.message || "Failed to change plan"
+            error: providerErrorMessage(error, "Failed to change plan")
         };
     }
 }

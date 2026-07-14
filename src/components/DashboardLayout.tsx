@@ -1,8 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// DashboardLayout.tsx  ·  SERVER component — fetches credits then renders shell
+// DashboardLayout.tsx  ·  SERVER component
 // ─────────────────────────────────────────────────────────────────────────────
 import React from "react";
-import { getUserCredits } from "@/app/actions/user";
 import { DashboardShell } from "./DashboardShell";
 
 interface DashboardLayoutProps {
@@ -11,11 +10,9 @@ interface DashboardLayoutProps {
   fullBleed?: boolean;
 }
 
-export async function DashboardLayout({ children, breadcrumbs, fullBleed }: DashboardLayoutProps) {
-  const credits = await getUserCredits();
-
+export function DashboardLayout({ children, breadcrumbs, fullBleed }: DashboardLayoutProps) {
   return (
-    <DashboardShell credits={credits} breadcrumbs={breadcrumbs} fullBleed={fullBleed}>
+    <DashboardShell breadcrumbs={breadcrumbs} fullBleed={fullBleed}>
       {children}
     </DashboardShell>
   );

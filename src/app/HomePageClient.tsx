@@ -90,9 +90,12 @@ export function HomePageClient() {
             <a href="#connect">How to connect</a><a href="#use-cases">What it can do</a><Link href="/pricing">Pricing</Link>
             <Link className={styles.navCta} href="/dashboard">Dashboard</Link>
           </nav>
-          <button className={styles.menuButton} type="button" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-label="Toggle navigation">{menuOpen ? <X /> : <Menu />}</button>
+          <div className={styles.mobileHeaderActions}>
+            <Link className={styles.mobileDashboard} href="/dashboard">Dashboard</Link>
+            <button className={styles.menuButton} type="button" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-label="Toggle navigation">{menuOpen ? <X /> : <Menu />}</button>
+          </div>
         </div>
-        {menuOpen && <nav className={styles.mobileNav} aria-label="Mobile navigation"><a href="#connect" onClick={() => setMenuOpen(false)}>How to connect</a><a href="#use-cases" onClick={() => setMenuOpen(false)}>What it can do</a><Link href="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link></nav>}
+        {menuOpen && <nav className={styles.mobileNav} aria-label="Mobile navigation"><a href="#connect" onClick={() => setMenuOpen(false)}>How to connect</a><a href="#use-cases" onClick={() => setMenuOpen(false)}>What it can do</a><Link href="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link></nav>}
       </header>
 
       <section className={styles.hero}>

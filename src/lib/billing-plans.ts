@@ -58,7 +58,7 @@ const PLAN_DEFINITIONS = [
       "Everything in Pro",
       "100 custom forms",
       "25,000 form responses each month",
-      "Higher connector usage allowance",
+      "Create and edit through your AI connector",
       "Priority support",
     ],
     highlighted: false,

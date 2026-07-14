@@ -30,7 +30,7 @@ describe("Forms Clerk configuration", () => {
   });
 
   it("uses only local origins by default outside production", () => {
-    expect(resolveClerkAuthorizedParties(undefined, "test")).toEqual([
+    expect(resolveClerkAuthorizedParties("", "test")).toEqual([
       "http://localhost:3000",
       "http://localhost:3001",
     ]);

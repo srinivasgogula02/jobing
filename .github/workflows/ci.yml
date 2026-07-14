@@ -45,6 +45,7 @@ jobs:
       FORMS_INTERNAL_KEY_ID: ci-phase1
       FORMS_INTERNAL_SECRET: ci-forms-secret-with-at-least-thirty-two-bytes
       CRON_SECRET: ci-cron-secret-with-at-least-thirty-two-bytes
+      DODO_PAYMENTS_API_KEY: ci-dodo-api-key
       SUPABASE_MIGRATION_URL: postgresql://postgres:postgres@localhost:5432/jobing_main_ci
 
     steps:

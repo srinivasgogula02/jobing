@@ -97,7 +97,8 @@ export type ConnectorFormDefinition = {
       max?: number;
     };
   }>;
-  confirmation?: { message: string };
+  confirmation?: { message: string; redirectUrl?: string };
+  settings?: { allowedOrigins: string[] };
 };
 
 export type CreateConnectorFormInput = {

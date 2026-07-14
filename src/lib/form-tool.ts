@@ -49,6 +49,9 @@ export const createFormDraftToolInputSchema = z.object({
   description: z.string().trim().max(2_000).optional(),
   fields: z.array(formFieldInputSchema).min(1).max(100),
   confirmationMessage: z.string().trim().min(1).max(1_000).optional(),
+  redirectUrl: z.string().url().refine((value) => new URL(value).protocol === "https:", "Use an HTTPS redirect URL.").optional(),
+  allowedOrigins: z.array(z.string().url().transform((value) => new URL(value).origin)).max(20).optional()
+    .describe("HTTPS website origins allowed to submit, for example https://example.com. Omit for hosted-form-only use."),
 }).superRefine((input, context) => {
   const keys = new Set<string>();
   input.fields.forEach((field, index) => {
@@ -100,7 +103,11 @@ export function buildConnectorFormDraft(input: CreateFormDraftToolInput): Create
           },
         } : {}),
       })),
-      confirmation: { message: input.confirmationMessage ?? "Thanks — your response was received." },
+      confirmation: {
+        message: input.confirmationMessage ?? "Thanks — your response was received.",
+        ...(input.redirectUrl ? { redirectUrl: input.redirectUrl } : {}),
+      },
+      ...(input.allowedOrigins ? { settings: { allowedOrigins: input.allowedOrigins } } : {}),
     },
   };
 }

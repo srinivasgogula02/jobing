@@ -55,4 +55,10 @@ describe("create form tool input", () => {
       fields: [{ key: "topic", type: "select", label: "Topic" }],
     }).success).toBe(false);
   });
+
+  it("normalizes approved origins and rejects unsafe redirects", () => {
+    const parsed = createFormDraftToolInputSchema.parse({ ...input, allowedOrigins: ["https://example.com/contact"] });
+    expect(buildConnectorFormDraft(parsed).definition.settings).toEqual({ allowedOrigins: ["https://example.com"] });
+    expect(createFormDraftToolInputSchema.safeParse({ ...input, redirectUrl: "http://example.com/thanks" }).success).toBe(false);
+  });
 });

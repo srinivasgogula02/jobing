@@ -91,6 +91,10 @@ async function loadFeedback(): Promise<ProviderResult<FeedbackItem[]>> {
   }
 }
 
+export function sentryIssuesUrl(host: string, org: string, project: string) {
+  return `${host.replace(/\/$/, "")}/api/0/projects/${encodeURIComponent(org)}/${encodeURIComponent(project)}/issues/?query=is%3Aunresolved&statsPeriod=14d&limit=20`;
+}
+
 async function loadSentryIssues(): Promise<ProviderResult<SentryIssue[]>> {
   const host = (process.env.SENTRY_HOST || "https://sentry.io").replace(/\/$/, "");
   const org = process.env.SENTRY_ORG;
@@ -98,7 +102,7 @@ async function loadSentryIssues(): Promise<ProviderResult<SentryIssue[]>> {
   const token = process.env.SENTRY_API_TOKEN;
   if (!org || !project || !token) return unavailable("not_configured");
   try {
-    const response = await fetchWithTimeout(`${host}/api/0/projects/${encodeURIComponent(org)}/${encodeURIComponent(project)}/issues/?query=is%3Aunresolved&statsPeriod=7d&limit=20`, {
+    const response = await fetchWithTimeout(sentryIssuesUrl(host, org, project), {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response) return unavailable("timeout");

@@ -27,10 +27,10 @@ export default async function ManageConnectorPage() {
     <main className="min-h-screen bg-[#0E1219] px-4 py-10 text-[#F2F4F7] sm:px-6 sm:py-16">
       <div className="mx-auto max-w-3xl">
         <Link
-          href="/connector"
+          href="/dashboard"
           className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[.12em] text-[#8B93A1] hover:text-[#F2F4F7] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C6F24E]"
         >
-          ← AI connector
+          ← Dashboard
         </Link>
         <p className="mt-8 font-mono text-[11px] uppercase tracking-[.16em] text-[#C6F24E]">Account security</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-[-.04em]">Connected AI clients</h1>

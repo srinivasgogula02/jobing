@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Show, SignInButton } from "@clerk/nextjs";
+import Image from "next/image";
 import Link from "next/link";
 import { getFormsSignInRedirectProps } from "@/lib/clerk-config";
 
@@ -19,8 +20,8 @@ function PrimaryAction({ className = "marketing-cta" }: { className?: string }) 
   const signInRedirectProps = getFormsSignInRedirectProps();
   return (
     <>
-      <Show when="signed-in"><Link className={className} href="/app">Open my response inbox <span>→</span></Link></Show>
-      <Show when="signed-out"><SignInButton {...signInRedirectProps}><button className={className} type="button">Connect Jobing Forms <span>→</span></button></SignInButton></Show>
+      <Show when="signed-in"><Link className={className} href="/app">See my enquiries <span>→</span></Link></Show>
+      <Show when="signed-out"><SignInButton {...signInRedirectProps}><button className={className} type="button">Create my first form <span>→</span></button></SignInButton></Show>
     </>
   );
 }
@@ -29,17 +30,17 @@ export default function HomePage() {
   return (
     <main className="marketing-page">
       <header className="marketing-header">
-        <Link className="marketing-logo" href="/" aria-label="Jobing Forms home"><b>Jobing</b><span>Forms</span></Link>
+        <Link className="marketing-logo" href="/" aria-label="Jobing AI Forms home"><Image src="/forms/logo.png" alt="" width={32} height={32} priority /><b>Jobing AI</b><span>Forms</span></Link>
         <nav aria-label="Main navigation"><a href="#product">Product</a><a href="https://jobing.site/pricing">Pricing</a><PrimaryAction className="marketing-header-cta" /></nav>
       </header>
 
       <section className="marketing-hero">
         <div>
-          <p className="marketing-kicker">The form backend built for AI-made pages</p>
-          <h1>Your AI makes the form.<br /><em>You get the leads.</em></h1>
-          <p className="marketing-lede">Ask ChatGPT or Claude for a page. Jobing creates the form endpoint, gives your AI native HTML, and puts every response in one inbox.</p>
+          <p className="marketing-kicker">Turn website visitors into customers</p>
+          <h1>Put a form on any page.<br /><em>Never miss a customer.</em></h1>
+          <p className="marketing-lede">Ask your AI to add a contact, booking, waitlist, or quote form. Every response arrives in one simple inbox.</p>
           <PrimaryAction />
-          <small>5 published forms · Native HTML · No iframe</small>
+          <small>5 live forms · 1 response inbox · Works with your design</small>
         </div>
         <div className="forms-product" id="product">
           <div className="forms-product__top"><span>CONTACT FORM</span><b>LIVE</b></div>
@@ -62,29 +63,29 @@ export default function HomePage() {
       </section>
 
       <section className="marketing-pain">
-        <p className="marketing-kicker">You should not need four products for one contact form.</p>
-        <h2>The page looked finished.<br />Then the form did nothing.</h2>
-        <div><s>Embed an iframe</s><s>Open another dashboard</s><s>Patch a redirect</s><b>Use the HTML your AI already wrote.</b></div>
+        <p className="marketing-kicker">A beautiful website is not enough</p>
+        <h2>If customers cannot reach you, the page is not finished.</h2>
+        <div><s>Miss an enquiry</s><s>Check another tool</s><s>Fight a broken form</s><b>Keep every response together.</b></div>
       </section>
 
       <section className="marketing-code">
         <div>
-          <p className="marketing-kicker">Formspree-simple. Built into Jobing.</p>
-          <h2>Keep your design.<br />Change one action.</h2>
-          <p>The endpoint receives the response. Your HTML controls everything people see.</p>
+          <p className="marketing-kicker">Your website still looks like yours</p>
+          <h2>Any design.<br />One reliable inbox.</h2>
+          <p>Your AI can match the form to your brand. Jobing AI quietly saves the answers and shows them in your dashboard.</p>
         </div>
         <pre><code>{`<form method="POST"\n  action="https://forms.jobing.site/forms/f/frm_contact">\n\n  <input name="email" type="email" required>\n  <textarea name="message"></textarea>\n  <button>Send my request</button>\n</form>`}</code><span>201 · RESPONSE SAVED</span></pre>
       </section>
 
       <section className="marketing-numbers">
-        <p className="marketing-kicker">The limits are clear</p>
-        <h2>Five live forms.<br />Zero mystery.</h2>
-        <dl><div><dt>5</dt><dd>published forms</dd></div><div><dt>50</dt><dd>accepted responses</dd></div><div><dt>256 KB</dt><dd>per submission</dd></div></dl>
+        <p className="marketing-kicker">Enough to launch your first ideas</p>
+        <h2>Five live forms.<br />One place to follow up.</h2>
+        <dl><div><dt>5</dt><dd>forms ready for customers</dd></div><div><dt>50</dt><dd>customer responses included</dd></div><div><dt>1</dt><dd>inbox for every enquiry</dd></div></dl>
       </section>
 
       <section className="marketing-prompts">
-        <p className="marketing-kicker">Say it the way you already say it</p>
-        <h2>Prompts in. Responses out.</h2>
+        <p className="marketing-kicker">No form builder to learn</p>
+        <h2>Just tell your AI what you want to collect.</h2>
         <div>
           <blockquote>“Create a waitlist page and save every signup.”</blockquote>
           <blockquote>“Add a project enquiry form to this portfolio.”</blockquote>
@@ -94,12 +95,12 @@ export default function HomePage() {
       </section>
 
       <section className="marketing-final">
-        <p>YOUR FORM IS NOT A RECTANGLE IN AN IFRAME.</p>
-        <h2>It&apos;s your HTML.<br /><em>We catch the answers.</em></h2>
+        <p>YOUR NEXT CUSTOMER COULD BE ON YOUR PAGE NOW.</p>
+        <h2>Give them a simple way to say <em>“I&apos;m interested.”</em></h2>
         <PrimaryAction />
       </section>
 
-      <footer className="marketing-footer"><span>Jobing Forms · forms.jobing.site</span><b>Make the page. Catch the answer.</b></footer>
+      <footer className="marketing-footer"><span>Jobing AI Forms · forms.jobing.site</span><b>Every enquiry deserves a reply.</b></footer>
     </main>
   );
 }

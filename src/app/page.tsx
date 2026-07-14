@@ -4,12 +4,12 @@ import Link from "next/link";
 import styles from "./home.module.css";
 
 export const metadata: Metadata = {
-  title: "Jobing — Ask for a website. Get a live URL.",
-  description: "Connect Jobing to your AI and turn one conversation into a live page with a working form.",
+  title: "Jobing AI — Turn an idea into a live business website",
+  description: "Tell your AI what your business needs. Jobing AI publishes the website and collects every customer enquiry.",
   alternates: { canonical: "/" },
 };
 
-const cta = "Connect Jobing to your AI";
+const cta = "Build my website";
 
 export default function Home() {
   return (
@@ -17,7 +17,7 @@ export default function Home() {
       <header className={styles.header}>
         <Link href="/" className={styles.logo} aria-label="Jobing home">
           <Image src="/logo.png" alt="" width={46} height={46} priority />
-          <span>Jobing</span>
+          <span>Jobing AI</span>
         </Link>
         <nav aria-label="Main navigation">
           <a href="#demo">Product</a>
@@ -28,11 +28,11 @@ export default function Home() {
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <p className={styles.kicker}>Your AI can talk. Jobing lets it ship.</p>
-          <h1>Ask for a website.<br /><em>Get a live URL.</em></h1>
-          <p className={styles.lede}>One Jobing connection turns a ChatGPT or Claude conversation into a published page with a working form.</p>
+          <p className={styles.kicker}>From business idea to live website</p>
+          <h1>Tell your AI what you need.<br /><em>Jobing AI makes it real.</em></h1>
+          <p className={styles.lede}>Describe your business in ChatGPT or Claude. Get a complete website that is online, ready to share, and able to collect customer enquiries.</p>
           <Link className={styles.cta} href="/connector">{cta} <span aria-hidden>→</span></Link>
-          <p className={styles.micro}>Connect once · Publish from chat · Own the HTML</p>
+          <p className={styles.micro}>Connect once · Ask in plain English · Share your website</p>
         </div>
 
         <div className={styles.product} id="demo" aria-label="Jobing product demonstration">
@@ -40,8 +40,8 @@ export default function Home() {
           <div className={styles.demoBody}>
             <div className={styles.chatPane}>
               <p className={styles.demoLabel}>CHATGPT + JOBING</p>
-              <div className={styles.prompt}>Create an AI consultancy page with a contact form.</div>
-              <div className={styles.reply}><span>✓</span> Page published<br /><span>✓</span> Form connected<br /><b>View the live page →</b></div>
+              <div className={styles.prompt}>Create a website for my AI consultancy and let people book a call.</div>
+              <div className={styles.reply}><span>✓</span> Website is live<br /><span>✓</span> Enquiry form is ready<br /><b>Open your website →</b></div>
             </div>
             <div className={styles.sitePane}>
               <span>AI CONSULTANCY</span>
@@ -49,65 +49,65 @@ export default function Home() {
               <button type="button" tabIndex={-1}>Book a consultation</button>
             </div>
           </div>
-          <div className={styles.resultStrip}><span>1 prompt</span><span>1 page</span><span>1 working form</span><strong>LIVE</strong></div>
+          <div className={styles.resultStrip}><span>One request</span><span>One website</span><span>Ready for customers</span><strong>LIVE</strong></div>
         </div>
       </section>
 
       <section className={styles.statement}>
-        <p>YOU ALREADY HAVE THE IDEA.</p>
-        <h2>Stop moving code from chat to editor to host to form backend.</h2>
+        <p>YOU HAVE A BUSINESS TO RUN.</p>
+        <h2>Your website should not become another project to manage.</h2>
         <div className={styles.strikeFlow} aria-label="The old workflow">
-          <s>Copy code</s><s>Fix hosting</s><s>Wire forms</s><s>Debug redirects</s><b>Ask. Publish.</b>
+          <s>Find a developer</s><s>Wait for changes</s><s>Set up hosting</s><s>Fix broken forms</s><b>Describe it. Share it.</b>
         </div>
       </section>
 
       <section className={styles.outcome}>
         <div className={styles.number}>01</div>
         <div>
-          <p className={styles.kicker}>One thing, done end to end</p>
-          <h2>Your AI makes the page.<br />Jobing makes it real.</h2>
+          <p className={styles.kicker}>Everything needed to start</p>
+          <h2>Go from an idea to a website customers can use.</h2>
         </div>
         <dl>
-          <div><dt>5</dt><dd>published forms per workspace</dd></div>
-          <div><dt>500 KB</dt><dd>of HTML per page</dd></div>
-          <div><dt>1</dt><dd>connection to your AI</dd></div>
+          <div><dt>1</dt><dd>conversation to create your website</dd></div>
+          <div><dt>5</dt><dd>live forms for customer enquiries</dd></div>
+          <div><dt>1</dt><dd>inbox for every new lead</dd></div>
         </dl>
       </section>
 
       <section className={styles.formsReveal}>
         <div>
-          <p className={styles.kicker}>The part page builders leave unfinished</p>
-          <h2>A form that actually receives responses.</h2>
-          <p>Your AI gets native HTML, not an iframe. Change every label, field and pixel. Jobing keeps the endpoint working.</p>
+          <p className={styles.kicker}>Never lose an enquiry</p>
+          <h2>Every interested customer lands in one inbox.</h2>
+          <p>Add contact, booking, waitlist, or quote forms to your website. When someone responds, their details are waiting for you in Jobing Forms.</p>
         </div>
         <div className={styles.codeWindow}>
-          <div><span>contact.html</span><span>POST</span></div>
-          <pre><code>{`<form method="POST"\n  action="https://forms.jobing.site/forms/f/frm_contact">\n\n  <input name="email" type="email" required>\n  <button>Send my request</button>\n</form>`}</code></pre>
-          <p><span>●</span> Responses arrive in Jobing Forms</p>
+          <div><span>NEW ENQUIRY</span><span>JUST NOW</span></div>
+          <div className={styles.leadPreview}><span>SR</span><div><strong>Sarah Rao</strong><small>sarah@northstar.co</small><p>We need a new website for our consulting firm.</p></div></div>
+          <p><span>●</span> Saved in your Jobing Forms inbox</p>
         </div>
       </section>
 
       <section className={styles.compare}>
-        <p className={styles.kicker}>Why switch</p>
-        <h2>Three jobs. One conversation.</h2>
+        <p className={styles.kicker}>Less waiting. More selling.</p>
+        <h2>One conversation replaces weeks of back and forth.</h2>
         <div className={styles.table} role="table" aria-label="Publishing workflow comparison">
-          <div role="row"><span role="columnheader">What happens next</span><span role="columnheader">DIY stack</span><span role="columnheader">Site builder</span><strong role="columnheader">Jobing</strong></div>
-          <div role="row"><span>Publish from AI chat</span><span>Manual</span><span>Manual</span><strong>Yes</strong></div>
-          <div role="row"><span>Own the page HTML</span><span>Yes</span><span>Sometimes</span><strong>Yes</strong></div>
-          <div role="row"><span>Receive form responses</span><span>Add a backend</span><span>Platform form</span><strong>Included</strong></div>
-          <div role="row"><span>Share one live URL</span><span>After setup</span><span>After setup</span><strong>From chat</strong></div>
+          <div role="row"><span role="columnheader">What you need</span><span role="columnheader">Developer</span><span role="columnheader">Site builder</span><strong role="columnheader">Jobing AI</strong></div>
+          <div role="row"><span>Time to first website</span><span>Days or weeks</span><span>Several hours</span><strong>One conversation</strong></div>
+          <div role="row"><span>Ask for changes in plain English</span><span>Back and forth</span><span>Edit it yourself</span><strong>Yes</strong></div>
+          <div role="row"><span>Collect customer enquiries</span><span>Extra setup</span><span>Depends on plan</span><strong>Included</strong></div>
+          <div role="row"><span>Get a link ready to share</span><span>After launch</span><span>After setup</span><strong>From your chat</strong></div>
         </div>
       </section>
 
       <section className={styles.finalCta}>
-        <p>THE NEXT WEBSITE WON&apos;T BE CODED.</p>
-        <h2>It&apos;ll be asked for.</h2>
+        <p>YOUR BUSINESS IDEA IS ENOUGH.</p>
+        <h2>Ask for it.<br />Share it.<br />Grow it.</h2>
         <Link className={styles.cta} href="/connector">{cta} <span aria-hidden>→</span></Link>
       </section>
 
       <footer className={styles.footer}>
-        <span>Jobing · Built for the AI-made web</span>
-        <span>Share this idea: <b>Ask → Publish → Live</b></span>
+        <span>Jobing AI · Websites made through conversation</span>
+        <span><b>Your idea deserves a live URL.</b></span>
       </footer>
     </main>
   );

@@ -10,12 +10,16 @@ const formIdSchema = z.string().uuid();
 
 export async function POST(request: Request, context: { params: Promise<{ formId: string }> }) {
   try {
-    const { data } = await readInternalJson(request, publishFormRequestSchema);
     const { formId: rawFormId } = await context.params;
     const formId = formIdSchema.safeParse(rawFormId);
     if (!formId.success) {
       throw new InternalRouteError(400, "invalid_form_id", "The form ID is invalid.");
     }
+    const { data } = await readInternalJson(
+      request,
+      publishFormRequestSchema,
+      `/forms/api/internal/v1/forms/${formId.data}/publish`,
+    );
 
     requireInternalScope(data.actor, "forms:publish");
     const form = await publishForm(formId.data, data);

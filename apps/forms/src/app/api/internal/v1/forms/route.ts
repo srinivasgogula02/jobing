@@ -7,7 +7,11 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const { data } = await readInternalJson(request, createFormDraftRequestSchema);
+    const { data } = await readInternalJson(
+      request,
+      createFormDraftRequestSchema,
+      "/forms/api/internal/v1/forms",
+    );
     requireInternalScope(data.actor, "forms:write");
     const form = await createFormDraft(data);
     return internalDataResponse(form, 201);

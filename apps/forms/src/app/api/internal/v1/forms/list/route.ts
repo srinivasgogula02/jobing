@@ -7,7 +7,11 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const { data } = await readInternalJson(request, listFormsRequestSchema);
+    const { data } = await readInternalJson(
+      request,
+      listFormsRequestSchema,
+      "/forms/api/internal/v1/forms/list",
+    );
     requireInternalScope(data.actor, "forms:read");
     const forms = await listFormsForActor(data.actor.userId);
     return internalDataResponse({ forms });

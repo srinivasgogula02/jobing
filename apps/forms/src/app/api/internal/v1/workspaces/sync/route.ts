@@ -7,7 +7,11 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const { data, rawBody } = await readInternalJson(request, workspaceProjectionRequestSchema);
+    const { data, rawBody } = await readInternalJson(
+      request,
+      workspaceProjectionRequestSchema,
+      "/forms/api/internal/v1/workspaces/sync",
+    );
     const projection = await applyWorkspaceProjection(data, rawBody);
     return internalDataResponse(projection);
   } catch (error) {

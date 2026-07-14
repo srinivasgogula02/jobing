@@ -38,17 +38,16 @@ async function readBoundedBody(request: Request) {
   return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8");
 }
 
-export async function readInternalJson<T>(request: Request, schema: z.ZodType<T>) {
+export async function readInternalJson<T>(request: Request, schema: z.ZodType<T>, signedPath: string) {
   const contentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
   if (contentType !== "application/json") {
     throw new InternalRouteError(415, "unsupported_media_type", "The internal request body must be JSON.");
   }
   const rawBody = await readBoundedBody(request);
 
-  const url = new URL(request.url);
   const signature = verifyInternalSignature({
     method: request.method,
-    path: url.pathname,
+    path: signedPath,
     rawBody,
     headers: request.headers,
   });

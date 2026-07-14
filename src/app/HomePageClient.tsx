@@ -20,7 +20,7 @@ const platforms = {
   },
   claude: {
     label: "Claude",
-    playbackId: process.env.NEXT_PUBLIC_MUX_CLAUDE_PLAYBACK_ID || "gwFR3X4A8SMd02YvcYkIS0100XiffLebF005DVgMjAPyof8",
+    playbackId: "owFFBz2hKX6GLXroqC9lK9v3E1VwXAe02g00ZQR02Cx00B8",
     steps: ["Open Claude Settings", "Choose Connectors", "Add the Jobing AI MCP URL"],
   },
 } as const;
@@ -93,7 +93,7 @@ export function HomePageClient() {
       </header>
 
       <section className={styles.hero}>
-        <div className={styles.badge} aria-label="Works with ChatGPT, Claude, and any MCP-compatible AI"><img src={platformLogos.chatgpt} alt="ChatGPT" /><img src={platformLogos.claude} alt="Claude" /><span>and any MCP-compatible AI</span></div>
+        <div className={styles.badge} aria-label="Connects to ChatGPT, Claude, and other supported AI apps"><img src={platformLogos.chatgpt} alt="ChatGPT" /><img src={platformLogos.claude} alt="Claude" /><span>Connects to the AI app you already use</span></div>
         <h1>Give your AI the tools<br className={styles.desktopBreak} /> to finish the work.</h1>
         <p className={styles.heroText}>Jobing AI is one connector that lets your AI publish websites, create custom forms, collect customer enquiries, and follow up by email. It does the work instead of only giving you instructions.</p>
         <div className={styles.heroConnector}><CopyConnector large /></div>
@@ -101,7 +101,7 @@ export function HomePageClient() {
       </section>
 
       <section id="connect" className={styles.connectSection}>
-        <div className={styles.sectionIntro}><p>Connect in under 2 minutes</p><h2>Watch the exact setup.</h2><span>Choose your AI app. The MCP URL is the same for both.</span></div>
+        <div className={styles.videoHeading}><h2>Connect Jobing AI to {current.label} in 2 minutes.</h2></div>
         <div className={styles.videoShell}>
           <div className={styles.videoTabs} role="tablist" aria-label="Connection guides">
             {(Object.keys(platforms) as Array<keyof typeof platforms>).map(key => <button key={key} role="tab" aria-selected={platform === key} onClick={() => setPlatform(key)}><img src={platformLogos[key]} alt="" />{platforms[key].label}{platform === key && <Check size={15} />}</button>)}

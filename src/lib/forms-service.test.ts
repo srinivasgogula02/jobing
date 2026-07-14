@@ -196,6 +196,22 @@ describe("Forms internal request signing", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("gives the AI a direct pricing URL when the free form limit is reached", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(workspaceResponse), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: { code: "form_limit_reached", message: "Internal plan detail." },
+      }), { status: 409 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createConnectorForm(actor, form, "operation-123")).rejects.toMatchObject({
+      code: "form_limit_reached",
+      message: expect.stringContaining("https://jobing.site/pricing?from=connector-limit"),
+      status: 409,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("rejects unsafe or incomplete service configuration before fetching", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

@@ -53,7 +53,7 @@ const workspaceProjectionResultSchema = z.object({
 });
 
 const publicUpstreamErrorMessages: Readonly<Record<string, string>> = {
-  form_limit_reached: "This workspace has reached its Forms plan limit.",
+  form_limit_reached: "You have reached the free Forms limit. Upgrade at https://jobing.site/pricing?from=connector-limit to publish more forms, then retry this request.",
   idempotency_conflict: "This operation ID was already used with different input.",
   idempotency_in_progress: "The same Forms operation is already in progress.",
   insufficient_scope: "This connector has not been granted the required Forms permission.",

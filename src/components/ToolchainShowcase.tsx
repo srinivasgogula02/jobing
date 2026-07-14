@@ -160,12 +160,12 @@ export function ToolchainShowcase() {
   return (
     <section id="use-cases" className={styles.section}>
       <div className={styles.intro}>
-        <p>Stop stitching tools together</p>
-        <h2>One conversation replaces the handoff between five apps.</h2>
+        <p>Before Jobing AI. After Jobing AI.</p>
+        <h2>Replace the tool stack with one sentence.</h2>
         <span>
-          A form tool gives you a form. A site builder gives you a site. Jobing
-          AI lets the AI you already use create the whole customer journey and
-          keep it working.
+          Normally you build the page in one app, the form in another, connect a
+          database, then add automation. Jobing AI lets you ask once and receive
+          the finished customer journey.
         </span>
       </div>
 
@@ -175,8 +175,8 @@ export function ToolchainShowcase() {
       >
         <div className={styles.usualSide}>
           <div className={styles.machineLabel}>
-            <span>The usual setup</span>
-            <b>Open. Build. Connect. Repeat.</b>
+            <span>Without Jobing AI</span>
+            <b>5 apps + manual handoffs</b>
           </div>
           <div className={styles.toolWindow} aria-hidden="true">
             <div className={styles.toolTrack}>
@@ -185,40 +185,42 @@ export function ToolchainShowcase() {
               ))}
             </div>
           </div>
-          <p>
-            Website builder <ArrowRight size={13} /> form builder{" "}
-            <ArrowRight size={13} /> database <ArrowRight size={13} />{" "}
-            automation
-          </p>
+          <div className={styles.manualFlow} aria-hidden="true">
+            <span>Build page</span><ArrowRight size={13} />
+            <span>Build form</span><ArrowRight size={13} />
+            <span>Connect data</span><ArrowRight size={13} />
+            <span>Test it</span>
+          </div>
+          <p className={styles.stackSummary}>Separate accounts, copied links, database setup, and more places for the flow to break.</p>
         </div>
 
         <div className={styles.connectorCore}>
           <span className={styles.corePulse} aria-hidden="true" />
           <Image src="/logo.png" alt="" width={54} height={54} />
-          <b>Jobing AI</b>
-          <span>one connector</span>
+          <b>Ask once</b>
+          <span>1 connector</span>
         </div>
 
         <div className={styles.outputSide}>
           <div className={styles.machineLabel}>
-            <span>What comes back</span>
-            <b>Finished work, not instructions.</b>
+            <span>With Jobing AI</span>
+            <b>1 prompt + finished work</b>
           </div>
           <div className={styles.outputCards}>
             <span>
               <Globe2 size={18} />
               <b>Live page</b>
-              <small>Published</small>
+              <small>Ready to share</small>
             </span>
             <span>
               <FormInput size={18} />
               <b>Custom form</b>
-              <small>On-brand</small>
+              <small>Matches the page</small>
             </span>
             <span>
               <Inbox size={18} />
               <b>Responses</b>
-              <small>Organized</small>
+              <small>Inbox ready</small>
             </span>
             <span className={styles.soon}>
               <Mail size={18} />

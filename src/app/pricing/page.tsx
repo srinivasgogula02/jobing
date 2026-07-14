@@ -8,13 +8,18 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Pricing | Jobing AI",
-  description: "Choose a Jobing AI plan for published pages, custom forms, customer responses, and AI connector actions.",
+  description: "Choose a Jobing AI plan for published web pages, custom forms, customer responses, and AI connector actions.",
   alternates: { canonical: "/pricing" },
 };
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "pending", "on_hold"]);
 
-export default async function PricingPage() {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
   const user = await currentUser();
   let currentProductId: string | null = null;
   let isActuallyPaid = false;
@@ -59,7 +64,7 @@ export default async function PricingPage() {
   return (
     <div className="min-h-screen bg-[#f7f8f4]">
       <PublicSiteHeader />
-      <Pricing currentProductId={currentProductId} />
+      <Pricing currentProductId={currentProductId} limitReached={from === "connector-limit"} />
       <footer className="border-t border-[#e1e4dc] bg-[#f7f8f4] px-4 py-8 text-center text-xs text-[#737a70]">Jobing AI · Secure checkout by Dodo Payments · <a href="/terms" className="underline">Terms</a> · <a href="/privacy" className="underline">Privacy</a></footer>
     </div>
   );

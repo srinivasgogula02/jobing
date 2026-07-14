@@ -34,7 +34,8 @@ export type AnalyticsEvent =
   | "connector_platform_selected"
   | "homepage_role_selected"
   | "setup_video_loaded"
-  | "dashboard_destination_clicked";
+  | "dashboard_destination_clicked"
+  | "pricing_plan_selected";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";

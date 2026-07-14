@@ -1,8 +1,10 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { publicPageUrl } from "@/lib/pages-runtime-url";
 
 const ID_REGEX = /^[a-zA-Z0-9-_]+$/;
+const PAGE_ID_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const MAX_ID_LENGTH = 64;
 const MAX_NOTE_LENGTH = 100_000;
 const MAX_PAGE_LENGTH = 500_000;
@@ -45,7 +47,9 @@ export async function createConnectedNote(userId: string, requestedId: string, c
 
 export async function deployConnectedPage(userId: string, requestedId: string, html: string) {
   const id = normalizeId(requestedId);
-  validateId(id, RESERVED_PAGE_IDS);
+  if (!PAGE_ID_REGEX.test(id) || RESERVED_PAGE_IDS.has(id)) {
+    throw new Error("Use 1-63 lowercase letters, numbers, or hyphens for the page ID.");
+  }
   if (!html || html.length > MAX_PAGE_LENGTH) {
     throw new Error("HTML must be between 1 and 500,000 characters.");
   }
@@ -64,7 +68,7 @@ export async function deployConnectedPage(userId: string, requestedId: string, h
   });
   if (error) throw new Error(`Could not deploy page: ${error.message}`);
 
-  return { id, url: `${siteUrl()}/pages/${id}` };
+  return { id, url: publicPageUrl(id) };
 }
 
 function siteUrl() {

@@ -72,13 +72,13 @@ describe("connected page deployment", () => {
       html_content: "<main>Hello</main>",
       user_id: "user_456",
     }));
-    expect(result).toEqual({ id: "launch-page", url: "https://jobing.site/pages/launch-page" });
+    expect(result).toEqual({ id: "launch-page", url: "https://jobing-pages.vercel.app/launch-page" });
   });
 
   it.each(["new", "edit", "admin", "api", "settings", "tools"])(
     "rejects reserved page ID %s",
     async (id) => {
-      await expect(deployConnectedPage("user_456", id, "<p>Page</p>")).rejects.toThrow("Use 1-64 letters");
+      await expect(deployConnectedPage("user_456", id, "<p>Page</p>")).rejects.toThrow("Use 1-63 lowercase letters");
       expect(db.from).not.toHaveBeenCalled();
     },
   );

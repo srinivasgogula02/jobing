@@ -162,3 +162,43 @@ jobs:
 
       - name: Build Forms
         run: npm run build
+
+  pages-runtime:
+    name: Pages Runtime tests, lint, types, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/pages-runtime
+    env:
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-anon-key
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/pages-runtime/package-lock.json
+
+      - name: Use the repository npm version
+        run: npm install --global npm@11.6.2
+
+      - name: Install locked Pages Runtime dependencies
+        run: npm ci
+
+      - name: Run Pages Runtime tests
+        run: npm test
+
+      - name: Lint Pages Runtime
+        run: npm run lint
+
+      - name: Check Pages Runtime TypeScript
+        run: npm run typecheck
+
+      - name: Build Pages Runtime
+        run: npm run build

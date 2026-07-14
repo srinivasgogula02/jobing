@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import clsx from "clsx";
+import { publicPageAddress, publicPageUrl } from "@/lib/pages-runtime-url";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -113,8 +114,6 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
   const [idError, setIdError] = useState("");
   const [checkingId, setCheckingId] = useState(false);
 
-  const [hostname, setHostname] = useState("jobing.site");
-  
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userPages, setUserPages] = useState<{ id: string; updated_at: string }[]>([]);
@@ -122,10 +121,6 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
 
   // Guest warning modal
   const [showGuestWarning, setShowGuestWarning] = useState(false);
-
-  useEffect(() => {
-    setHostname(window.location.host);
-  }, []);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -200,7 +195,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
   };
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/pages/${currentId}`;
+    const url = publicPageUrl(currentId);
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
@@ -221,7 +216,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
 
   const handleChangeId = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanId = newId.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
+    const cleanId = newId.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
 
     if (!cleanId) {
       setIdError("ID cannot be empty.");
@@ -270,7 +265,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
       setTimeout(() => setDeployStatus("idle"), 2500);
       
       // Open the deployed page in a new tab
-      window.open(`/pages/${currentId}`, '_blank', 'noopener,noreferrer');
+      window.open(publicPageUrl(currentId), '_blank', 'noopener,noreferrer');
       
       if (isNew) {
         if (isSignedIn) {
@@ -414,7 +409,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
                   <form onSubmit={handleChangeId} className="flex items-center gap-1 min-w-0 flex-1">
                     <div className="flex bg-[#1a1a1a] rounded ring-1 ring-[#333] focus-within:ring-[#C1FF00] transition-shadow overflow-hidden flex-1 sm:flex-none">
                       <span className="px-2 py-1 text-xs text-neutral-500 bg-[#222] border-r border-[#333] select-none flex items-center shrink-0">
-                        {hostname}/pages/
+                        {publicPageAddress("").replace(/\/$/, "")}/
                       </span>
                       <input
                         type="text"
@@ -453,8 +448,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
                     onClick={() => setIsEditingId(true)}
                     title="Edit custom URL"
                   >
-                    <span className="text-[#a3a3a3] text-xs font-medium shrink-0 truncate">jobing.site/pages/</span>
-                    <span className="text-[#C1FF00] text-xs font-bold truncate">{currentId}</span>
+                    <span className="text-[#C1FF00] text-xs font-bold truncate">{publicPageAddress(currentId)}</span>
                     <Edit size={12} className="text-neutral-500 group-hover:text-[#C1FF00] transition-colors shrink-0" />
                   </div>
                 )}

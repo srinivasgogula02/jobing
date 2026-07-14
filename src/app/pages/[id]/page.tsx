@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 import { getPage } from "@/app/actions/pages";
-import { notFound } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 import HtmlViewerClient from "../HtmlViewerClient";
-import DeployedPageView from "./DeployedPageView";
+import { publicPageUrl } from "@/lib/pages-runtime-url";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,5 +38,5 @@ export default async function DeployedPage({ params }: PageProps) {
     return <HtmlViewerClient id={decodedId} initialHtml="" isNew={true} />;
   }
 
-  return <DeployedPageView id={decodedId} htmlContent={page.html_content} />;
+  permanentRedirect(publicPageUrl(decodedId));
 }

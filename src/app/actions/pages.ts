@@ -3,7 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
 
-const ID_REGEX = /^[a-zA-Z0-9-_]+$/;
+const ID_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 const MAX_ID_LENGTH = 64;
 const MAX_CONTENT_LENGTH = 500000; // 500KB max per page
 
@@ -44,7 +44,7 @@ export async function getPage(id: string) {
 export async function savePage(id: string, htmlContent: string) {
   id = (id || "").toLowerCase();
   if (!isValidId(id)) {
-    return { success: false, error: "Invalid ID. Use only letters, numbers, hyphens, and underscores (max 64 chars)." };
+    return { success: false, error: "Invalid ID. Use 1-63 lowercase letters, numbers, or hyphens. It must start and end with a letter or number." };
   }
 
   if (typeof htmlContent !== "string" || htmlContent.length === 0) {

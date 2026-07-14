@@ -34,6 +34,7 @@ yarn-error.log*
 .env*
 !.env.example
 !apps/forms/.env.example
+!apps/pages-runtime/.env.example
 
 # separately deployed Forms app
 /apps/forms/node_modules/
@@ -42,6 +43,14 @@ yarn-error.log*
 /apps/forms/coverage/
 /apps/forms/*.tsbuildinfo
 /apps/forms/next-env.d.ts
+
+# separately deployed Pages Runtime
+/apps/pages-runtime/node_modules/
+/apps/pages-runtime/.next/
+/apps/pages-runtime/out/
+/apps/pages-runtime/coverage/
+/apps/pages-runtime/*.tsbuildinfo
+/apps/pages-runtime/next-env.d.ts
 
 # vercel
 .vercel

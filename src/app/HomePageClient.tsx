@@ -97,8 +97,7 @@ export function HomePageClient() {
         <div className={styles.badge} aria-label="Connects to ChatGPT, Claude, and other supported AI apps"><img src={platformLogos.chatgpt} alt="ChatGPT" /><img src={platformLogos.claude} alt="Claude" /><span>Connects to the AI app you already use</span></div>
         <h1>Give your AI the tools<br className={styles.desktopBreak} /> to finish the work.</h1>
         <p className={styles.heroText}>Jobing AI is one connector that lets your AI publish websites, create custom forms, collect customer enquiries, and follow up by email. It does the work instead of only giving you instructions.</p>
-        <div className={styles.heroConnector}><CopyConnector large /></div>
-        <div className={styles.handNote} aria-hidden="true"><span>copy this first</span><svg viewBox="0 0 90 42"><path d="M4 5 C35 3, 53 10, 74 31 M63 27 L75 32 L71 20" /></svg></div>
+        <div className={styles.heroConnector}><CopyConnector large /><div className={styles.handNote} aria-hidden="true"><span>copy this first</span><svg viewBox="0 0 90 42"><path d="M4 35 C30 34, 50 25, 73 8 M61 9 L75 7 L70 20" /></svg></div></div>
         <p className={styles.heroHint}>Copy this URL into your AI app. Sign in once. Then ask for what you need.</p>
       </section>
 
@@ -108,7 +107,7 @@ export function HomePageClient() {
         </div>
         <div className={styles.videoShell}>
           <div className={styles.videoFrameFull}>
-            {current.playbackId ? <iframe key={current.playbackId} src={`https://player.mux.com/${current.playbackId}`} title={`How to connect Jobing AI to ${current.label}`} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : <div className={styles.videoPlaceholder}><span><Play fill="currentColor" /></span><strong>{current.label} connection video</strong><p>Add the Mux playback ID to show your screen recording here.</p></div>}
+            {current.playbackId ? <iframe key={current.playbackId} src={`https://player.mux.com/${current.playbackId}?metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`} title={`How to connect Jobing AI to ${current.label}`} loading="eager" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : <div className={styles.videoPlaceholder}><span><Play fill="currentColor" /></span><strong>{current.label} connection video</strong><p>Add the Mux playback ID to show your screen recording here.</p></div>}
           </div>
           <ol className={styles.setupSteps}>{current.steps.map((step, index) => <li key={step}><span>{index + 1}</span>{step}</li>)}</ol>
         </div>
@@ -117,10 +116,10 @@ export function HomePageClient() {
       <section className={styles.afterConnect}>
         <div><p>After connecting</p><h2>You do not open another builder. You just ask.</h2></div>
         <div className={styles.chatDemo}>
-          <div className={styles.chatTop}><img src={platformLogos.chatgpt} alt="" /><div><b>ChatGPT</b><span>Jobing AI connected</span></div><i /></div>
+          <div className={styles.chatTop}><img src={platformLogos.claude} alt="" /><div><b>Claude</b><span>Jobing AI connected</span></div><i /></div>
           <div className={styles.chatBody}>
             <div className={styles.userMessage}><span>You</span><p>Create a website for my interior design studio. Add a consultation form and publish it.</p></div>
-            <div className={styles.aiMessage}><img src={platformLogos.chatgpt} alt="" /><div><p>I’ll create the page, connect the form, and publish everything for you.</p><div className={styles.toolProgress}><span><Image src="/logo.png" alt="" width={22} height={22} /><b>Jobing AI</b> is working</span><ul><li><Check size={14} />Website published</li><li><Check size={14} />Consultation form connected</li><li><Check size={14} />Enquiry inbox ready</li></ul></div><a href="#use-cases">Your website is live <ChevronRight size={16} /></a></div></div>
+            <div className={styles.aiMessage}><img src={platformLogos.claude} alt="" /><div><p>I’ll create the page, connect the form, and publish everything for you.</p><div className={styles.toolProgress}><span><Image src="/logo.png" alt="" width={22} height={22} /><b>Jobing AI</b> is working</span><ul><li><Check size={14} />Website published</li><li><Check size={14} />Consultation form connected</li><li><Check size={14} />Enquiry inbox ready</li></ul></div><a href="#use-cases">Your website is live <ChevronRight size={16} /></a></div></div>
           </div>
           <div className={styles.chatComposer}>Ask anything <span>↑</span></div>
           <div className={styles.handResult} aria-hidden="true"><svg viewBox="0 0 74 38"><path d="M70 5 C43 8, 30 16, 10 31 M20 20 L9 32 L25 32" /></svg><span>one prompt,<br />finished work</span></div>

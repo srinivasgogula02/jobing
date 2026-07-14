@@ -11,14 +11,20 @@
 
 import crypto from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { oauthClientDisplayIdentity } from "@/lib/oauth-client-metadata";
+import {
+    OAUTH_SCOPES,
+    effectiveOAuthScopes,
+    serializeOAuthScopes,
+    type OAuthScope,
+} from "@/lib/oauth-scopes";
 
 /* ------------------------------- Config ----------------------------------- */
 
-export const SUPPORTED_SCOPES = ["mcp"] as const;
-export const DEFAULT_SCOPE = "mcp";
+export const SUPPORTED_SCOPES = OAUTH_SCOPES;
+export const DEFAULT_SCOPE = serializeOAuthScopes(OAUTH_SCOPES);
 
 const ACCESS_TTL_SECONDS = 60 * 60; // 1 hour
-const REFRESH_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 const CODE_TTL_SECONDS = 60 * 5; // 5 minutes
 
 // Anthropic's hosted Claude surfaces all use this single redirect URI.
@@ -31,39 +37,68 @@ export function sha256(value: string): string {
     return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+export function pkceS256Challenge(verifier: string): string {
+    return crypto.createHash("sha256").update(verifier).digest("base64url");
+}
+
+export function isValidPkceS256Challenge(challenge: string): boolean {
+    return /^[A-Za-z0-9_-]{43}$/.test(challenge);
+}
+
+export function isValidPkceVerifier(verifier: string): boolean {
+    return /^[A-Za-z0-9._~-]{43,128}$/.test(verifier);
+}
+
 function randomToken(prefix: string, bytes = 32): string {
     return `${prefix}${crypto.randomBytes(bytes).toString("base64url")}`;
 }
 
 /** Verify a PKCE code_verifier against a stored S256 challenge. */
 export function verifyPkceS256(verifier: string, challenge: string): boolean {
-    const computed = crypto.createHash("sha256").update(verifier).digest("base64url");
+    const computed = pkceS256Challenge(verifier);
     // Constant-time compare on equal-length buffers.
     const a = Buffer.from(computed);
     const b = Buffer.from(challenge);
     return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+function configuredIssuer(): string {
+    const value = process.env.OAUTH_ISSUER;
+    if (!value) {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error("OAUTH_ISSUER is required outside local development");
+        }
+        return "http://localhost:3000";
+    }
+    const url = new URL(value);
+    const isLoopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && isLoopback)) {
+        throw new Error("OAUTH_ISSUER must use HTTPS (HTTP is allowed only for local development)");
+    }
+    if (url.username || url.password || (url.pathname !== "/" && url.pathname !== "") || url.search || url.hash) {
+        throw new Error("OAUTH_ISSUER must be an origin without credentials, a path, query, or fragment");
+    }
+    return url.origin;
+}
+
 /**
- * Public origin of this deployment, derived from the request so issuer/resource
- * URLs are correct on localhost, Vercel previews, and prod. Honors the proxy
- * forwarding headers Vercel sets.
+ * Return the canonical OAuth issuer. Production discovery must never reflect a
+ * caller-controlled Host or X-Forwarded-Host header. Local development uses
+ * the fixed http://localhost:3000 default unless OAUTH_ISSUER is set.
  */
 export function getBaseUrl(req: Request): string {
-    const h = req.headers;
-    const host = h.get("x-forwarded-host") ?? h.get("host");
-    if (host) {
-        const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-        return `${proto}://${host}`;
-    }
-    return new URL(req.url).origin;
+    void req;
+    return configuredIssuer();
+}
+
+export function getMcpResourceUrl(req?: Request): string {
+    return `${req ? getBaseUrl(req) : configuredIssuer()}/mcp`;
 }
 
 /* --------------------------- Discovery metadata --------------------------- */
 
-// `resource` MUST match the MCP URL exactly as the user types it in Claude,
-// including the /mcp path. We build everything from the request origin so
-// it is correct on localhost, preview, and prod without an env var.
+// `resource` MUST match the MCP URL exactly as the user types it, including
+// `/mcp`. Every surface uses the same configured canonical issuer.
 
 export function protectedResourceMetadata(baseUrl: string) {
     return {
@@ -95,6 +130,7 @@ export function authorizationServerMetadata(baseUrl: string) {
 
 export interface RegisteredClient {
     client_id: string;
+    issuer: string;
     redirect_uris: string[];
     client_name: string | null;
     token_endpoint_auth_method: string;
@@ -112,16 +148,18 @@ export async function registerClient(input: {
 }): Promise<RegisteredClient> {
     const sb = getSupabaseAdmin();
     const client_id = randomToken("jbcl_", 16);
+    const issuer = configuredIssuer();
 
     const { data, error } = await sb
         .from("oauth_clients")
         .insert({
             client_id,
+            issuer,
             redirect_uris: input.redirect_uris,
             client_name: input.client_name ?? null,
             token_endpoint_auth_method: "none",
         })
-        .select("client_id, redirect_uris, client_name, token_endpoint_auth_method, created_at")
+        .select("client_id, issuer, redirect_uris, client_name, token_endpoint_auth_method, created_at")
         .single();
 
     if (error || !data) {
@@ -133,12 +171,15 @@ export async function registerClient(input: {
 export async function getClient(clientId: string): Promise<RegisteredClient | null> {
     if (!clientId) return null;
     const sb = getSupabaseAdmin();
+    const issuer = configuredIssuer();
     const { data } = await sb
         .from("oauth_clients")
-        .select("client_id, redirect_uris, client_name, token_endpoint_auth_method, created_at")
+        .select("client_id, issuer, redirect_uris, client_name, token_endpoint_auth_method, created_at")
         .eq("client_id", clientId)
+        .eq("issuer", issuer)
         .maybeSingle();
-    return (data as RegisteredClient) ?? null;
+    if (!data || data.issuer !== issuer) return null;
+    return data as RegisteredClient;
 }
 
 /* --------------------------- Authorization codes -------------------------- */
@@ -149,6 +190,7 @@ export async function createAuthCode(input: {
     userId: string;
     redirectUri: string;
     scope: string;
+    resource: string;
     codeChallenge: string;
     codeChallengeMethod: string;
 }): Promise<string> {
@@ -162,42 +204,13 @@ export async function createAuthCode(input: {
         user_id: input.userId,
         redirect_uri: input.redirectUri,
         scope: input.scope,
+        resource: input.resource,
         code_challenge: input.codeChallenge,
         code_challenge_method: input.codeChallengeMethod,
         expires_at: expiresAt,
     });
     if (error) throw new Error(`Failed to create auth code: ${error.message}`);
     return code;
-}
-
-interface AuthCodeRow {
-    client_id: string;
-    user_id: string;
-    redirect_uri: string;
-    scope: string;
-    code_challenge: string;
-    code_challenge_method: string;
-    expires_at: string;
-}
-
-/** Atomically consume an auth code (delete-then-validate). Returns null if invalid/expired. */
-export async function consumeAuthCode(code: string): Promise<AuthCodeRow | null> {
-    if (!code) return null;
-    const sb = getSupabaseAdmin();
-    const codeHash = sha256(code);
-
-    // Delete and return the row in one round-trip so a code can't be replayed.
-    const { data } = await sb
-        .from("oauth_auth_codes")
-        .delete()
-        .eq("code_hash", codeHash)
-        .select("client_id, user_id, redirect_uri, scope, code_challenge, code_challenge_method, expires_at")
-        .maybeSingle();
-
-    if (!data) return null;
-    const row = data as AuthCodeRow;
-    if (new Date(row.expires_at).getTime() < Date.now()) return null;
-    return row;
 }
 
 /* -------------------------------- Tokens ---------------------------------- */
@@ -207,34 +220,77 @@ export interface IssuedTokens {
     refresh_token: string;
     expires_in: number;
     scope: string;
+    grant_id: string;
 }
 
-export async function issueTokens(input: {
-    clientId: string;
-    userId: string;
+interface TokenRpcResult {
     scope: string;
-}): Promise<IssuedTokens> {
+    grant_id: string;
+}
+
+interface AccessTokenRpcResult {
+    user_id: string;
+    client_id: string;
+    scope: string;
+    grant_id: string;
+    access_expires_at: string;
+}
+
+function tokenRpcResult(value: unknown): TokenRpcResult | null {
+    if (!value || typeof value !== "object") return null;
+    const row = value as Record<string, unknown>;
+    if (typeof row.scope !== "string" || typeof row.grant_id !== "string") return null;
+    return { scope: row.scope, grant_id: row.grant_id };
+}
+
+function accessTokenRpcResult(value: unknown): AccessTokenRpcResult | null {
+    if (!value || typeof value !== "object") return null;
+    const row = value as Record<string, unknown>;
+    if (
+        typeof row.user_id !== "string"
+        || typeof row.client_id !== "string"
+        || typeof row.scope !== "string"
+        || typeof row.grant_id !== "string"
+        || typeof row.access_expires_at !== "string"
+    ) return null;
+    return row as unknown as AccessTokenRpcResult;
+}
+
+/**
+ * Validate and consume an authorization code, create its grant, and persist
+ * the first token pair in one database transaction.
+ */
+export async function exchangeAuthorizationCode(input: {
+    code: string;
+    clientId: string;
+    redirectUri: string;
+    codeVerifier: string;
+    resource: string;
+}): Promise<IssuedTokens | null> {
+    if (!input.code || !input.clientId || !input.redirectUri || !input.codeVerifier) return null;
     const sb = getSupabaseAdmin();
     const accessToken = randomToken("jbat_");
     const refreshToken = randomToken("jbrt_");
-    const now = Date.now();
-
-    const { error } = await sb.from("oauth_tokens").insert({
-        access_token_hash: sha256(accessToken),
-        refresh_token_hash: sha256(refreshToken),
-        client_id: input.clientId,
-        user_id: input.userId,
-        scope: input.scope,
-        access_expires_at: new Date(now + ACCESS_TTL_SECONDS * 1000).toISOString(),
-        refresh_expires_at: new Date(now + REFRESH_TTL_SECONDS * 1000).toISOString(),
+    const { data, error } = await sb.rpc("oauth_exchange_authorization_code", {
+        p_code_hash: sha256(input.code),
+        p_client_id: input.clientId,
+        p_redirect_uri: input.redirectUri,
+        p_code_challenge: pkceS256Challenge(input.codeVerifier),
+        p_resource: input.resource,
+        p_access_token_hash: sha256(accessToken),
+        p_refresh_token_hash: sha256(refreshToken),
     });
-    if (error) throw new Error(`Failed to issue tokens: ${error.message}`);
+    if (error) throw new Error(`Failed to exchange authorization code: ${error.message}`);
+
+    const result = tokenRpcResult(data);
+    if (!result) return null;
 
     return {
         access_token: accessToken,
         refresh_token: refreshToken,
         expires_in: ACCESS_TTL_SECONDS,
-        scope: input.scope,
+        scope: serializeOAuthScopes(effectiveOAuthScopes(result.scope)),
+        grant_id: result.grant_id,
     };
 }
 
@@ -247,24 +303,32 @@ export async function issueTokens(input: {
 export async function rotateRefreshToken(input: {
     refreshToken: string;
     clientId: string;
+    resource: string;
+    requestedScopes?: readonly OAuthScope[];
 }): Promise<IssuedTokens | null> {
+    if (!input.refreshToken || !input.clientId) return null;
     const sb = getSupabaseAdmin();
-    const refreshHash = sha256(input.refreshToken);
+    const accessToken = randomToken("jbat_");
+    const refreshToken = randomToken("jbrt_");
+    const { data, error } = await sb.rpc("oauth_rotate_refresh_token", {
+        p_refresh_token_hash: sha256(input.refreshToken),
+        p_client_id: input.clientId,
+        p_resource: input.resource,
+        p_requested_scope: input.requestedScopes ? serializeOAuthScopes(input.requestedScopes) : null,
+        p_new_access_token_hash: sha256(accessToken),
+        p_new_refresh_token_hash: sha256(refreshToken),
+    });
+    if (error) throw new Error(`Failed to rotate refresh token: ${error.message}`);
 
-    const { data } = await sb
-        .from("oauth_tokens")
-        .select("id, client_id, user_id, scope, refresh_expires_at, is_revoked")
-        .eq("refresh_token_hash", refreshHash)
-        .maybeSingle();
-
-    if (!data || data.is_revoked) return null;
-    if (data.client_id !== input.clientId) return null;
-    if (!data.refresh_expires_at || new Date(data.refresh_expires_at).getTime() < Date.now()) return null;
-
-    // Revoke the old row first (rotation), then mint a new pair.
-    await sb.from("oauth_tokens").update({ is_revoked: true }).eq("id", data.id);
-
-    return issueTokens({ clientId: data.client_id, userId: data.user_id, scope: data.scope });
+    const result = tokenRpcResult(data);
+    if (!result) return null;
+    return {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_in: ACCESS_TTL_SECONDS,
+        scope: serializeOAuthScopes(effectiveOAuthScopes(result.scope)),
+        grant_id: result.grant_id,
+    };
 }
 
 /**
@@ -280,14 +344,122 @@ export async function validateAccessTokenInfo(token: string | null | undefined) 
     if (!token || !token.startsWith("jbat_")) return null;
     const sb = getSupabaseAdmin();
 
-    const { data } = await sb
-        .from("oauth_tokens")
-        .select("user_id, client_id, scope, access_expires_at")
-        .eq("access_token_hash", sha256(token))
-        .eq("is_revoked", false)
-        .maybeSingle();
+    const resource = getMcpResourceUrl();
+    const { data, error } = await sb.rpc("oauth_validate_access_token", {
+        p_access_token_hash: sha256(token),
+        p_resource: resource,
+        p_issuer: configuredIssuer(),
+    });
+    if (error) {
+        console.error("[oauth/access-token] database check failed", { code: error.code });
+        return null;
+    }
 
-    if (!data) return null;
-    if (new Date(data.access_expires_at).getTime() < Date.now()) return null;
-    return { userId: data.user_id as string, clientId: data.client_id as string, scope: data.scope as string, expiresAt: new Date(data.access_expires_at).getTime() / 1000 };
+    const result = accessTokenRpcResult(data);
+    if (!result) return null;
+    if (new Date(result.access_expires_at).getTime() < Date.now()) return null;
+    const scope = serializeOAuthScopes(effectiveOAuthScopes(result.scope));
+    if (!scope) return null;
+    return {
+        userId: result.user_id,
+        clientId: result.client_id,
+        grantId: result.grant_id,
+        scope,
+        rawScope: result.scope,
+        expiresAt: new Date(result.access_expires_at).getTime() / 1000,
+    };
+}
+
+export interface OAuthGrantSummary {
+    id: string;
+    clientId: string;
+    clientOrigin: string;
+    clientName: string | null;
+    scopes: OAuthScope[];
+    createdAt: string;
+    lastUsedAt: string | null;
+}
+
+/** List active connector grants owned by one Clerk user. */
+export async function listOAuthGrants(userId: string): Promise<OAuthGrantSummary[]> {
+    if (!userId) return [];
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb
+        .from("oauth_grants")
+        .select("id, client_id, scope, created_at, last_used_at, oauth_clients!inner(client_name, redirect_uris, issuer)")
+        .eq("user_id", userId)
+        .eq("oauth_clients.issuer", configuredIssuer())
+        .is("revoked_at", null)
+        .order("created_at", { ascending: false });
+    if (error) throw new Error(`Failed to list connector grants: ${error.message}`);
+
+    return (data ?? []).map((value) => {
+        const row = value as unknown as Record<string, unknown>;
+        const relation = Array.isArray(row.oauth_clients) ? row.oauth_clients[0] : row.oauth_clients;
+        const client = relation && typeof relation === "object" ? relation as Record<string, unknown> : null;
+        const identity = oauthClientDisplayIdentity({
+            client_name: typeof client?.client_name === "string" ? client.client_name : null,
+            redirect_uris: Array.isArray(client?.redirect_uris)
+                ? client.redirect_uris.filter((uri): uri is string => typeof uri === "string")
+                : [],
+        });
+        return {
+            id: String(row.id),
+            clientId: String(row.client_id),
+            clientOrigin: identity.redirectOrigin,
+            clientName: identity.unverifiedName,
+            scopes: effectiveOAuthScopes(typeof row.scope === "string" ? row.scope : ""),
+            createdAt: String(row.created_at),
+            lastUsedAt: typeof row.last_used_at === "string" ? row.last_used_at : null,
+        };
+    });
+}
+
+/** Revoke one complete access/refresh token family after checking ownership. */
+export async function revokeOAuthGrant(userId: string, grantId: string): Promise<boolean> {
+    if (!userId || !grantId) return false;
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb.rpc("oauth_revoke_grant", {
+        p_grant_id: grantId,
+        p_user_id: userId,
+        p_reason: "user_revoked",
+    });
+    if (error) throw new Error(`Failed to revoke connector grant: ${error.message}`);
+    return data === true;
+}
+
+/** Used by account-deletion handling so OAuth credentials do not outlive users. */
+export async function revokeAllOAuthGrants(userId: string): Promise<number> {
+    if (!userId) return 0;
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb.rpc("oauth_revoke_all_user_grants", { p_user_id: userId });
+    if (error) throw new Error(`Failed to revoke user connector grants: ${error.message}`);
+    return typeof data === "number" ? data : Number(data) || 0;
+}
+
+/**
+ * Consume one request from a shared Supabase-backed grant bucket. This is the
+ * authoritative connector limiter; process-local IP limiting remains only a
+ * coarse pre-authentication abuse guard.
+ */
+export async function consumeConnectorRateLimit(
+    grantId: string,
+    limit = 120,
+    windowSeconds = 60,
+): Promise<boolean> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(grantId)) {
+        return false;
+    }
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb.rpc("oauth_consume_rate_limit", {
+        p_grant_id: grantId,
+        p_bucket_key: "mcp",
+        p_limit: limit,
+        p_window_seconds: windowSeconds,
+    });
+    if (error) {
+        console.error("[oauth/rate-limit] database check failed", { code: error.code });
+        return false;
+    }
+    return data === true;
 }

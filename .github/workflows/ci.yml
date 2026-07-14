@@ -14,9 +14,38 @@ concurrency:
 
 jobs:
   test:
-    name: Tests and types
+    name: Main migrations, tests, lint, types, and build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jobing_main_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d jobing_main_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      CLERK_AUTHORIZED_PARTIES: https://jobing.site,https://forms.jobing.site
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      NEXT_PUBLIC_SITE_URL: https://jobing.site
+      OAUTH_ISSUER: https://jobing.site
+      FORMS_SERVICE_URL: https://forms.jobing.site
+      FORMS_INTERNAL_KEY_ID: ci-phase1
+      FORMS_INTERNAL_SECRET: ci-forms-secret-with-at-least-thirty-two-bytes
+      CRON_SECRET: ci-cron-secret-with-at-least-thirty-two-bytes
+      SUPABASE_MIGRATION_URL: postgresql://postgres:postgres@localhost:5432/jobing_main_ci
 
     steps:
       - name: Check out repository
@@ -27,6 +56,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Use the repository npm version
         run: npm install --global npm@11.6.2
@@ -36,8 +66,98 @@ jobs:
         # Install the committed tree without platform-specific peer re-resolution.
         run: npm ci --legacy-peer-deps
 
+      - name: Rehearse main Supabase migrations
+        run: |
+          psql "$SUPABASE_MIGRATION_URL" --no-psqlrc --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/phase1_baseline.sql \
+            --file=connector_migration.sql
+          npm run db:migrate:supabase:phase1
+          npm run db:migrate:supabase:phase1
+          psql "$SUPABASE_MIGRATION_URL" --no-psqlrc --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/phase1_verify.sql
+
       - name: Run tests
         run: npm run test:ci
 
       - name: Check TypeScript
         run: npm run typecheck
+
+      - name: Lint Phase 1 surfaces
+        run: npm run lint:phase1
+
+      - name: Build main application
+        run: npm run build
+
+  forms:
+    name: Forms tests, lint, types, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/forms
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jobing_forms_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d jobing_forms_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # A syntactically valid, non-production Clerk key lets Next compile the
+      # provider boundary. CI never receives production application secrets.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
+      NEXT_PUBLIC_CLERK_IS_SATELLITE: "true"
+      NEXT_PUBLIC_CLERK_DOMAIN: forms.jobing.site
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: https://jobing.site/sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: https://jobing.site/sign-up
+      NEXT_PUBLIC_JOBING_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_FORMS_SITE_URL: http://localhost:3001
+      CLERK_AUTHORIZED_PARTIES: http://localhost:3000,http://localhost:3001
+      DATABASE_MIGRATION_URL: postgresql://postgres:postgres@localhost:5432/jobing_forms_ci
+      DATABASE_URL: postgresql://jobing_forms_ci_runtime:ci-runtime-password@localhost:5432/jobing_forms_ci
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/forms/package-lock.json
+
+      - name: Use the repository npm version
+        run: npm install --global npm@11.6.2
+
+      - name: Install locked Forms dependencies
+        run: npm ci
+
+      - name: Apply and verify Forms migrations
+        run: |
+          npm run db:migrate
+          npm run db:migrate
+          psql "$DATABASE_MIGRATION_URL" --set=ON_ERROR_STOP=1 \
+            --command="create role jobing_forms_ci_runtime login password 'ci-runtime-password' nosuperuser nocreatedb nocreaterole noreplication nobypassrls"
+          psql "$DATABASE_MIGRATION_URL" --set=ON_ERROR_STOP=1 \
+            --command="grant jobing_forms_control, jobing_forms_sync to jobing_forms_ci_runtime"
+          npm run db:verify
+
+      - name: Run Forms tests
+        run: npm run test:ci
+
+      - name: Lint Forms
+        run: npm run lint
+
+      - name: Check Forms TypeScript
+        run: npm run typecheck
+
+      - name: Build Forms
+        run: npm run build

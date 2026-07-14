@@ -20,6 +20,7 @@ beforeEach(() => {
   mocks.rateLimit.mockReturnValue(true);
   mocks.registerClient.mockResolvedValue({
     client_id: "jbcl_test",
+    issuer: "https://jobing.site",
     redirect_uris: ["https://chatgpt.com/callback"],
     client_name: "ChatGPT",
     token_endpoint_auth_method: "none",
@@ -35,18 +36,34 @@ describe("OAuth dynamic client registration", () => {
     expect(mocks.registerClient).not.toHaveBeenCalled();
   });
 
-  it("allows HTTPS and native loopback redirects while removing duplicates and unsafe entries", async () => {
+  it("rejects the complete registration when any redirect is unsafe", async () => {
+    const response = await POST(registrationRequest({
+      redirect_uris: [
+        "https://chatgpt.com/callback",
+        "javascript:alert(1)",
+      ],
+    }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: "invalid_redirect_uri" });
+    expect(mocks.registerClient).not.toHaveBeenCalled();
+  });
+
+  it("allows HTTPS and native loopback redirects while removing exact duplicates", async () => {
     const response = await POST(registrationRequest({
       redirect_uris: [
         "https://chatgpt.com/callback",
         "https://chatgpt.com/callback",
         "http://127.0.0.1:54321/callback",
-        "javascript:alert(1)",
       ],
       client_name: "  ChatGPT  ",
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
     }));
 
     expect(response.status).toBe(201);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expect(mocks.registerClient).toHaveBeenCalledWith({
       redirect_uris: ["https://chatgpt.com/callback", "http://127.0.0.1:54321/callback"],
       client_name: "ChatGPT",
@@ -59,12 +76,64 @@ describe("OAuth dynamic client registration", () => {
     });
   });
 
+  it("rejects redirects with fragments or embedded credentials", async () => {
+    for (const redirectUri of [
+      "https://app.example/callback#fragment",
+      "https://official.example@evil.example/callback",
+    ]) {
+      const response = await POST(registrationRequest({ redirect_uris: [redirectUri] }));
+      expect(await response.json()).toMatchObject({ error: "invalid_redirect_uri" });
+    }
+    expect(mocks.registerClient).not.toHaveBeenCalled();
+  });
+
+  it("rejects client authentication and OAuth flows this public server does not support", async () => {
+    const unsupportedRequests = [
+      { token_endpoint_auth_method: "client_secret_post" },
+      { grant_types: ["implicit"] },
+      { response_types: ["token"] },
+    ];
+
+    for (const metadata of unsupportedRequests) {
+      const response = await POST(registrationRequest({
+        redirect_uris: ["https://app.example/callback"],
+        ...metadata,
+      }));
+      expect(await response.json()).toMatchObject({ error: "invalid_client_metadata" });
+    }
+    expect(mocks.registerClient).not.toHaveBeenCalled();
+  });
+
+  it("stores only a display-safe version of the unverified client name", async () => {
+    await POST(registrationRequest({
+      redirect_uris: ["https://chatgpt.com.evil.example/callback"],
+      client_name: " \u202e<ChatGPT>\u0000 ",
+    }));
+
+    expect(mocks.registerClient).toHaveBeenCalledWith({
+      redirect_uris: ["https://chatgpt.com.evil.example/callback"],
+      client_name: "ChatGPT",
+    });
+  });
+
+  it("bounds registration request bodies", async () => {
+    const response = await POST(registrationRequest({
+      redirect_uris: ["https://app.example/callback"],
+      padding: "x".repeat(17_000),
+    }));
+    expect(await response.json()).toMatchObject({
+      error: "invalid_client_metadata",
+      error_description: "Registration request body is too large",
+    });
+    expect(mocks.registerClient).not.toHaveBeenCalled();
+  });
+
   it("returns a controlled error when registration storage fails", async () => {
     mocks.registerClient.mockRejectedValue(new Error("database secret details"));
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const response = await POST(registrationRequest({ redirect_uris: ["https://chatgpt.com/callback"] }));
     expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ error: "server_error" });
+    expect(await response.json()).toMatchObject({ error: "server_error" });
     consoleError.mockRestore();
   });
 

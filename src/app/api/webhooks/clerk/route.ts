@@ -1,8 +1,8 @@
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { WebhookEvent, clerkClient } from '@clerk/nextjs/server'
-import { supabase } from '@/lib/supabase'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { enqueueAndDeliverUserDeletion } from '@/lib/forms-projection-outbox'
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -26,12 +26,6 @@ export async function POST(req: Request) {
 
     // Get the body
     const body = await req.text()
-    let payload: any;
-    try {
-        payload = JSON.parse(body);
-    } catch (e) {
-        return new Response('Error parsing JSON body', { status: 400 });
-    }
 
     // Create a new Svix instance with your secret.
     const wh = new Webhook(WEBHOOK_SECRET)
@@ -52,7 +46,6 @@ export async function POST(req: Request) {
         })
     }
 
-    const { id } = evt.data
     const eventType = evt.type
 
     if (eventType === 'user.created' || eventType === 'user.updated') {
@@ -60,7 +53,7 @@ export async function POST(req: Request) {
         const name = [first_name, last_name].filter(Boolean).join(' ')
 
         const primaryEmail = (email_addresses || []).find(
-            (e: any) => e.id === primary_email_address_id
+            (email) => email.id === primary_email_address_id
         )?.email_address || (email_addresses || [])[0]?.email_address || null
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -74,7 +67,13 @@ export async function POST(req: Request) {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-        const userData: any = {
+        const userData: {
+            id: string;
+            username: string | null;
+            name: string;
+            image_url: string;
+            credits?: number;
+        } = {
             id,
             username,
             name,
@@ -150,20 +149,21 @@ export async function POST(req: Request) {
         const { id } = evt.data
 
         if (id) {
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-            const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-            const { createClient } = await import('@supabase/supabase-js');
-            const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-            const { error } = await supabaseAdmin
-                .from('users')
-                .delete()
-                .eq('id', id)
-
-            if (error) {
-                console.error('Error deleting user from Supabase:', error)
-                return new Response(`Error deleting user: ${error.message}`, { status: 500 })
+            try {
+                const webhookSeconds = Number(svix_timestamp)
+                const sourceVersion = Number.isSafeInteger(webhookSeconds) && webhookSeconds > 0
+                    ? webhookSeconds * 1000
+                    : Date.now()
+                await enqueueAndDeliverUserDeletion({
+                    userId: id,
+                    eventKey: svix_id,
+                    sourceVersion,
+                })
+            } catch (deletionError) {
+                // The Supabase outbox remains durable if the Neon delivery is
+                // unavailable. A 500 also asks Svix to retry the same event.
+                console.error('Error processing user deletion:', deletionError instanceof Error ? { name: deletionError.name } : { type: typeof deletionError })
+                return new Response('Error processing user deletion', { status: 500 })
             }
         }
     }

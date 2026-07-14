@@ -1,0 +1,431 @@
+import "server-only";
+
+import crypto from "node:crypto";
+import { z } from "zod";
+
+const REQUEST_TIMEOUT_MS = 8_000;
+export const MAX_FORMS_INTERNAL_REQUEST_BYTES = 256 * 1024;
+const MAX_RESPONSE_BYTES = 1024 * 1024;
+const PRODUCTION_FORMS_ORIGIN = "https://forms.jobing.site";
+const OPERATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~:/-]{7,199}$/;
+const KEY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const SAFE_ERROR_CODE_PATTERN = /^[a-z][a-z0-9_]{0,99}$/;
+const SAFE_ERROR_MESSAGE_PATTERN = /^[^\u0000-\u001f\u007f]*$/u;
+
+const formStatusSchema = z.enum(["draft", "published", "paused", "archived", "trashed"]);
+
+const formSummarySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  status: formStatusSchema,
+  revision: z.coerce.number().int().positive(),
+  publishedVersion: z.coerce.number().int().nonnegative(),
+  endpointId: z.string(),
+  updatedAt: z.string(),
+});
+
+const createdFormSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  status: z.literal("draft"),
+  revision: z.coerce.number().int().positive(),
+  endpointId: z.string(),
+});
+
+const publishedFormSchema = z.object({
+  id: z.string().uuid(),
+  status: z.literal("published"),
+  revision: z.coerce.number().int().positive(),
+  version: z.coerce.number().int().positive(),
+  endpointId: z.string(),
+});
+
+const errorEnvelopeSchema = z.object({
+  error: z.object({
+    code: z.string().regex(SAFE_ERROR_CODE_PATTERN),
+    message: z.string().min(1).max(500).regex(SAFE_ERROR_MESSAGE_PATTERN),
+  }),
+});
+
+const workspaceProjectionResultSchema = z.object({
+  data: z.object({ workspaceId: z.string().uuid(), applied: z.boolean() }),
+});
+
+const publicUpstreamErrorMessages: Readonly<Record<string, string>> = {
+  form_limit_reached: "This workspace has reached its Forms plan limit.",
+  idempotency_conflict: "This operation ID was already used with different input.",
+  idempotency_in_progress: "The same Forms operation is already in progress.",
+  insufficient_scope: "This connector has not been granted the required Forms permission.",
+  invalid_payload: "The Forms request is invalid.",
+  form_not_found: "The requested form could not be found.",
+  stale_revision: "The form changed before it could be published. Refresh it and try again.",
+};
+
+export type FormsActor = {
+  userId: string;
+  clientId: string;
+  grantId: string;
+  scopes: string[];
+};
+
+export type ConnectorFormDefinition = {
+  schemaVersion: 1;
+  title: string;
+  description?: string;
+  fields: Array<{
+    id: string;
+    key: string;
+    type: "text" | "email" | "textarea" | "number" | "tel" | "url" | "date" | "select" | "radio" | "checkbox" | "consent";
+    label: string;
+    description?: string;
+    required?: boolean;
+    options?: Array<{ value: string; label: string }>;
+    validation?: {
+      minLength?: number;
+      maxLength?: number;
+      min?: number;
+      max?: number;
+    };
+  }>;
+  confirmation?: { message: string };
+};
+
+export type CreateConnectorFormInput = {
+  name: string;
+  description?: string;
+  definition: ConnectorFormDefinition;
+};
+
+export type FormsWorkspaceProjection = {
+  operationId: string;
+  workspace: {
+    sourceWorkspaceId: string;
+    kind: "personal" | "team";
+    displayName: string;
+    status: "active" | "suspended" | "deleting" | "deleted";
+    sourceVersion: number;
+  };
+  membership: {
+    actorId: string;
+    role: "owner" | "admin" | "editor" | "viewer";
+    status: "active" | "removed";
+    sourceVersion: number;
+  };
+  entitlement: {
+    planKey: string;
+    status: "active" | "grace" | "suspended" | "cancelled";
+    sourceVersion: number;
+    features: Record<string, unknown>;
+    limits: Record<string, number | null>;
+  };
+};
+
+export class FormsServiceError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "FormsServiceError";
+  }
+}
+
+export function formsSignaturePayload(input: {
+  method: string;
+  path: string;
+  timestamp: number;
+  nonce: string;
+  bodySha256: string;
+}) {
+  return ["v1", input.method.toUpperCase(), input.path, String(input.timestamp), input.nonce, input.bodySha256].join("\n");
+}
+
+export function signFormsRequest(secret: string, input: Parameters<typeof formsSignaturePayload>[0]) {
+  return crypto.createHmac("sha256", secret).update(formsSignaturePayload(input)).digest("base64url");
+}
+
+function configurationError() {
+  return new FormsServiceError("invalid_configuration", "Forms is not configured correctly.", 503);
+}
+
+function parseOrigin(value: string, allowLocalHttp: boolean) {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw configurationError();
+  }
+
+  const isLocal = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  if (url.protocol !== "https:" && !(allowLocalHttp && isLocal && url.protocol === "http:")) {
+    throw configurationError();
+  }
+  if (url.username || url.password || url.search || url.hash || (url.pathname !== "/" && url.pathname !== "")) {
+    throw configurationError();
+  }
+  return url.origin;
+}
+
+function productionFormsOrigins() {
+  const origins = new Set([PRODUCTION_FORMS_ORIGIN]);
+  const configured = process.env.FORMS_SERVICE_ALLOWED_ORIGINS;
+  if (!configured) return origins;
+
+  for (const entry of configured.split(",")) {
+    const value = entry.trim();
+    if (!value) throw configurationError();
+    origins.add(parseOrigin(value, false));
+  }
+  return origins;
+}
+
+function formsOrigin() {
+  const configured = process.env.FORMS_SERVICE_URL;
+  if (!configured) throw new FormsServiceError("not_configured", "Forms is not configured for this deployment.", 503);
+  const origin = parseOrigin(configured, process.env.NODE_ENV !== "production");
+  if (process.env.NODE_ENV === "production" && !productionFormsOrigins().has(origin)) {
+    throw configurationError();
+  }
+  return origin;
+}
+
+function signingConfiguration() {
+  const keyId = process.env.FORMS_INTERNAL_KEY_ID;
+  const secret = process.env.FORMS_INTERNAL_SECRET;
+  const secretBytes = secret ? Buffer.byteLength(secret, "utf8") : 0;
+  if (
+    !keyId
+    || !KEY_ID_PATTERN.test(keyId)
+    || !secret
+    || secret.trim() !== secret
+    || /[\u0000\r\n]/u.test(secret)
+    || secretBytes < 32
+    || secretBytes > 4_096
+  ) {
+    throw new FormsServiceError("not_configured", "Forms is not configured for this deployment.", 503);
+  }
+  return { keyId, secret };
+}
+
+function signatureHeaders(path: string, rawBody: string) {
+  const { keyId, secret } = signingConfiguration();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const nonce = crypto.randomBytes(24).toString("base64url");
+  const bodySha256 = crypto.createHash("sha256").update(rawBody).digest("hex");
+  const signature = signFormsRequest(secret, { method: "POST", path, timestamp, nonce, bodySha256 });
+
+  return {
+    "content-type": "application/json",
+    accept: "application/json",
+    "x-jobing-key-id": keyId,
+    "x-jobing-timestamp": String(timestamp),
+    "x-jobing-nonce": nonce,
+    "x-jobing-content-sha256": bodySha256,
+    "x-jobing-signature": `v1=${signature}`,
+  };
+}
+
+class ResponsePayloadError extends Error {}
+
+async function discardResponseBody(response: Response) {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // A failed discard must not suppress status-based retry handling.
+  }
+}
+
+async function readResponse(response: Response) {
+  const declaredLength = response.headers.get("content-length");
+  if (declaredLength && /^\d+$/.test(declaredLength) && BigInt(declaredLength) > BigInt(MAX_RESPONSE_BYTES)) {
+    await discardResponseBody(response);
+    throw new ResponsePayloadError("too_large");
+  }
+
+  if (!response.body) throw new ResponsePayloadError("empty");
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_RESPONSE_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      throw new ResponsePayloadError("too_large");
+    }
+    chunks.push(value);
+  }
+
+  if (total === 0) throw new ResponsePayloadError("empty");
+  const raw = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)), total).toString("utf8");
+
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    throw new ResponsePayloadError("invalid_json");
+  }
+}
+
+function serializeFormsPayload(payload: unknown) {
+  let rawBody: string | undefined;
+  try {
+    rawBody = JSON.stringify(payload);
+  } catch {
+    throw new FormsServiceError("invalid_request", "The Forms request is invalid.", 400);
+  }
+  if (rawBody === undefined) {
+    throw new FormsServiceError("invalid_request", "The Forms request is invalid.", 400);
+  }
+  if (Buffer.byteLength(rawBody, "utf8") > MAX_FORMS_INTERNAL_REQUEST_BYTES) {
+    throw new FormsServiceError("request_too_large", "The Forms request is too large.", 413);
+  }
+  return rawBody;
+}
+
+function requireOperationId(operationId: string) {
+  if (!OPERATION_ID_PATTERN.test(operationId)) {
+    throw new FormsServiceError("invalid_request", "A valid stable Forms operation ID is required.", 400);
+  }
+}
+
+function parseServiceResponse<T>(schema: z.ZodType<T>, body: unknown) {
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    throw new FormsServiceError("invalid_response", "Forms returned an invalid response.", 502);
+  }
+  return parsed.data;
+}
+
+async function postSerializedToForms(path: string, rawBody: string) {
+  if (Buffer.byteLength(rawBody, "utf8") > MAX_FORMS_INTERNAL_REQUEST_BYTES) {
+    throw new FormsServiceError("request_too_large", "The Forms request is too large.", 413);
+  }
+  const url = `${formsOrigin()}${path}`;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const headers = signatureHeaders(path, rawBody);
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: rawBody,
+        cache: "no-store",
+        redirect: "error",
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch {
+      if (attempt === 0) continue;
+      throw new FormsServiceError("service_unavailable", "Forms is temporarily unavailable.", 503);
+    }
+
+    if (response.status >= 500 && attempt === 0) {
+      await discardResponseBody(response);
+      continue;
+    }
+
+    let body: unknown;
+    try {
+      body = await readResponse(response);
+    } catch (error) {
+      if (!response.ok) {
+        throw new FormsServiceError("request_failed", "Forms could not complete the request.", response.status);
+      }
+      if (!(error instanceof ResponsePayloadError) && attempt === 0) continue;
+      throw new FormsServiceError("invalid_response", "Forms returned an invalid response.", 502);
+    }
+
+    if (!response.ok) {
+      const parsed = errorEnvelopeSchema.safeParse(body);
+      const code = parsed.success ? parsed.data.error.code : "request_failed";
+      throw new FormsServiceError(
+        code,
+        publicUpstreamErrorMessages[code] ?? "Forms could not complete the request.",
+        response.status,
+      );
+    }
+    return body;
+  }
+
+  throw new FormsServiceError("service_unavailable", "Forms is temporarily unavailable.", 503);
+}
+
+async function postToForms(path: string, payload: unknown) {
+  return postSerializedToForms(path, serializeFormsPayload(payload));
+}
+
+/**
+ * Seed the user's personal Forms workspace before any connector operation.
+ * The projection is monotonic and idempotent, so paid/team sync can supersede
+ * this version later without a cross-database transaction.
+ */
+export async function ensureFormsWorkspace(actor: FormsActor) {
+  return syncFormsWorkspaceProjection({
+    operationId: `phase1-personal-workspace:${actor.userId}:v1`,
+    workspace: {
+      sourceWorkspaceId: actor.userId,
+      kind: "personal",
+      displayName: "Personal workspace",
+      status: "active",
+      sourceVersion: 1,
+    },
+    membership: {
+      actorId: actor.userId,
+      role: "owner",
+      status: "active",
+      sourceVersion: 1,
+    },
+    entitlement: {
+      planKey: "free",
+      status: "active",
+      sourceVersion: 1,
+      features: {},
+      limits: {},
+    },
+  });
+}
+
+export async function syncFormsWorkspaceProjection(payload: FormsWorkspaceProjection) {
+  requireOperationId(payload.operationId);
+  const body = await postToForms("/api/internal/v1/workspaces/sync", payload);
+  return parseServiceResponse(workspaceProjectionResultSchema, body).data;
+}
+
+export async function createConnectorForm(
+  actor: FormsActor,
+  form: CreateConnectorFormInput,
+  operationId: string,
+) {
+  requireOperationId(operationId);
+  const rawBody = serializeFormsPayload({ operationId, actor, form });
+  await ensureFormsWorkspace(actor);
+  const body = await postSerializedToForms("/api/internal/v1/forms", rawBody);
+  return parseServiceResponse(z.object({ data: createdFormSchema }), body).data;
+}
+
+export async function listConnectorForms(actor: FormsActor) {
+  const rawBody = serializeFormsPayload({ actor });
+  await ensureFormsWorkspace(actor);
+  const body = await postSerializedToForms("/api/internal/v1/forms/list", rawBody);
+  return parseServiceResponse(z.object({ data: z.object({ forms: z.array(formSummarySchema) }) }), body).data.forms;
+}
+
+export async function publishConnectorForm(
+  actor: FormsActor,
+  formId: string,
+  expectedRevision: number,
+  operationId = `mcp:publish-form:${crypto.randomUUID()}`,
+) {
+  requireOperationId(operationId);
+  const rawBody = serializeFormsPayload({
+    operationId,
+    actor,
+    expectedRevision,
+  });
+  await ensureFormsWorkspace(actor);
+  const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/publish`, rawBody);
+  return parseServiceResponse(z.object({ data: publishedFormSchema }), body).data;
+}

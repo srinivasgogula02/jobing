@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Jobing
 
-## Getting Started
+This repository contains two independently installed and deployed Next.js applications:
 
-First, run the development server:
+| Application | Repository root | Production domain | Database |
+| --- | --- | --- | --- |
+| Main Jobing app and MCP connector | `.` | `jobing.site` | Existing Supabase project |
+| Jobing Forms control plane | `apps/forms` | `forms.jobing.site` | Separate Neon project |
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+They use the same Clerk instance so users connect and sign in once. They use separate
+Vercel projects, environment variables, database credentials, build outputs, and
+lockfiles. Forms is not an npm workspace and never imports the main Supabase client.
+
+The primary Jobing project must serve Clerk at `/sign-in` and `/sign-up`:
+
+```text
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+CLERK_AUTHORIZED_PARTIES=https://jobing.site,https://forms.jobing.site
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Forms uses redirect-mode Clerk CTAs and always returns completed sign-in or sign-up
+to the fixed `https://forms.jobing.site/app` destination. It does not accept a return
+URL from the visitor.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm ci --legacy-peer-deps
+npm run dev
 
-## Learn More
+npm --prefix apps/forms ci
+npm --prefix apps/forms run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+The main app runs on port 3000 and Forms runs on port 3001.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Checks
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run test:ci
+npm run typecheck
+npm run lint:phase1
+npm run build
 
-## Deploy on Vercel
+npm --prefix apps/forms run test:ci
+npm --prefix apps/forms run lint
+npm --prefix apps/forms run typecheck
+npm --prefix apps/forms run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [CONNECTOR.md](CONNECTOR.md) for connector capabilities and
+[`apps/forms/README.md`](apps/forms/README.md) for the Phase 1 deployment runbook.

@@ -45,6 +45,7 @@ export function ConnectorPageClient() {
           </Link>
           <nav className="flex items-center gap-6 text-sm font-medium">
             <a href="#how" className="hidden text-[#62695f] hover:text-[#151914] sm:block">How it works</a>
+            <Link href="/connector/manage" className="hidden text-[#62695f] hover:text-[#151914] sm:block">Manage</Link>
             <a href="#connect" className="inline-flex min-h-11 items-center rounded-lg bg-[#151914] px-4 text-white hover:bg-[#293025]">Connect Jobing AI</a>
           </nav>
         </div>
@@ -133,8 +134,8 @@ export function ConnectorPageClient() {
       </section>
 
       <section className="mx-auto grid max-w-[1180px] gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-2 lg:items-center">
-        <div><p className="text-sm font-bold text-[#668500]">Secure by design</p><h2 className="mt-4 text-3xl font-bold tracking-[-.045em] sm:text-4xl">Your password stays private.</h2><p className="mt-4 max-w-xl leading-7 text-[#6e756b]">You sign in directly on Jobing AI. Your AI app receives permission to use the tools you approve—not your password. You can disconnect whenever you want.</p></div>
-        <ul className="grid gap-3 text-sm font-semibold text-[#353b33] sm:grid-cols-2">{["No API key needed", "Approve access yourself", "Disconnect anytime", "New tools appear automatically"].map(item => <li key={item} className="flex items-center gap-3 rounded-xl border border-[#dfe3da] bg-white p-4"><CheckCircle2 size={18} className="shrink-0 text-[#719500]" />{item}</li>)}</ul>
+        <div><p className="text-sm font-bold text-[#668500]">Secure by design</p><h2 className="mt-4 text-3xl font-bold tracking-[-.045em] sm:text-4xl">Your password stays private.</h2><p className="mt-4 max-w-xl leading-7 text-[#6e756b]">You sign in directly on Jobing AI. Your AI app receives permission to use the tools you approve—not your password. You can disconnect whenever you want.</p><Link href="/connector/manage" className="mt-5 inline-flex min-h-11 items-center font-semibold underline decoration-[#9bbf3c] underline-offset-4">Manage connected clients</Link></div>
+        <ul className="grid gap-3 text-sm font-semibold text-[#353b33] sm:grid-cols-2">{["No API key needed", "Approve access yourself", "Disconnect anytime", "Approve new permissions explicitly"].map(item => <li key={item} className="flex items-center gap-3 rounded-xl border border-[#dfe3da] bg-white p-4"><CheckCircle2 size={18} className="shrink-0 text-[#719500]" />{item}</li>)}</ul>
       </section>
 
       <section className="border-t border-[#e0e4dc] bg-white">

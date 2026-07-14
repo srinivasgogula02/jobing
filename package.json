@@ -8,10 +8,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:phase1": "eslint src/app/api/oauth src/app/api/cron/forms-projections src/app/api/webhooks/clerk/route.ts src/app/connector src/app/mcp/route.ts src/app/oauth src/app/sign-in src/app/sign-up src/lib/clerk-config.ts src/lib/clerk-config.test.ts src/lib/connector-auth.ts src/lib/connector-auth.test.ts src/lib/form-tool.ts src/lib/form-tool.test.ts src/lib/forms-projection-outbox.ts src/lib/forms-projection-outbox.test.ts src/lib/forms-service.ts src/lib/forms-service.test.ts src/lib/oauth.ts src/lib/oauth.test.ts src/lib/oauth-client-metadata.ts src/lib/oauth-client-metadata.test.ts src/lib/oauth-scopes.ts src/lib/oauth-scopes.test.ts src/lib/oauth-storage.test.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run --reporter=verbose",
     "typecheck": "tsc --noEmit",
+    "db:migrate:supabase:phase1": "node scripts/migrate-supabase-phase1.mjs",
     "sync:subscribers": "node scripts/sync-subscribers.js"
   },
   "dependencies": {
@@ -57,5 +59,8 @@
     "typescript": "^5",
     "vitest": "^4.1.10",
     "webpack": "5.108.4"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
   }
 }

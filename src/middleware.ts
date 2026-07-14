@@ -2,6 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createDualmarkMiddleware } from '@dualmark/nextjs'
 import { dualmarkConfig, hasMarkdownTwin, markdownTwinPath } from '@/lib/dualmark'
+import { resolveClerkAuthorizedParties } from '@/lib/clerk-config'
 
 // ─── DualMark (AEO) ───────────────────────────────────────────────────────────
 //
@@ -72,6 +73,8 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/.well-known(.*)',
   '/oauth(.*)',
   '/api/oauth(.*)',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
   '/copy(.*)',
   '/c(.*)',
   '/p(.*)',
@@ -79,7 +82,7 @@ const isAlwaysPublicRoute = createRouteMatcher([
   '/online-clipboard(.*)',
   '/share-text(.*)',
   '/tools(.*)',
-  '/connector(.*)',
+  '/connector',
   '/pages(.*)',
   '/sitemap(.*)',
   '/robots.txt',
@@ -109,75 +112,81 @@ const isRetiredRoute = createRouteMatcher([
 //
 const isAuthOnlyRoute = createRouteMatcher([
   '/billing(.*)',
+  '/connector/manage(.*)',
 ])
 
 // TIER 3 — Protected: Auth + payment/credit check applied to everything else.
 // ──────────────────────────────────────────────────────────────────────────────
 
-export default clerkMiddleware(async (auth, req) => {
-  const { pathname } = req.nextUrl;
+export default clerkMiddleware(
+  async (auth, req) => {
+    const { pathname } = req.nextUrl;
 
-  // AEO: serve markdown twins to AI bots / `.md` / `Accept: text/markdown`
-  // BEFORE any auth check. If DualMark rewrites or returns 406, hand that back.
-  //
-  // Only negotiate top-level document GETs. RSC navigations/prefetches (which
-  // send `Accept: text/x-component`) and server-action POSTs are internal Next
-  // payloads — running content negotiation on them would 406 and break
-  // client-side navigation.
-  if (isNegotiableDocumentRequest(req)) {
-    const dm = await dualmark(req);
-    if (dualmarkIntercepted(dm)) {
-      return dm;
+    // AEO: serve markdown twins to AI bots / `.md` / `Accept: text/markdown`
+    // BEFORE any auth check. If DualMark rewrites or returns 406, hand that back.
+    //
+    // Only negotiate top-level document GETs. RSC navigations/prefetches (which
+    // send `Accept: text/x-component`) and server-action POSTs are internal Next
+    // payloads — running content negotiation on them would 406 and break
+    // client-side navigation.
+    if (isNegotiableDocumentRequest(req)) {
+      const dm = await dualmark(req);
+      if (dualmarkIntercepted(dm)) {
+        return dm;
+      }
     }
-  }
 
-  if (isRetiredRoute(req)) {
-    return NextResponse.next();
-  }
-
-  // TIER 1: Always accessible — skip all checks immediately
-  if (isAlwaysPublicRoute(req)) {
-    return withAlternate(NextResponse.next(), pathname);
-  }
-
-  // For all non-public routes, require authentication
-  const { userId, sessionClaims, redirectToSignIn } = await auth();
-
-  if (!userId) {
-    return redirectToSignIn({ returnBackUrl: req.url });
-  }
-
-  // TIER 2: Auth-only routes — signed in but no payment check
-  if (isAuthOnlyRoute(req)) {
-    return NextResponse.next();
-  }
-
-  // API routes should never receive an HTML redirect — let the endpoint handle auth
-  const isApiRequest = pathname.startsWith('/api');
-  if (isApiRequest) {
-    return NextResponse.next();
-  }
-
-  // TIER 3: Payment / credit check for all remaining protected routes
-  const metadata = sessionClaims?.metadata as { is_paid?: boolean; has_credits?: boolean } | undefined;
-  const isPaid = metadata?.is_paid === true;
-  const pricingMode = process.env.NEXT_PUBLIC_PRICING_MODE || 'paywall';
-
-  if (pricingMode === 'freemium') {
-    const hasCredits = metadata?.has_credits === true;
-
-    if (!isPaid && !hasCredits) {
-      return NextResponse.redirect(new URL('/pricing', req.url));
+    if (isRetiredRoute(req)) {
+      return NextResponse.next();
     }
-  } else {
-    // PAYWALL mode: only paid users pass through
-    if (!isPaid) {
-      return NextResponse.redirect(new URL('/pricing', req.url));
-    }
-  }
 
-  return NextResponse.next();
-})
+    // TIER 1: Always accessible — skip all checks immediately
+    if (isAlwaysPublicRoute(req)) {
+      return withAlternate(NextResponse.next(), pathname);
+    }
+
+    // For all non-public routes, require authentication
+    const { userId, sessionClaims, redirectToSignIn } = await auth();
+
+    if (!userId) {
+      return redirectToSignIn({ returnBackUrl: req.url });
+    }
+
+    // TIER 2: Auth-only routes — signed in but no payment check
+    if (isAuthOnlyRoute(req)) {
+      return NextResponse.next();
+    }
+
+    // API routes should never receive an HTML redirect — let the endpoint handle auth
+    const isApiRequest = pathname.startsWith('/api');
+    if (isApiRequest) {
+      return NextResponse.next();
+    }
+
+    // TIER 3: Payment / credit check for all remaining protected routes
+    const metadata = sessionClaims?.metadata as { is_paid?: boolean; has_credits?: boolean } | undefined;
+    const isPaid = metadata?.is_paid === true;
+    const pricingMode = process.env.NEXT_PUBLIC_PRICING_MODE || 'paywall';
+
+    if (pricingMode === 'freemium') {
+      const hasCredits = metadata?.has_credits === true;
+
+      if (!isPaid && !hasCredits) {
+        return NextResponse.redirect(new URL('/pricing', req.url));
+      }
+    } else {
+      // PAYWALL mode: only paid users pass through
+      if (!isPaid) {
+        return NextResponse.redirect(new URL('/pricing', req.url));
+      }
+    }
+
+    return NextResponse.next();
+  },
+  {
+    authorizedParties: resolveClerkAuthorizedParties(),
+  },
+)
 
 export const config = {
   matcher: [

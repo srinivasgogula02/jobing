@@ -13,5 +13,10 @@ describe("renderPageDocument", () => {
     expect(result).toContain('name="viewport"');
     expect(result).toContain("<main>Page</main>");
   });
-});
 
+  it("moves legacy form actions to the dedicated Forms deployment", () => {
+    const result = renderPageDocument('<form action="https://jobing.site/f/frm_test"></form>');
+    expect(result).toContain('action="https://forms.jobing.site/forms/f/frm_test"');
+    expect(result).not.toContain("https://jobing.site/f/");
+  });
+});

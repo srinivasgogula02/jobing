@@ -32,6 +32,7 @@ export type AnalyticsEvent =
   | "feedback_submitted" // a feedback message was successfully sent
   | "mcp_url_copied"
   | "connector_platform_selected"
+  | "homepage_role_selected"
   | "setup_video_loaded"
   | "dashboard_destination_clicked";
 

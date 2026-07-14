@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, ChevronDown, ChevronRight, Copy, FileText, FormInput, Globe2, Mail, Menu, Play, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Copy, FormInput, Globe2, Menu, Play, X } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { ToolchainShowcase } from "@/components/ToolchainShowcase";
 import styles from "./home-v2.module.css";
 
 const MCP_URL = "https://jobing.site/mcp";
@@ -25,37 +26,6 @@ const platforms = {
     steps: ["Open Claude Settings", "Choose Connectors", "Add the Jobing AI MCP URL"],
   },
 } as const;
-
-const useCases = [
-  {
-    label: "Launch a business",
-    title: "Website + enquiries",
-    prompt: "Create a website for my consulting business, add a project enquiry form, and publish it.",
-    result: "A live website and a working enquiry inbox",
-    icon: Globe2,
-  },
-  {
-    label: "Validate an idea",
-    title: "Waitlist + follow-up",
-    prompt: "Create a waitlist page for my new product, collect email signups, and draft a welcome email.",
-    result: "A launch page, captured leads, and an email ready to send",
-    icon: Mail,
-  },
-  {
-    label: "Run an event",
-    title: "Registration page",
-    prompt: "Publish a page for my Hyderabad workshop and add a registration form for 50 attendees.",
-    result: "A shareable event page and organized registrations",
-    icon: FormInput,
-  },
-  {
-    label: "Share useful work",
-    title: "Public note",
-    prompt: "Turn this plan into a clean public note and give me a link I can share.",
-    result: "A readable link instead of another document attachment",
-    icon: FileText,
-  },
-];
 
 function CopyConnector({ large = false, placement }: { large?: boolean; placement: "hero" | "footer" }) {
   const [copied, setCopied] = useState(false);
@@ -118,25 +88,22 @@ export function HomePageClient() {
         </div>
       </section>
 
+      <ToolchainShowcase />
+
       <section className={styles.afterConnect}>
         <div><p>After connecting</p><h2>You do not open another builder. You just ask.</h2></div>
         <div className={styles.chatDemo}>
           <div className={styles.chatTop}><img src={platformLogos.claude} alt="" /><div><b>Claude</b><span>Jobing AI connected</span></div><i /></div>
           <div className={styles.chatBody}>
             <div className={styles.userMessage}><span>You</span><p>Create a website for my interior design studio. Add a consultation form and publish it.</p></div>
-            <div className={styles.aiMessage}><img src={platformLogos.claude} alt="" /><div><p>I’ll create the page, connect the form, and publish everything for you.</p><div className={styles.toolProgress}><span><Image src="/logo.png" alt="" width={22} height={22} /><b>Jobing AI</b> is working</span><ul><li><Check size={14} />Website published</li><li><Check size={14} />Consultation form connected</li><li><Check size={14} />Enquiry inbox ready</li></ul></div><a href="#use-cases">Your website is live <ChevronRight size={16} /></a></div></div>
+            <div className={styles.aiMessage}><img src={platformLogos.claude} alt="" /><div><p>I’ll create the page, connect the form, and publish everything for you.</p><div className={styles.toolProgress}><span><Image src="/logo.png" alt="" width={22} height={22} /><b>Jobing AI</b> is working</span><ul><li><Check size={14} />Website published</li><li><Check size={14} />Consultation form connected</li><li><Check size={14} />Enquiry inbox ready</li></ul></div><a href="#manage-work">Your website is live <ChevronRight size={16} /></a></div></div>
           </div>
           <div className={styles.chatComposer}>Ask anything <span>↑</span></div>
           <div className={styles.handResult} aria-hidden="true"><svg viewBox="0 0 74 38"><path d="M70 5 C43 8, 30 16, 10 31 M20 20 L9 32 L25 32" /></svg><span>one prompt,<br />finished work</span></div>
         </div>
       </section>
 
-      <section id="use-cases" className={styles.useCases}>
-        <div className={styles.sectionIntro}><p>Copy a prompt and try it</p><h2>Start with a real job you need done.</h2><span>Jobing AI chooses the right tools and returns the finished result inside your AI conversation.</span></div>
-        <div className={styles.useCaseList}>{useCases.map(({ icon: Icon, ...item }) => <article key={item.title}><div className={styles.useCaseHeading}><span><Icon size={19} /></span><div><small>{item.label}</small><h3>{item.title}</h3></div></div><blockquote>“{item.prompt}”</blockquote><p><Check size={15} /> {item.result}</p></article>)}</div>
-      </section>
-
-      <section className={styles.findWork}>
+      <section id="manage-work" className={styles.findWork}>
         <div className={styles.sectionIntro}><p>Where your work lives</p><h2>Everything stays easy to find.</h2><span>Your AI creates the work. Jobing AI gives you a dashboard to manage what happens next.</span></div>
         <div className={styles.destinationGrid}>
           <Link href="/dashboard/pages" onClick={() => track("dashboard_destination_clicked", { destination: "pages" })}><span><Globe2 /></span><div><small>JOBING AI PAGES</small><h3>Open my pages</h3><p>View, edit, and share every website your AI has published.</p></div><ChevronRight /></Link>

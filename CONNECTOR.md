@@ -19,6 +19,9 @@ internal API. Users do not install a second Forms connector.
   same ID and inputs for every retry of one logical creation.
 - `list_forms` — lists form definitions and publishing state; it never reads responses.
 - `publish_form` — publishes an immutable definition version after an explicit request.
+- `report_connector_feedback` — sends a short, structured product report only
+  after the user explicitly confirms it. The tool rejects prompts, HTML, URLs,
+  contact details, credentials, and other private content.
 
 The Forms tools use granular OAuth scopes:
 
@@ -26,6 +29,7 @@ The Forms tools use granular OAuth scopes:
 forms:read
 forms:write
 forms:publish
+feedback:write
 ```
 
 Historical grants containing only `mcp` retain their original note/page permissions.
@@ -72,6 +76,7 @@ before deploying the matching code:
 202607140001_connector_oauth_phase1.sql
 202607140002_forms_projection_outbox.sql
 202607140003_oauth_rate_limits.sql
+202607140004_connector_feedback.sql
 ```
 
 The first creates issuer-bound grants and granular scopes, the second makes Clerk

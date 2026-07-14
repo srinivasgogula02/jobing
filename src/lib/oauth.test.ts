@@ -97,7 +97,7 @@ describe("OAuth public URL discovery", () => {
       authorization_endpoint: "https://jobing.site/oauth/authorize",
       token_endpoint: "https://jobing.site/api/oauth/token",
       registration_endpoint: "https://jobing.site/api/oauth/register",
-      scopes_supported: ["notes:write", "pages:write", "forms:read", "forms:write", "forms:publish"],
+      scopes_supported: ["notes:write", "pages:write", "forms:read", "forms:write", "forms:publish", "feedback:write"],
       grant_types_supported: ["authorization_code", "refresh_token"],
       token_endpoint_auth_methods_supported: ["none"],
       code_challenge_methods_supported: ["S256"],
@@ -108,7 +108,7 @@ describe("OAuth public URL discovery", () => {
     expect(oauth.protectedResourceMetadata("https://jobing.site")).toEqual({
       resource: "https://jobing.site/mcp",
       authorization_servers: ["https://jobing.site"],
-      scopes_supported: ["notes:write", "pages:write", "forms:read", "forms:write", "forms:publish"],
+      scopes_supported: ["notes:write", "pages:write", "forms:read", "forms:write", "forms:publish", "feedback:write"],
       bearer_methods_supported: ["header"],
       resource_name: "Jobing",
     });

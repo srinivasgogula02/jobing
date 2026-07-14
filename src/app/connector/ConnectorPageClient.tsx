@@ -91,7 +91,7 @@ export function ConnectorPageClient() {
             <div className="border-t border-[#e4e7df] bg-[#f4f6f0] p-5 sm:p-8 lg:border-t-0 lg:p-10">
               <div className="flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[.1em] text-[#71796e]">Published page</p><span className="flex items-center gap-1.5 text-xs font-semibold text-[#608000]"><Check size={13} /> Live</span></div>
               <div className="mt-5 overflow-hidden rounded-2xl border border-[#d7dcd2] bg-white shadow-sm">
-                <div className="flex items-center gap-2 border-b border-[#eceee9] bg-[#fafbf8] px-3 py-2.5"><Globe2 size={13} className="text-[#7b8277]" /><span className="truncate font-mono text-[10px] text-[#697065]">jobing.site/pages/hyderabad-design-meetup</span></div>
+                <div className="flex items-center gap-2 border-b border-[#eceee9] bg-[#fafbf8] px-3 py-2.5"><Globe2 size={13} className="text-[#7b8277]" /><span className="truncate font-mono text-[10px] text-[#697065]">hyderabad-design-meetup.jobing.online</span></div>
                 <div className="p-6 sm:p-8">
                   <p className="text-xs font-bold uppercase tracking-[.13em] text-[#718d19]">Hyderabad · 18 July</p>
                   <h2 className="mt-4 text-3xl font-bold leading-tight tracking-[-.045em]">Designing products people understand.</h2>

@@ -9,6 +9,16 @@ export type ConnectorAuthInfo = {
   extra?: Record<string, unknown>;
 };
 
+export class ConnectorAuthError extends Error {
+  constructor(
+    public readonly code: "invalid_connection" | "insufficient_scope",
+    message: string,
+  ) {
+    super(message);
+    this.name = "ConnectorAuthError";
+  }
+}
+
 export function requireConnectorActor(
   authInfo: ConnectorAuthInfo | undefined,
   requiredScope: OAuthScope,
@@ -18,10 +28,10 @@ export function requireConnectorActor(
   const clientId = authInfo?.clientId;
   const scopes = effectiveOAuthScopes(authInfo?.scopes?.join(" "));
   if (typeof userId !== "string" || !clientId || typeof grantId !== "string" || !UUID_PATTERN.test(grantId)) {
-    throw new Error("The connected Jobing account could not be identified.");
+    throw new ConnectorAuthError("invalid_connection", "The connected Jobing account could not be identified. Reconnect Jobing and try again.");
   }
   if (!scopes.includes(requiredScope)) {
-    throw new Error(`This connector has not been granted ${requiredScope}. Reconnect Jobing and approve that permission.`);
+    throw new ConnectorAuthError("insufficient_scope", `This connector has not been granted ${requiredScope}. Reconnect Jobing and approve that permission.`);
   }
   return {
     userId,

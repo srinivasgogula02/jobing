@@ -4,10 +4,17 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { scrubMainSentryEvent, scrubMainSentryTransaction } from "./src/lib/sentry-privacy";
+
+const enabled = process.env.OBSERVABILITY_ENABLED === "true" || process.env.VERCEL_ENV === "production";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN,
+  enabled: enabled && Boolean(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN),
   environment: process.env.VERCEL_ENV || process.env.NODE_ENV,
-  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1,
+  tracesSampleRate: enabled ? 0.02 : 0,
+  initialScope: { tags: { service: "main" } },
   sendDefaultPii: false,
+  beforeSend: scrubMainSentryEvent,
+  beforeSendTransaction: scrubMainSentryTransaction,
 });

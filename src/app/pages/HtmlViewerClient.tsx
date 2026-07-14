@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import clsx from "clsx";
-import { publicPageAddress, publicPageUrl } from "@/lib/pages-runtime-url";
+import { isValidPageId, normalizePageId, PAGE_ID_ERROR } from "@/lib/page-id";
+import { publicPageAddress, publicPageAddressAffixes, publicPageUrl } from "@/lib/pages-runtime-url";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -95,6 +96,7 @@ interface HtmlViewerClientProps {
 }
 
 export default function HtmlViewerClient({ id, initialHtml, isNew = false }: HtmlViewerClientProps) {
+  const pageAddressAffixes = publicPageAddressAffixes();
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
@@ -216,10 +218,10 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
 
   const handleChangeId = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanId = newId.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const cleanId = normalizePageId(newId);
 
-    if (!cleanId) {
-      setIdError("ID cannot be empty.");
+    if (!isValidPageId(cleanId)) {
+      setIdError(PAGE_ID_ERROR);
       return;
     }
 
@@ -243,8 +245,26 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
         setIsEditingId(false);
         setCheckingId(false);
       } else {
-        await savePage(cleanId, htmlInput);
-        router.push(`/pages/${cleanId}/edit`);
+        const saved = await savePage(cleanId, htmlInput);
+        if (!saved.success) {
+          setIdError(saved.error || "The new page address could not be saved.");
+          setCheckingId(false);
+          return;
+        }
+        const removed = await deletePage(currentId);
+        if (!removed.success) {
+          // Best-effort rollback: never silently leave a copied page when the
+          // user asked to rename the existing one.
+          await deletePage(cleanId);
+          setIdError(removed.error || "The old page address could not be removed.");
+          setCheckingId(false);
+          return;
+        }
+        setCurrentId(cleanId);
+        setNewId(cleanId);
+        setIsEditingId(false);
+        setCheckingId(false);
+        router.replace(`/pages/${cleanId}/edit`);
       }
     }
   };
@@ -408,9 +428,11 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
                 {isEditingId ? (
                   <form onSubmit={handleChangeId} className="flex items-center gap-1 min-w-0 flex-1">
                     <div className="flex bg-[#1a1a1a] rounded ring-1 ring-[#333] focus-within:ring-[#C1FF00] transition-shadow overflow-hidden flex-1 sm:flex-none">
-                      <span className="px-2 py-1 text-xs text-neutral-500 bg-[#222] border-r border-[#333] select-none flex items-center shrink-0">
-                        {publicPageAddress("").replace(/\/$/, "")}/
-                      </span>
+                      {pageAddressAffixes.prefix && (
+                        <span className="px-2 py-1 text-xs text-neutral-500 bg-[#222] border-r border-[#333] select-none flex items-center shrink-0">
+                          {pageAddressAffixes.prefix}
+                        </span>
+                      )}
                       <input
                         type="text"
                         value={newId}
@@ -422,6 +444,11 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
                         className="bg-transparent border-none outline-none py-1 px-2 text-xs w-full sm:w-24 text-white placeholder:text-neutral-600 min-w-0"
                         placeholder="my-page"
                       />
+                      {pageAddressAffixes.suffix && (
+                        <span className="px-2 py-1 text-xs text-neutral-500 bg-[#222] border-l border-[#333] select-none flex items-center shrink-0">
+                          {pageAddressAffixes.suffix}
+                        </span>
+                      )}
                     </div>
                     <button
                       type="submit"

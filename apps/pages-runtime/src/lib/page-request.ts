@@ -1,21 +1,12 @@
-const HOST_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-
-const RESERVED_HOSTS = new Set([
-  "admin",
-  "api",
-  "app",
-  "assets",
-  "cdn",
-  "dashboard",
-  "forms",
-  "mail",
-  "status",
-  "support",
-  "www",
-]);
+import { isValidPageId } from "@/lib/page-id";
 
 function hostnameWithoutPort(host: string): string {
-  return host.trim().toLowerCase().replace(/\.$/, "").split(":", 1)[0] ?? "";
+  const value = host.trim().toLowerCase();
+  if (value.startsWith("[")) {
+    const closingBracket = value.indexOf("]");
+    return closingBracket > 0 ? value.slice(1, closingBracket).replace(/\.$/, "") : "";
+  }
+  return (value.split(":", 1)[0] ?? "").replace(/\.$/, "");
 }
 
 function normalizedRootDomain(rootDomain?: string): string | null {
@@ -29,10 +20,6 @@ function normalizedRootDomain(rootDomain?: string): string | null {
     .replace(/\.$/, "");
 
   return value && !value.includes("/") && !value.includes(":") ? value : null;
-}
-
-function validPageId(value: string | undefined): value is string {
-  return Boolean(value && HOST_LABEL.test(value) && !RESERVED_HOSTS.has(value));
 }
 
 function isFallbackHost(hostname: string): boolean {
@@ -54,12 +41,13 @@ export function resolvePageId(
 
   if (root && hostname.endsWith(`.${root}`)) {
     const label = hostname.slice(0, -(root.length + 1));
-    return validPageId(label) && !label.includes(".") ? label : null;
+    const isRootDocument = (pathSegments?.length ?? 0) === 0;
+    return isRootDocument && isValidPageId(label) && !label.includes(".") ? label : null;
   }
 
   if (!isFallbackHost(hostname)) return null;
 
+  if (pathSegments?.length !== 1) return null;
   const firstSegment = pathSegments?.[0]?.toLowerCase();
-  return validPageId(firstSegment) ? firstSegment : null;
+  return isValidPageId(firstSegment) ? firstSegment : null;
 }
-

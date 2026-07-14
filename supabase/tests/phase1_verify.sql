@@ -174,4 +174,190 @@ begin
 end
 $$;
 
+-- Connector feedback is available only through its bounded service-role RPC.
+do $$
+begin
+  if not has_function_privilege(
+    'service_role',
+    'public.submit_connector_feedback(text,text,uuid,text,text,text,text,text,boolean)',
+    'EXECUTE'
+  ) or has_function_privilege(
+    'public',
+    'public.submit_connector_feedback(text,text,uuid,text,text,text,text,text,boolean)',
+    'EXECUTE'
+  ) or has_table_privilege(
+    'service_role',
+    'public.connector_feedback',
+    'SELECT'
+  ) or not has_function_privilege(
+    'service_role',
+    'public.list_connector_feedback(integer)',
+    'EXECUTE'
+  ) or has_function_privilege(
+    'public',
+    'public.list_connector_feedback(integer)',
+    'EXECUTE'
+  ) then
+    raise exception 'Connector feedback privileges are unsafe';
+  end if;
+end
+$$;
+
+insert into public.users (id) values ('phase1_feedback_user');
+insert into public.oauth_grants (id, user_id, client_id, scope)
+values (
+  '22222222-2222-4222-8222-222222222222',
+  'phase1_feedback_user',
+  'phase1_client',
+  'pages:write feedback:write'
+);
+
+do $$
+declare
+  first_result jsonb;
+  retry_result jsonb;
+  item integer;
+begin
+  first_result := public.submit_connector_feedback(
+    'phase1_feedback_user',
+    'phase1_client',
+    '22222222-2222-4222-8222-222222222222',
+    'feedback:phase1-idempotency:v1',
+    'missing_capability',
+    'job_application',
+    'deploy_page',
+    'The user needs applicants to upload a resume.',
+    true
+  );
+  retry_result := public.submit_connector_feedback(
+    'phase1_feedback_user',
+    'phase1_client',
+    '22222222-2222-4222-8222-222222222222',
+    'feedback:phase1-idempotency:v1',
+    'missing_capability',
+    'job_application',
+    'deploy_page',
+    'The user needs applicants to upload a resume.',
+    true
+  );
+
+  if first_result ->> 'duplicate' <> 'false'
+     or retry_result ->> 'duplicate' <> 'true'
+     or first_result ->> 'id' <> retry_result ->> 'id'
+     or (select count(*) from public.connector_feedback
+         where grant_id = '22222222-2222-4222-8222-222222222222') <> 1
+     or (select request_count from public.oauth_rate_limit_buckets
+         where grant_id = '22222222-2222-4222-8222-222222222222'
+           and bucket_key = 'feedback') <> 1 then
+    raise exception 'Connector feedback retry was not idempotent';
+  end if;
+
+  begin
+    perform public.submit_connector_feedback(
+      'phase1_feedback_user', 'phase1_client',
+      '22222222-2222-4222-8222-222222222222',
+      'feedback:phase1-idempotency:v1', 'bug', 'website', null,
+      'A different report reused the same operation identifier.', true
+    );
+    raise exception 'Conflicting connector feedback unexpectedly succeeded';
+  exception when raise_exception then
+    if sqlerrm <> 'FEEDBACK_IDEMPOTENCY_CONFLICT' then raise; end if;
+  end;
+
+  begin
+    perform public.submit_connector_feedback(
+      'phase1_feedback_user', 'phase1_client',
+      '22222222-2222-4222-8222-222222222222',
+      'feedback:phase1-private-data:v1', 'bug', 'website', null,
+      'Contact owner@example.com about this report.', true
+    );
+    raise exception 'Private connector feedback unexpectedly succeeded';
+  exception when invalid_parameter_value then
+    if sqlerrm <> 'CONNECTOR_FEEDBACK_INVALID' then raise; end if;
+  end;
+
+  begin
+    perform public.submit_connector_feedback(
+      'phase1_feedback_user', 'phase1_client',
+      '22222222-2222-4222-8222-222222222222',
+      'feedback:phase1-unconfirmed:v1', 'idea', 'other', null,
+      'The user wants another bounded product capability.', false
+    );
+    raise exception 'Unconfirmed connector feedback unexpectedly succeeded';
+  exception when invalid_parameter_value then
+    if sqlerrm <> 'CONNECTOR_FEEDBACK_INVALID' then raise; end if;
+  end;
+
+  -- The first unique report used one slot. Nine more succeed; number eleven
+  -- is rejected by the separate one-hour feedback bucket.
+  for item in 2..10 loop
+    perform public.submit_connector_feedback(
+      'phase1_feedback_user', 'phase1_client',
+      '22222222-2222-4222-8222-222222222222',
+      'feedback:phase1-rate-limit:' || item, 'idea', 'other', 'other',
+      'The user wants another bounded product capability.', true
+    );
+  end loop;
+
+  begin
+    perform public.submit_connector_feedback(
+      'phase1_feedback_user', 'phase1_client',
+      '22222222-2222-4222-8222-222222222222',
+      'feedback:phase1-rate-limit:11', 'idea', 'other', 'other',
+      'The user wants one more bounded product capability.', true
+    );
+    raise exception 'Connector feedback rate limit unexpectedly succeeded';
+  exception when raise_exception then
+    if sqlerrm <> 'FEEDBACK_RATE_LIMITED' then raise; end if;
+  end;
+
+  if (select count(*) from public.list_connector_feedback(2)) <> 2
+     or (select count(*) from public.list_connector_feedback(0)) <> 1 then
+    raise exception 'Connector feedback list limit was not clamped';
+  end if;
+
+  if exists (
+    select 1
+    from public.list_connector_feedback(1) as listed
+    where to_jsonb(listed) ?| array[
+      'user_id', 'client_id', 'grant_id', 'operation_id', 'request_hash', 'updated_at'
+    ]
+       or not (to_jsonb(listed) ?& array[
+         'id', 'kind', 'summary', 'use_case', 'blocked_tool', 'status', 'created_at'
+       ])
+  ) then
+    raise exception 'Connector feedback list exposed unsafe or incomplete fields';
+  end if;
+end
+$$;
+
+do $$
+begin
+  begin
+    perform public.submit_connector_feedback(
+      'phase1_scope_user', 'phase1_client',
+      '11111111-1111-4111-8111-111111111111',
+      'feedback:phase1-missing-scope:v1', 'idea', 'other', null,
+      'This grant did not approve product feedback.', true
+    );
+    raise exception 'A grant without feedback scope unexpectedly succeeded';
+  exception when raise_exception then
+    if sqlerrm <> 'CONNECTOR_FEEDBACK_UNAUTHORIZED' then raise; end if;
+  end;
+end
+$$;
+
+delete from public.users where id = 'phase1_feedback_user';
+
+do $$
+begin
+  if exists (
+    select 1 from public.connector_feedback
+    where user_id = 'phase1_feedback_user'
+  ) then
+    raise exception 'Account deletion retained connector feedback identity';
+  end if;
+end
+$$;
+
 rollback;

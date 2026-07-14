@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Check, ChevronDown, ChevronRight, Copy, FileText, FormInput, Globe2, Mail, Menu, Play, X } from "lucide-react";
+import { track } from "@/lib/analytics";
 import styles from "./home-v2.module.css";
 
 const MCP_URL = "https://jobing.site/mcp";
@@ -56,11 +57,12 @@ const useCases = [
   },
 ];
 
-function CopyConnector({ large = false }: { large?: boolean }) {
+function CopyConnector({ large = false, placement }: { large?: boolean; placement: "hero" | "footer" }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
     await navigator.clipboard.writeText(MCP_URL);
+    track("mcp_url_copied", { placement });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
@@ -97,17 +99,17 @@ export function HomePageClient() {
         <div className={styles.badge} aria-label="Connects to ChatGPT, Claude, and other supported AI apps"><img src={platformLogos.chatgpt} alt="ChatGPT" /><img src={platformLogos.claude} alt="Claude" /><span>Connects to the AI app you already use</span></div>
         <h1>Give your AI the tools<br className={styles.desktopBreak} /> to finish the work.</h1>
         <p className={styles.heroText}>Jobing AI is one connector that lets your AI <span className={styles.abilityPages}>publish websites</span>, <span className={styles.abilityForms}>create custom forms</span>, <span className={styles.abilityLeads}>collect customer enquiries</span>, and <span className={styles.abilityEmail}>follow up by email <small>Coming soon</small></span>. It does the work instead of only giving you instructions.</p>
-        <div className={styles.heroConnector}><CopyConnector large /></div>
+        <div className={styles.heroConnector}><CopyConnector large placement="hero" /></div>
         <p className={styles.heroHint}>Copy this URL into your AI app. Sign in once. Then ask for what you need.</p>
       </section>
 
       <section id="connect" className={styles.connectSection}>
         <div className={styles.videoHeading}>
-          <h2><span>Connect</span><span className={styles.inlineBrand}><Image src="/logo.png" alt="" width={32} height={32} />Jobing AI</span><span>to</span><span className={styles.platformPicker}><button type="button" onClick={() => setPlatformOpen(value => !value)} aria-expanded={platformOpen}><img src={platformLogos[platform]} alt="" />{current.label}<ChevronDown size={19} /></button>{platformOpen && <span className={styles.platformMenu}>{(Object.keys(platforms) as Array<keyof typeof platforms>).map(key => <button type="button" key={key} onClick={() => { setPlatform(key); setPlatformOpen(false); }}><img src={platformLogos[key]} alt="" />{platforms[key].label}{platform === key && <Check size={15} />}</button>)}</span>}</span><span>in 2 minutes.</span></h2>
+          <h2><span>Connect</span><span className={styles.inlineBrand}><Image src="/logo.png" alt="" width={32} height={32} />Jobing AI</span><span>to</span><span className={styles.platformPicker}><button type="button" onClick={() => setPlatformOpen(value => !value)} aria-expanded={platformOpen}><img src={platformLogos[platform]} alt="" />{current.label}<ChevronDown size={19} /></button>{platformOpen && <span className={styles.platformMenu}>{(Object.keys(platforms) as Array<keyof typeof platforms>).map(key => <button type="button" key={key} onClick={() => { setPlatform(key); setPlatformOpen(false); track("connector_platform_selected", { platform: key }); }}><img src={platformLogos[key]} alt="" />{platforms[key].label}{platform === key && <Check size={15} />}</button>)}</span>}</span><span>in 2 minutes.</span></h2>
         </div>
         <div className={styles.videoShell}>
           <div className={styles.videoFrameFull}>
-            {current.playbackId ? <iframe key={current.playbackId} src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`} title={`How to connect Jobing AI to ${current.label}`} loading="eager" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : <div className={styles.videoPlaceholder}><span><Play fill="currentColor" /></span><strong>{current.label} connection video</strong><p>Add the Mux playback ID to show your screen recording here.</p></div>}
+            {current.playbackId ? <iframe key={current.playbackId} src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`} title={`How to connect Jobing AI to ${current.label}`} loading="eager" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen onLoad={() => track("setup_video_loaded", { platform })} /> : <div className={styles.videoPlaceholder}><span><Play fill="currentColor" /></span><strong>{current.label} connection video</strong><p>Add the Mux playback ID to show your screen recording here.</p></div>}
           </div>
           <ol className={styles.setupSteps}>{current.steps.map((step, index) => <li key={step}><span>{index + 1}</span>{step}</li>)}</ol>
         </div>
@@ -134,12 +136,12 @@ export function HomePageClient() {
       <section className={styles.findWork}>
         <div className={styles.sectionIntro}><p>Where your work lives</p><h2>Everything stays easy to find.</h2><span>Your AI creates the work. Jobing AI gives you a dashboard to manage what happens next.</span></div>
         <div className={styles.destinationGrid}>
-          <Link href="/pages"><span><Globe2 /></span><div><small>JOBING AI PAGES</small><h3>Open my pages</h3><p>View, edit, and share every website your AI has published.</p></div><ChevronRight /></Link>
-          <Link href="/forms/app"><span><FormInput /></span><div><small>JOBING AI FORMS</small><h3>Open my forms inbox</h3><p>See your forms and every customer response in one place.</p></div><ChevronRight /></Link>
+          <Link href="/pages" onClick={() => track("dashboard_destination_clicked", { destination: "pages" })}><span><Globe2 /></span><div><small>JOBING AI PAGES</small><h3>Open my pages</h3><p>View, edit, and share every website your AI has published.</p></div><ChevronRight /></Link>
+          <Link href="/forms/app" onClick={() => track("dashboard_destination_clicked", { destination: "forms" })}><span><FormInput /></span><div><small>JOBING AI FORMS</small><h3>Open my forms inbox</h3><p>See your forms and every customer response in one place.</p></div><ChevronRight /></Link>
         </div>
       </section>
 
-      <section className={styles.finalCta}><div><p>One connection. Real outcomes.</p><h2>Give your AI a way to act.</h2><span>Copy the MCP URL and connect Jobing AI to the AI app you already use.</span></div><CopyConnector /></section>
+      <section className={styles.finalCta}><div><p>One connection. Real outcomes.</p><h2>Give your AI a way to act.</h2><span>Copy the MCP URL and connect Jobing AI to the AI app you already use.</span></div><CopyConnector placement="footer" /></section>
 
       <footer className={styles.footer}><div><Image src="/logo.png" alt="" width={24} height={24} /><span>Jobing AI · The connector that finishes the work</span></div><nav><Link href="/pages">Pages</Link><Link href="/forms/app">Forms</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav></footer>
     </main>

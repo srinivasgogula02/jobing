@@ -58,12 +58,13 @@ describe("connected note creation", () => {
 
   it("returns a safe operation error when storage fails", async () => {
     db.insert.mockResolvedValue({ error: { message: "database unavailable" } });
-    await expect(createConnectedNote("user_123", "new-note", "content")).rejects.toThrow("Could not create note: database unavailable");
+    await expect(createConnectedNote("user_123", "new-note", "content")).rejects.toThrow("The note could not be saved right now.");
   });
 });
 
 describe("connected page deployment", () => {
   it("stores HTML under the requesting user and returns the live URL", async () => {
+    vi.stubEnv("NEXT_PUBLIC_PAGES_ROOT_DOMAIN", "jobing.online");
     const result = await deployConnectedPage("user_456", "Launch-Page", "<main>Hello</main>");
 
     expect(db.from).toHaveBeenCalledWith("pages");
@@ -72,11 +73,19 @@ describe("connected page deployment", () => {
       html_content: "<main>Hello</main>",
       user_id: "user_456",
     }));
-    expect(result).toEqual({ id: "launch-page", url: "https://jobing-pages.vercel.app/launch-page" });
+    expect(result).toEqual({ id: "launch-page", url: "https://launch-page.jobing.online" });
   });
 
-  it.each(["new", "edit", "admin", "api", "settings", "tools"])(
+  it.each(["new", "edit", "admin", "api", "settings", "tools", "www", "forms", "assets", "mail"])(
     "rejects reserved page ID %s",
+    async (id) => {
+      await expect(deployConnectedPage("user_456", id, "<p>Page</p>")).rejects.toThrow("Use 1-63 lowercase letters");
+      expect(db.from).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["has_underscore", "-starts-bad", "ends-bad-", "a".repeat(64)])(
+    "rejects page IDs that cannot be DNS labels: %s",
     async (id) => {
       await expect(deployConnectedPage("user_456", id, "<p>Page</p>")).rejects.toThrow("Use 1-63 lowercase letters");
       expect(db.from).not.toHaveBeenCalled();
@@ -89,8 +98,16 @@ describe("connected page deployment", () => {
   });
 
   it("does not overwrite an existing page", async () => {
-    db.maybeSingle.mockResolvedValue({ data: { id: "launch" } });
+    db.maybeSingle.mockResolvedValue({ data: { id: "launch", user_id: "someone_else", html_content: "<p>Other</p>" } });
     await expect(deployConnectedPage("user_456", "launch", "<p>Page</p>")).rejects.toThrow('ID "launch" is already taken');
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  it("treats an exact owner and HTML retry as a successful idempotent replay", async () => {
+    vi.stubEnv("NEXT_PUBLIC_PAGES_ROOT_DOMAIN", "jobing.online");
+    db.maybeSingle.mockResolvedValue({ data: { id: "launch", user_id: "user_456", html_content: "<p>Page</p>" } });
+    await expect(deployConnectedPage("user_456", "launch", "<p>Page</p>"))
+      .resolves.toEqual({ id: "launch", url: "https://launch.jobing.online" });
     expect(db.insert).not.toHaveBeenCalled();
   });
 });

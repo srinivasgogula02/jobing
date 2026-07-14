@@ -13,6 +13,7 @@ export const OAUTH_SCOPES = [
   "forms:read",
   "forms:write",
   "forms:publish",
+  "feedback:write",
 ] as const;
 
 export type OAuthScope = (typeof OAUTH_SCOPES)[number];
@@ -41,6 +42,10 @@ export const OAUTH_SCOPE_DETAILS: Record<OAuthScope, { title: string; descriptio
   "forms:publish": {
     title: "Publish forms",
     description: "Publish, pause, and test forms created for your account.",
+  },
+  "feedback:write": {
+    title: "Send product feedback",
+    description: "Send short, user-approved capability requests and product feedback to Jobing.",
   },
 };
 

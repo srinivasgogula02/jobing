@@ -29,7 +29,11 @@ export type AnalyticsEvent =
   | "install_prompt_shown" // PWA add-to-home-screen surfaced
   | "install_accepted" // PWA installed
   | "feedback_started" // user picked a sentiment on the feedback page (intent)
-  | "feedback_submitted"; // a feedback message was successfully sent
+  | "feedback_submitted" // a feedback message was successfully sent
+  | "mcp_url_copied"
+  | "connector_platform_selected"
+  | "setup_video_loaded"
+  | "dashboard_destination_clicked";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";

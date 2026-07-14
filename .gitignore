@@ -35,6 +35,7 @@ yarn-error.log*
 !.env.example
 !apps/forms/.env.example
 !apps/pages-runtime/.env.example
+!apps/admin/.env.example
 
 # separately deployed Forms app
 /apps/forms/node_modules/
@@ -51,6 +52,14 @@ yarn-error.log*
 /apps/pages-runtime/coverage/
 /apps/pages-runtime/*.tsbuildinfo
 /apps/pages-runtime/next-env.d.ts
+
+# separately deployed operations dashboard
+/apps/admin/node_modules/
+/apps/admin/.next/
+/apps/admin/out/
+/apps/admin/coverage/
+/apps/admin/*.tsbuildinfo
+/apps/admin/next-env.d.ts
 
 # vercel
 .vercel

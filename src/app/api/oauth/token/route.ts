@@ -10,6 +10,7 @@ import {
     normalizeOptionalRequestedScopes,
 } from "@/lib/oauth-scopes";
 import { rateLimit, requestIp } from "@/lib/rate-limit";
+import { captureProductEvent, captureProductException } from "@/lib/product-telemetry";
 
 // OAuth 2.0 token endpoint. Accepts application/x-www-form-urlencoded (required
 // by RFC 6749 / the ChatGPT docs) and supports two grants:
@@ -73,6 +74,20 @@ async function readBoundedTokenBody(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const startedAt = performance.now();
+    const complete = (response: NextResponse, operation: string, outcome: "success" | "error", errorCode?: string) => {
+        captureProductEvent({
+            event: "connector_token_completed",
+            properties: {
+                operation,
+                outcome,
+                ...(errorCode ? { error_code: errorCode } : {}),
+                status: String(response.status),
+                duration_ms: Math.round(performance.now() - startedAt),
+            },
+        });
+        return response;
+    };
     if (!rateLimit(`oauth-token:${requestIp(request)}`, 60, 60_000)) return oauthError("slow_down", "Too many token requests", 429);
     const mediaType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
     if (mediaType !== "application/x-www-form-urlencoded") {
@@ -108,17 +123,18 @@ export async function POST(request: NextRequest) {
 
         try {
             const tokens = await exchangeAuthorizationCode({ code, clientId, redirectUri, codeVerifier, resource });
-            if (!tokens) return oauthError("invalid_grant", "Authorization code is invalid, expired, or does not match this request");
-            return tokenResponse({
+            if (!tokens) return complete(oauthError("invalid_grant", "Authorization code is invalid, expired, or does not match this request"), "authorization_code", "error", "invalid_grant");
+            return complete(tokenResponse({
                 access_token: tokens.access_token,
                 token_type: "Bearer",
                 expires_in: tokens.expires_in,
                 refresh_token: tokens.refresh_token,
                 scope: tokens.scope,
-            });
+            }), "authorization_code", "success");
         } catch (err) {
             console.error("[oauth/token] issue", err);
-            return oauthError("server_error", undefined, 500);
+            captureProductException({ errorCode: "token_exchange_failed", operation: "oauth_token" });
+            return complete(oauthError("server_error", undefined, 500), "authorization_code", "error", "server_error");
         }
     }
 
@@ -137,18 +153,19 @@ export async function POST(request: NextRequest) {
             const tokens = await rotateRefreshToken({ refreshToken, clientId, resource, requestedScopes });
             // RFC 6749: signal a dead refresh token with invalid_grant so ChatGPT
             // re-runs the full OAuth flow instead of looping.
-            if (!tokens) return oauthError("invalid_grant", "Refresh token is invalid or expired");
-            return tokenResponse({
+            if (!tokens) return complete(oauthError("invalid_grant", "Refresh token is invalid or expired"), "refresh_token", "error", "invalid_grant");
+            return complete(tokenResponse({
                 access_token: tokens.access_token,
                 token_type: "Bearer",
                 expires_in: tokens.expires_in,
                 refresh_token: tokens.refresh_token,
                 scope: tokens.scope,
-            });
+            }), "refresh_token", "success");
         } catch (err) {
-            if (err instanceof InvalidOAuthScopeError) return oauthError("invalid_scope", err.message);
+            if (err instanceof InvalidOAuthScopeError) return complete(oauthError("invalid_scope", err.message), "refresh_token", "error", "invalid_scope");
             console.error("[oauth/token] refresh", err);
-            return oauthError("server_error", undefined, 500);
+            captureProductException({ errorCode: "token_refresh_failed", operation: "oauth_token" });
+            return complete(oauthError("server_error", undefined, 500), "refresh_token", "error", "server_error");
         }
     }
 

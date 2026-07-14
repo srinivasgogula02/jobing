@@ -30,6 +30,15 @@ describe("connector tool authorization", () => {
       .toEqual(["notes:write", "pages:write"]);
     expect(() => requireConnectorActor({ ...base, scopes: ["mcp"] }, "forms:read"))
       .toThrow("has not been granted forms:read");
+    expect(() => requireConnectorActor({ ...base, scopes: ["mcp"] }, "feedback:write"))
+      .toThrow("has not been granted feedback:write");
+  });
+
+  it("allows feedback only through the explicit feedback permission", () => {
+    expect(requireConnectorActor({ ...base, scopes: ["feedback:write"] }, "feedback:write"))
+      .toMatchObject({ userId: "user_123", grantId });
+    expect(() => requireConnectorActor({ ...base, scopes: ["pages:write"] }, "feedback:write"))
+      .toThrow("has not been granted feedback:write");
   });
 
   it("fails closed when identity context is incomplete", () => {

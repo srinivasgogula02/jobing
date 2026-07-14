@@ -1,31 +1,14 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
+import { isValidPageId, normalizePageId, PAGE_ID_ERROR } from "@/lib/page-id";
 import { auth } from "@clerk/nextjs/server";
 
-const ID_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
-const MAX_ID_LENGTH = 64;
 const MAX_CONTENT_LENGTH = 500000; // 500KB max per page
 
-// Reserved slugs that must never be used as page IDs
-const RESERVED_IDS = new Set([
-  "new", "edit", "create", "delete", "admin", "api", "settings",
-  "login", "signup", "logout", "dashboard", "tools", "copy",
-]);
-
-function isValidId(id: string) {
-  return (
-    typeof id === "string" &&
-    id.length > 0 &&
-    id.length <= MAX_ID_LENGTH &&
-    ID_REGEX.test(id) &&
-    !RESERVED_IDS.has(id)
-  );
-}
-
 export async function getPage(id: string) {
-  id = (id || "").toLowerCase();
-  if (!isValidId(id)) return null;
+  id = normalizePageId(id || "");
+  if (!isValidPageId(id)) return null;
 
   const { data, error } = await supabase
     .from("pages")
@@ -42,9 +25,9 @@ export async function getPage(id: string) {
 }
 
 export async function savePage(id: string, htmlContent: string) {
-  id = (id || "").toLowerCase();
-  if (!isValidId(id)) {
-    return { success: false, error: "Invalid ID. Use 1-63 lowercase letters, numbers, or hyphens. It must start and end with a letter or number." };
+  id = normalizePageId(id || "");
+  if (!isValidPageId(id)) {
+    return { success: false, error: PAGE_ID_ERROR };
   }
 
   if (typeof htmlContent !== "string" || htmlContent.length === 0) {
@@ -69,7 +52,12 @@ export async function savePage(id: string, htmlContent: string) {
     }
   }
 
-  const payload: any = {
+  const payload: {
+    id: string;
+    html_content: string;
+    updated_at: string;
+    user_id?: string;
+  } = {
     id,
     html_content: htmlContent,
     updated_at: new Date().toISOString(),
@@ -91,8 +79,8 @@ export async function savePage(id: string, htmlContent: string) {
 }
 
 export async function checkPageIdTaken(id: string) {
-  id = (id || "").toLowerCase();
-  if (!isValidId(id)) return true; // Treat invalid IDs as taken
+  id = normalizePageId(id || "");
+  if (!isValidPageId(id)) return true; // Treat invalid IDs as taken
 
   const { data, error } = await supabase
     .from("pages")
@@ -129,7 +117,8 @@ export async function deletePage(id: string) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
 
-  id = (id || "").toLowerCase();
+  id = normalizePageId(id || "");
+  if (!isValidPageId(id)) return { success: false, error: "Page not found" };
   
   // Verify ownership
   const page = await getPage(id);

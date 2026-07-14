@@ -16,12 +16,12 @@ export function PostHogIdentify() {
     // metrics meaningful without sending names or email addresses to Sentry.
     Sentry.setUser(user ? { id: user.id } : null);
 
-    if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || process.env.NODE_ENV !== "production") return;
+    const enabled = process.env.NEXT_PUBLIC_OBSERVABILITY_ENABLED === "true" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
+    if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || !enabled) return;
     if (user) {
-      posthog.identify(user.id, {
-        username: user.username,
-        name: [user.firstName, user.lastName].filter(Boolean).join(" ") || undefined,
-      });
+      // Stable application ID only. Names, usernames, and email addresses are
+      // unnecessary for product analytics and are deliberately excluded.
+      posthog.identify(user.id);
       identifiedUserId.current = user.id;
     } else if (identifiedUserId.current) {
       // Reset only on a real sign-out. Resetting on the first anonymous load

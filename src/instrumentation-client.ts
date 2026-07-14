@@ -4,32 +4,37 @@
 
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
+import { scrubMainSentryEvent, scrubMainSentryTransaction } from "@/lib/sentry-privacy";
+
+const observabilityEnabled = process.env.NEXT_PUBLIC_OBSERVABILITY_ENABLED === "true"
+  || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  enabled: observabilityEnabled && Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN),
   environment: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.NODE_ENV,
-  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1,
+  // Errors are always captured. Keep performance spans intentionally small for
+  // the Sentry free tier and reserve quota for actionable product failures.
+  tracesSampleRate: observabilityEnabled ? 0.02 : 0,
   tracePropagationTargets: [/^\//, /^https:\/\/jobing\.site/],
   sendDefaultPii: false,
+  beforeSend: scrubMainSentryEvent,
+  beforeSendTransaction: scrubMainSentryTransaction,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
 const posthogToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 
-if (posthogToken && process.env.NODE_ENV === "production") {
+if (posthogToken && observabilityEnabled) {
   posthog.init(posthogToken, {
-    api_host: "https://t.jobing.site",
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "/ingest",
     ui_host: "https://us.posthog.com",
     defaults: "2026-01-30",
     person_profiles: "identified_only",
-    disable_session_recording: false,
-    session_recording: {
-      // Never record typed or selected values, even on otherwise safe routes.
-      maskAllInputs: true,
-      // These hooks let future components opt out without changing this config.
-      maskTextSelector: ".ph-mask, [data-ph-mask]",
-      blockSelector: ".ph-no-capture, [data-ph-no-capture]",
-    },
+    autocapture: false,
+    capture_pageview: false,
+    capture_pageleave: false,
+    disable_session_recording: true,
   });
 }

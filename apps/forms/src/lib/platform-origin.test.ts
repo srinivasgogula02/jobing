@@ -17,9 +17,9 @@ describe("isPagesRuntimeOrigin", () => {
   });
 
   it("allows exactly one HTTPS page subdomain", () => {
-    process.env.PAGES_RUNTIME_ROOT_DOMAIN = "pages.example";
-    expect(isPagesRuntimeOrigin("https://launch.pages.example")).toBe(true);
-    expect(isPagesRuntimeOrigin("https://a.b.pages.example")).toBe(false);
-    expect(isPagesRuntimeOrigin("http://launch.pages.example")).toBe(false);
+    process.env.PAGES_RUNTIME_ROOT_DOMAIN = "jobing.online";
+    expect(isPagesRuntimeOrigin("https://launch.jobing.online")).toBe(true);
+    expect(isPagesRuntimeOrigin("https://a.b.jobing.online")).toBe(false);
+    expect(isPagesRuntimeOrigin("http://launch.jobing.online")).toBe(false);
   });
 });

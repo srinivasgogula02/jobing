@@ -46,7 +46,7 @@ export function ConnectorPageClient() {
           <nav className="flex items-center gap-6 text-sm font-medium">
             <a href="#how" className="hidden text-[#62695f] hover:text-[#151914] sm:block">How it works</a>
             <Link href="/connector/manage" className="hidden text-[#62695f] hover:text-[#151914] sm:block">Manage</Link>
-            <a href="#connect" className="inline-flex min-h-11 items-center rounded-lg bg-[#151914] px-4 text-white hover:bg-[#293025]">Connect Jobing AI</a>
+            <Link href="/dashboard" className="inline-flex min-h-11 items-center rounded-lg bg-[#151914] px-4 text-white hover:bg-[#293025]">Dashboard</Link>
           </nav>
         </div>
       </header>

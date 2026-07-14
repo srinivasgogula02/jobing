@@ -15,11 +15,12 @@ export default async function FormsDashboardPage() {
   return (
     <div className="app-layout">
       <aside className="app-sidebar">
-        <Link className="brand" href="/" aria-label="Jobing Forms home">
+        <a className="brand" href={`${process.env.NEXT_PUBLIC_JOBING_SITE_URL || "https://jobing.site"}/dashboard`} aria-label="Jobing AI dashboard">
           <span className="brand__jobing">Jobing</span>
           <span className="brand__product">Forms</span>
-        </Link>
+        </a>
         <nav className="app-nav" aria-label="Forms navigation">
+          <a href={`${process.env.NEXT_PUBLIC_JOBING_SITE_URL || "https://jobing.site"}/dashboard`}>Dashboard</a>
           <Link href="/app" aria-current="page">Forms</Link>
           <Link href="/app/activity">Activity</Link>
           <Link href="/app/system">System</Link>

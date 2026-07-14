@@ -58,15 +58,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/forms",
+        destination: "/forms/app",
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
         source: "/f/:path*",
         destination: `${FORMS_DEPLOYMENT_ORIGIN}/forms/f/:path*`,
-      },
-      {
-        source: "/forms",
-        destination: `${FORMS_DEPLOYMENT_ORIGIN}/forms`,
       },
       {
         source: "/forms/:path*",

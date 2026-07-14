@@ -4,6 +4,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { dodo } from "@/lib/dodo";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { getBillingPlanByProductId } from "@/lib/billing-plans";
 
 function getSupabaseAdmin() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -161,6 +162,9 @@ export async function changePlan(subscriptionId: string, newProductId: string) {
     const user = await currentUser();
     if (!user) return { success: false as const, error: "Not signed in" };
 
+    const newPlan = getBillingPlanByProductId(newProductId);
+    if (!newPlan) return { success: false as const, error: "That plan is not available." };
+
     const supabase = getSupabaseAdmin();
     // Verify subscription ownership
     const { data: sub } = await supabase.from('subscriptions').select('user_id').eq('subscription_id', subscriptionId).single();
@@ -170,7 +174,7 @@ export async function changePlan(subscriptionId: string, newProductId: string) {
 
     try {
         await dodo.subscriptions.changePlan(subscriptionId, {
-            product_id: newProductId,
+            product_id: newPlan.productId,
             proration_billing_mode: "prorated_immediately",
             quantity: 1,
         });

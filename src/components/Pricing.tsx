@@ -1,319 +1,135 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Check, Loader2, ArrowRight, X } from "lucide-react";
-import { createSubscriptionCheckout } from "@/app/actions/subscription";
+import { useState } from "react";
+import Link from "next/link";
+import { Check, Loader2, ArrowRight, ShieldCheck } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
+import { createSubscriptionCheckout } from "@/app/actions/subscription";
+import { getBillingPlans } from "@/lib/billing-plans";
 
-// Product IDs from env vars (set in .env.local)
-const TIERS = [
-    {
-        name: "Pro",
-        id: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_PRO || "",
-        price: 249,
-        originalPrice: 999,
-        description: "Perfect for active job seekers needing multiple tailored resumes.",
-        features: [
-            "50 Resumes per month",
-            "Priority support",
-            "Advanced ATS-optimization models",
-            "Early access to new features"
-        ],
-        popular: true
-    },
-    {
-        name: "Max",
-        id: process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_ELITE || "",
-        price: 499,
-        originalPrice: 1999,
-        description: "For extreme power users applying to hundreds of jobs.",
-        features: [
-            "150 Resumes per month",
-            "Dedicated support",
-            "All models + ultimate tailoring",
-            "API access (Coming soon)",
-        ],
+type PricingProps = {
+  currentProductId?: string | null;
+};
+
+const comparison = [
+  { label: "Published pages", pro: "Unlimited", elite: "Unlimited" },
+  { label: "Custom forms", pro: "25", elite: "100" },
+  { label: "Responses each month", pro: "5,000", elite: "25,000" },
+  { label: "AI connector actions", pro: "Included", elite: "Higher allowance" },
+  { label: "Support", pro: "Standard", elite: "Priority" },
+] as const;
+
+export function Pricing({ currentProductId }: PricingProps) {
+  const plans = getBillingPlans();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const clerk = useClerk();
+
+  async function choosePlan(productId: string) {
+    if (currentProductId) {
+      window.location.href = "/billing";
+      return;
     }
-];
+    if (!productId) {
+      setError("Checkout is temporarily unavailable. The plan has not been connected to a payment product.");
+      return;
+    }
+    if (!clerk.user) {
+      await clerk.redirectToSignIn({
+        signInFallbackRedirectUrl: "/pricing",
+        signUpFallbackRedirectUrl: "/pricing",
+      });
+      return;
+    }
 
-const COMPARISON_FEATURES = [
-    { feature: "Resumes per month", pro: "50", max: "150" },
-    { feature: "ATS-optimization models", pro: "Advanced", max: "Ultimate" },
-    { feature: "Tailoring precision", pro: "Standard", max: "Hyper-personalized" },
-    { feature: "Support", pro: "Priority", max: "Dedicated" },
-    { feature: "Early access to features", pro: true, max: true },
-    { feature: "API access", pro: false, max: "Coming soon" },
-];
+    const attemptId = crypto.randomUUID();
+    try {
+      setLoadingPlan(productId);
+      setError(null);
+      const result = await createSubscriptionCheckout(productId, attemptId);
+      if (result.error) {
+        setError(result.error);
+      } else if (result.url) {
+        window.location.assign(result.url);
+      } else {
+        setError("Checkout could not be started. Try again in a moment.");
+      }
+    } catch {
+      setError("Checkout could not be started. Try again in a moment.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  }
 
-export function Pricing() {
-    const [loadingTier, setLoadingTier] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<"Pro" | "Max">("Pro");
-    const [showStickyCta, setShowStickyCta] = useState(false);
-    const pricingRef = useRef<HTMLElement>(null);
-    const clerk = useClerk();
+  return (
+    <main>
+      <section className="border-b border-[#e1e4dc] bg-[#f7f8f4] px-4 pb-16 pt-14 sm:px-6 sm:pb-20 sm:pt-20">
+        <div className="mx-auto max-w-5xl text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[.16em] text-[#719500]">Pricing</p>
+          <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-bold tracking-[-.05em] text-[#151914] sm:text-6xl">Pay for finished work, not another complicated builder.</h1>
+          <p className="mx-auto mt-5 max-w-2xl text-[17px] leading-8 text-[#687066]">Both plans include the Jobing AI connector, page publishing, native HTML forms, and a dashboard for everything your AI creates.</p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-[#555d52]">
+            <span className="inline-flex items-center gap-2"><ShieldCheck size={16} className="text-[#719500]" /> Secure checkout</span>
+            <span>Cancel anytime</span>
+            <span>Prices in USD</span>
+          </div>
+        </div>
+      </section>
 
-    useEffect(() => {
-        const handleScroll = () => {
-            if (pricingRef.current) {
-                const rect = pricingRef.current.getBoundingClientRect();
-                // Show sticky CTA if the pricing component has entered the viewport
-                if (rect.top <= window.innerHeight - 100) {
-                    setShowStickyCta(true);
-                } else {
-                    setShowStickyCta(false);
-                }
-            }
-        };
+      <section className="bg-white px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-5xl">
+          {error ? (
+            <div role="alert" className="mx-auto mb-7 max-w-2xl rounded-xl border border-[#efc0bb] bg-[#fff2f0] p-4 text-center text-sm font-medium text-[#9b3931]">{error}</div>
+          ) : null}
 
-        window.addEventListener("scroll", handleScroll);
-        handleScroll(); // Initial check
+          <div className="grid gap-5 md:grid-cols-2">
+            {plans.map((plan) => {
+              const isCurrent = currentProductId === plan.productId && Boolean(plan.productId);
+              const isLoading = loadingPlan === plan.productId && Boolean(plan.productId);
+              return (
+                <article key={plan.key} className={`relative flex flex-col rounded-[22px] border p-6 sm:p-8 ${plan.highlighted ? "border-[#a9d72a] bg-[#fbfff1] shadow-[0_18px_55px_rgba(92,120,19,.12)]" : "border-[#dfe3da] bg-white"}`}>
+                  {plan.highlighted ? <span className="absolute right-5 top-5 rounded-full bg-[#151914] px-3 py-1 font-mono text-[9px] uppercase tracking-[.1em] text-white">Most popular</span> : null}
+                  <div className="pr-24">
+                    <h2 className="text-2xl font-bold tracking-[-.03em] text-[#151914]">{plan.name}</h2>
+                    <p className="mt-2 min-h-12 text-sm leading-6 text-[#6e756b]">{plan.description}</p>
+                  </div>
+                  <div className="mt-7 flex items-end gap-2 border-b border-[#e3e7df] pb-7">
+                    <span className="text-5xl font-bold tracking-[-.05em] text-[#151914]">${plan.price}</span>
+                    <span className="pb-1 text-sm font-medium text-[#7a8176]">per month</span>
+                  </div>
+                  <ul className="my-7 flex-1 space-y-3.5">
+                    {plan.features.map((feature) => <li key={feature} className="flex gap-3 text-sm leading-6 text-[#4f574c]"><span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#dff49e] text-[#3f5e00]"><Check size={12} strokeWidth={3} /></span>{feature}</li>)}
+                  </ul>
+                  <button type="button" onClick={() => choosePlan(plan.productId)} disabled={isLoading || isCurrent} className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition ${plan.highlighted ? "bg-[#c1ff00] text-[#151914] hover:bg-[#b5ef08]" : "bg-[#151914] text-white hover:bg-[#293025]"} disabled:cursor-not-allowed disabled:opacity-60`}>
+                    {isLoading ? <><Loader2 size={17} className="animate-spin" /> Opening secure checkout</> : isCurrent ? "Current plan" : currentProductId ? <>Manage subscription <ArrowRight size={16} /></> : <>Choose {plan.name} <ArrowRight size={16} /></>}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
 
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
-
-    const handleSubscribe = async (productId: string) => {
-        if (!clerk.user) {
-            clerk.redirectToSignIn({ signInFallbackRedirectUrl: '/pricing' });
-            return;
-        }
-
-        try {
-            setLoadingTier(productId);
-            setError(null);
-            const res = await createSubscriptionCheckout(productId);
-
-            if (res.error) {
-                setError(res.error);
-            } else if (res.url) {
-                window.location.href = res.url;
-            } else {
-                setError("Could not generate checkout session.");
-            }
-        } catch (err: any) {
-            setError(err.message || "Something went wrong.");
-        } finally {
-            setLoadingTier(null);
-        }
-    };
-
-    const activeTierData = TIERS.find(t => t.name === activeTab) || TIERS[0];
-
-    return (
-        <section ref={pricingRef} className="py-8 md:py-20 pb-36 md:pb-20 relative">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Header */}
-                <div className="text-center max-w-2xl mx-auto mb-8 md:mb-16">
-                    <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-[#1a1a1a]">
-                        Simple, transparent <span className="bg-[#C1FF00] px-2 rounded text-[#1a1a1a]">pricing</span>
-                    </h2>
-                </div>
-
-                {/* Mobile Toggle */}
-                <div className="md:hidden flex justify-center mb-8">
-                    <div className="bg-slate-200/60 p-1 rounded-full inline-flex w-full max-w-[280px]">
-                        <button
-                            onClick={() => setActiveTab("Pro")}
-                            className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-300 ${activeTab === "Pro"
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                        >
-                            Pro
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("Max")}
-                            className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-300 ${activeTab === "Max"
-                                ? 'bg-[#1a1a1a] text-white shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                        >
-                            Max
-                        </button>
-                    </div>
-                </div>
-
-                {/* Error */}
-                {error && (
-                    <div className="max-w-md mx-auto mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-center text-sm font-medium">
-                        {error}
-                    </div>
-                )}
-
-                {/* Cards Grid */}
-                <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                    {TIERS.map((tier) => {
-                        // On mobile, only display the card matching the activeTab
-                        const isMobileHidden = activeTab !== tier.name;
-                        
-                        return (
-                            <div
-                                key={tier.name}
-                                className={`relative flex-col p-6 md:p-8 rounded-2xl border bg-white/80 backdrop-blur-md transition-all duration-300 hover:shadow-lg ${tier.popular
-                                    ? 'border-[#C1FF00] shadow-md shadow-[#C1FF00]/10'
-                                    : 'border-[#e5e5e5] hover:border-[#d4d4d4]'
-                                    } ${isMobileHidden ? 'hidden md:flex' : 'flex'}`}
-                            >
-                                {/* Popular Badge */}
-                                {tier.popular && (
-                                    <div className="absolute -top-3.5 left-6 px-4 py-1 bg-[#C1FF00] text-[#1a1a1a] text-xs font-bold tracking-wider uppercase rounded-full shadow-sm">
-                                        Most Popular
-                                    </div>
-                                )}
-
-                                {/* Plan Info */}
-                                <div className="mb-6 md:mb-8 mt-2 md:mt-0">
-                                    <h3 className="text-2xl font-bold text-slate-950 mb-1">{tier.name}</h3>
-                                    <p className="text-slate-500 text-sm font-medium">{tier.description}</p>
-                                </div>
-
-                                {/* Price */}
-                                <div className="mb-6 md:mb-8">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-sm text-slate-500 font-bold line-through decoration-slate-400 decoration-2">₹{tier.originalPrice}</span>
-                                        <span className="text-[10px] font-black bg-[#C1FF00]/20 text-[#1a1a1a] px-1.5 py-0.5 rounded uppercase tracking-wider">Save {Math.round((1 - tier.price / tier.originalPrice) * 100)}%</span>
-                                    </div>
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-4xl md:text-5xl font-bold text-slate-950">₹{tier.price}</span>
-                                        <span className="text-slate-400 font-bold">/month</span>
-                                    </div>
-                                </div>
-
-                                {/* Features */}
-                                <ul className="flex-1 space-y-3 mb-8 md:mb-8">
-                                    {tier.features.map((feature) => {
-                                        const isComingSoon = feature.includes("(Coming soon)");
-                                        const featureText = feature.replace(" (Coming soon)", "");
-
-                                        return (
-                                            <li key={feature} className="flex items-start gap-3">
-                                                <div className="w-5 h-5 mt-0.5 rounded-md bg-[#C1FF00]/20 flex items-center justify-center flex-shrink-0">
-                                                    <Check className="h-3 w-3 text-[#1a1a1a]" />
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="text-slate-600 text-sm font-medium leading-tight">{featureText}</span>
-                                                    {isComingSoon && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200">
-                                                            Soon
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-
-                                {/* Desktop CTA (Hidden on Mobile) */}
-                                <button
-                                    onClick={() => handleSubscribe(tier.id)}
-                                    disabled={loadingTier !== null}
-                                    className={`hidden md:flex w-full py-3.5 px-6 rounded-xl text-[15px] font-bold transition-all duration-300 justify-center items-center gap-2 cursor-pointer ${tier.popular
-                                        ? 'bg-[#C1FF00] hover:opacity-90 text-[#1a1a1a]'
-                                        : 'bg-[#1a1a1a] hover:bg-[#333333] text-white'
-                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                >
-                                    {loadingTier === tier.id ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            Processing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Get {tier.name}
-                                            <ArrowRight size={16} />
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Comparison Table */}
-                <div className="mt-16 md:mt-24 max-w-4xl mx-auto">
-                    <h3 className="text-2xl font-bold text-center text-[#1a1a1a] mb-8">Compare plan features</h3>
-                    
-                    {/* Unified Responsive Table */}
-                    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-                        <table className="w-full text-left border-collapse min-w-[320px]">
-                            <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200">
-                                    <th className="py-3 md:py-4 px-3 md:px-6 font-semibold text-slate-900 w-1/2 text-xs md:text-base">Features</th>
-                                    <th className="py-3 md:py-4 px-2 md:px-6 font-semibold text-slate-900 w-1/4 text-xs md:text-base text-center">Pro</th>
-                                    <th className="py-3 md:py-4 px-2 md:px-6 font-semibold text-[#1a1a1a] w-1/4 bg-[#C1FF00]/10 text-xs md:text-base text-center">Max</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {COMPARISON_FEATURES.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                        <td className="py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm text-slate-600 font-medium">{item.feature}</td>
-                                        <td className="py-3 md:py-4 px-2 md:px-6 text-xs md:text-sm text-slate-900 text-center">
-                                            <div className="flex justify-center">
-                                                {typeof item.pro === "boolean" ? (
-                                                    item.pro ? <Check className="w-4 h-4 md:w-5 md:h-5 text-green-500" /> : <X className="w-4 h-4 md:w-5 md:h-5 text-slate-300" />
-                                                ) : (
-                                                    item.pro
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="py-3 md:py-4 px-2 md:px-6 text-xs md:text-sm text-slate-900 font-medium bg-[#C1FF00]/5 text-center">
-                                            <div className="flex justify-center">
-                                                {typeof item.max === "boolean" ? (
-                                                    item.max ? (
-                                                        <div className="w-4 h-4 md:w-5 md:h-5 bg-black rounded-full flex items-center justify-center">
-                                                            <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#C1FF00]" />
-                                                        </div>
-                                                    ) : <X className="w-4 h-4 md:w-5 md:h-5 text-slate-300" />
-                                                ) : (
-                                                    item.max
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Footer Note */}
-                <p className="hidden md:block text-center text-sm text-slate-400 mt-10 font-medium">
-                    Cancel anytime.
-                </p>
+          <div className="mt-16 overflow-hidden rounded-[20px] border border-[#dfe3da]">
+            <div className="border-b border-[#e5e8e1] bg-[#f7f8f4] px-5 py-5 sm:px-7"><h2 className="text-xl font-bold text-[#151914]">Compare the limits that matter</h2><p className="mt-1 text-sm text-[#6e756b]">No hidden feature matrix. Choose based on the volume you expect.</p></div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+                <thead><tr className="border-b border-[#e8ebe5] font-mono text-[10px] uppercase tracking-[.1em] text-[#7b8277]"><th className="px-5 py-4 sm:px-7">Included</th><th className="px-5 py-4">Pro</th><th className="bg-[#fbfff1] px-5 py-4">Elite</th></tr></thead>
+                <tbody>{comparison.map((row) => <tr key={row.label} className="border-b border-[#eef0ec] last:border-0"><th className="px-5 py-4 font-medium text-[#555d52] sm:px-7">{row.label}</th><td className="px-5 py-4 font-semibold text-[#151914]">{row.pro}</td><td className="bg-[#fbfff1] px-5 py-4 font-semibold text-[#151914]">{row.elite}</td></tr>)}</tbody>
+              </table>
             </div>
+          </div>
 
-            {/* Mobile Sticky Footer CTA */}
-            <div className={`md:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 pb-safe transition-transform duration-500 ease-out ${showStickyCta ? 'translate-y-0' : 'translate-y-[150%]'}`}>
-                <button
-                    onClick={() => handleSubscribe(activeTierData.id)}
-                    disabled={loadingTier !== null}
-                    className={`w-full py-3.5 px-4 rounded-xl text-[15px] font-bold transition-all duration-300 flex justify-between items-center cursor-pointer ${activeTierData.popular
-                        ? 'bg-[#C1FF00] text-[#1a1a1a]'
-                        : 'bg-[#1a1a1a] text-white'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                    <div className="flex items-center gap-2">
-                        {loadingTier === activeTierData.id ? (
-                            <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                <span>Processing...</span>
-                            </>
-                        ) : (
-                            <span>Get {activeTierData.name}</span>
-                        )}
-                    </div>
-
-                    {loadingTier !== activeTierData.id && (
-                        <div className="flex items-center gap-1.5">
-                            <div className="flex flex-col items-end leading-none mr-1">
-                                <span className="text-[10px] opacity-60 line-through">₹{activeTierData.originalPrice}</span>
-                                <span className="text-lg tracking-tight">₹{activeTierData.price}<span className="text-xs opacity-80">/mo</span></span>
-                            </div>
-                            <ArrowRight size={18} />
-                        </div>
-                    )}
-                </button>
+          <section className="mx-auto mt-16 max-w-3xl">
+            <h2 className="text-center text-2xl font-bold tracking-[-.03em] text-[#151914]">Before you pay</h2>
+            <div className="mt-7 divide-y divide-[#e5e8e1] border-y border-[#e5e8e1]">
+              <details className="group py-5"><summary className="cursor-pointer list-none font-semibold text-[#151914]">What happens after checkout?</summary><p className="mt-3 text-sm leading-6 text-[#6e756b]">Dodo Payments returns you to your Jobing AI dashboard. The signed webhook activates your plan, updates your Forms limits, and records the invoice.</p></details>
+              <details className="group py-5"><summary className="cursor-pointer list-none font-semibold text-[#151914]">Can I cancel?</summary><p className="mt-3 text-sm leading-6 text-[#6e756b]">Yes. Cancel from Billing and keep access until the end of the paid billing period.</p></details>
+              <details className="group py-5"><summary className="cursor-pointer list-none font-semibold text-[#151914]">What happens to my work if I cancel?</summary><p className="mt-3 text-sm leading-6 text-[#6e756b]">Published pages stay available. Your Forms workspace returns to the standard five-form limit, and existing responses remain in your inbox.</p></details>
             </div>
-        </section>
-    );
+          </section>
+
+          <div className="mt-14 text-center"><Link href="/dashboard" className="inline-flex min-h-11 items-center gap-2 font-semibold text-[#151914]">Go to dashboard <ArrowRight size={16} /></Link></div>
+        </div>
+      </section>
+    </main>
+  );
 }

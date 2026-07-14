@@ -1,5 +1,6 @@
 import { SignUp } from "@clerk/nextjs";
 import { clerkAuthAppearance } from "@/lib/clerk-auth-appearance";
+import { DEFAULT_AUTH_DESTINATION } from "@/lib/app-navigation";
 
 export default function SignUpPage() {
   return (
@@ -8,7 +9,7 @@ export default function SignUpPage() {
         path="/sign-up"
         routing="path"
         signInUrl="/sign-in"
-        fallbackRedirectUrl="/tools"
+        fallbackRedirectUrl={DEFAULT_AUTH_DESTINATION}
         appearance={clerkAuthAppearance}
       />
     </main>

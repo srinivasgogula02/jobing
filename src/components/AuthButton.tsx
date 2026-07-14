@@ -2,6 +2,7 @@
 
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import type { ReactNode } from "react";
+import { DEFAULT_AUTH_DESTINATION } from "@/lib/app-navigation";
 
 interface AuthButtonProps {
     mode: "sign-in" | "sign-up";
@@ -21,14 +22,14 @@ interface AuthButtonProps {
 export function AuthButton({ mode, className, children }: AuthButtonProps) {
     if (mode === "sign-in") {
         return (
-            <SignInButton forceRedirectUrl="/tools">
+            <SignInButton forceRedirectUrl={DEFAULT_AUTH_DESTINATION}>
                 <button className={className}>{children}</button>
             </SignInButton>
         );
     }
 
     return (
-        <SignUpButton forceRedirectUrl="/tools">
+        <SignUpButton forceRedirectUrl={DEFAULT_AUTH_DESTINATION}>
             <button className={className}>{children}</button>
         </SignUpButton>
     );

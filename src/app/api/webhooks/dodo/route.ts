@@ -4,6 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendMetaPurchaseEvent } from '@/lib/metaCAPI';
 import { getPostHogClient } from '@/lib/posthog-server';
+import crypto from 'node:crypto';
+import { syncFormsWorkspaceProjection } from '@/lib/forms-service';
+import { buildFormsSubscriptionProjection, subscriptionAccessState, type SubscriptionAccessState } from '@/lib/subscription-entitlements';
+import { getBillingPlanByProductId } from '@/lib/billing-plans';
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
@@ -27,6 +31,7 @@ export async function POST(req: Request) {
 
     // Get the body
     const body = await req.text();
+    const eventKey = crypto.createHash('sha256').update(body).digest('hex').slice(0, 32);
     let payload: any;
     try {
         payload = JSON.parse(body);
@@ -53,24 +58,24 @@ export async function POST(req: Request) {
             // Subscription events
             case "subscription.active":
             case "subscription.plan_changed":
-            case "subscription.renewed":
-            case "subscription.on_hold": {
+            case "subscription.renewed": {
                 await manageSubscription(event);
-                await updateSubscriptionTierAndCredits({
+                const userId = await updateSubscriptionTierAndCredits({
                     dodoCustomerId: event.data.customer.customer_id,
                     subscriptionId: event.data.subscription_id,
-                    isActive: true,
+                    accessState: "active",
                     clerkUserId: event.data.metadata?.clerk_user_id || null,
                     productId: event.data.product_id,
                 });
+                await syncSubscriptionFormsEntitlement(event, eventKey, userId, "active");
                 const posthog = getPostHogClient();
                 const activatedDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
+                const activatedPlan = getBillingPlanByProductId(event.data.product_id);
                 await posthog?.captureImmediate({
                     distinctId: activatedDistinctId,
                     event: 'subscription_activated',
                     properties: {
-                        subscription_id: event.data.subscription_id,
-                        product_id: event.data.product_id,
+                        plan: activatedPlan?.key || 'unknown',
                         event_type: event.type,
                         currency: event.data.currency,
                     },
@@ -78,23 +83,36 @@ export async function POST(req: Request) {
                 break;
             }
 
+            case "subscription.on_hold": {
+                await manageSubscription(event);
+                const userId = await updateSubscriptionTierAndCredits({
+                    dodoCustomerId: event.data.customer.customer_id,
+                    subscriptionId: event.data.subscription_id,
+                    accessState: "grace",
+                    clerkUserId: event.data.metadata?.clerk_user_id || null,
+                    productId: event.data.product_id,
+                });
+                await syncSubscriptionFormsEntitlement(event, eventKey, userId, "grace");
+                break;
+            }
+
             case "subscription.cancelled":
             case "subscription.expired":
             case "subscription.failed": {
                 await manageSubscription(event);
-                await updateSubscriptionTierAndCredits({
+                const userId = await updateSubscriptionTierAndCredits({
                     dodoCustomerId: event.data.customer.customer_id,
                     subscriptionId: null,
-                    isActive: false,
+                    accessState: "inactive",
                     clerkUserId: event.data.metadata?.clerk_user_id || null,
                 });
+                await syncSubscriptionFormsEntitlement(event, eventKey, userId, "inactive");
                 const posthog = getPostHogClient();
                 const cancelledDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
                 await posthog?.captureImmediate({
                     distinctId: cancelledDistinctId,
                     event: 'subscription_cancelled',
                     properties: {
-                        subscription_id: event.data.subscription_id,
                         event_type: event.type,
                         currency: event.data.currency,
                     },
@@ -112,10 +130,8 @@ export async function POST(req: Request) {
                     distinctId: paymentDistinctId,
                     event: 'payment_succeeded',
                     properties: {
-                        payment_id: event.data.payment_id,
-                        total_amount: event.data.total_amount,
                         currency: event.data.currency,
-                        subscription_id: event.data.subscription_id,
+                        outcome: 'succeeded',
                     },
                 }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
                 break;
@@ -258,7 +274,7 @@ async function managePayment(event: any) {
 async function updateSubscriptionTierAndCredits(props: {
     dodoCustomerId: string;
     subscriptionId: string | null;
-    isActive: boolean;
+    accessState: SubscriptionAccessState;
     clerkUserId?: string | null;
     productId?: string;
 }) {
@@ -291,11 +307,12 @@ async function updateSubscriptionTierAndCredits(props: {
 
     if (!user) {
         console.warn(`[updateSubscriptionTier] User not found for Clerk ID ${props.clerkUserId} or Dodo Customer ${props.dodoCustomerId}.`);
-        return;
+        throw new Error('Subscription user could not be resolved.');
     }
 
+    const retainsAccess = props.accessState === 'active' || props.accessState === 'grace';
     const updates: any = {
-        current_subscription_id: props.subscriptionId,
+        current_subscription_id: retainsAccess ? props.subscriptionId : null,
     };
 
     // Store dodo_customer_id on user if not already set
@@ -304,7 +321,7 @@ async function updateSubscriptionTierAndCredits(props: {
     }
 
     // Allocate credits when subscription becomes active or renews
-    if (props.isActive) {
+    if (props.accessState === 'active') {
         let addedCredits = 0;
         if (props.productId === process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_PRO) {
             addedCredits = 50;
@@ -313,8 +330,10 @@ async function updateSubscriptionTierAndCredits(props: {
         }
 
         if (addedCredits > 0) {
-            updates.credits = (user.credits || 0) + addedCredits;
-            console.log(`[updateSubscriptionTier] Allocating ${addedCredits} credits to user ${user.id} for product ${props.productId}.`);
+            // This is a period allowance, not a balance increment. Assigning the
+            // allowance makes webhook retries and duplicate deliveries idempotent.
+            updates.credits = addedCredits;
+            console.log(`[updateSubscriptionTier] Set ${addedCredits} credits for user ${user.id}.`);
         } else {
             console.warn(`[updateSubscriptionTier] Unknown product ID ${props.productId}, allocating 0 credits.`);
         }
@@ -331,20 +350,44 @@ async function updateSubscriptionTierAndCredits(props: {
     }
 
     // Sync is_paid status to Clerk publicMetadata
-    if (props.clerkUserId) {
+    const clerkUserId = props.clerkUserId || user.id;
+    if (clerkUserId) {
         try {
             const client = await clerkClient();
-            await client.users.updateUserMetadata(props.clerkUserId, {
+            const clerkUser = await client.users.getUser(clerkUserId);
+            await client.users.updateUserMetadata(clerkUserId, {
                 publicMetadata: {
-                    is_paid: props.isActive,
-                    has_credits: props.isActive // Subscription grants credits, so sync this too
+                    ...clerkUser.publicMetadata,
+                    is_paid: retainsAccess,
+                    has_credits: retainsAccess,
                 }
             });
-            console.log(`[updateSubscriptionTier] Synced is_paid=${props.isActive} to Clerk for ${props.clerkUserId}.`);
+            console.log(`[updateSubscriptionTier] Synced subscription access to Clerk for ${clerkUserId}.`);
         } catch (clerkErr) {
             console.error(`[updateSubscriptionTier] Error syncing to Clerk:`, clerkErr);
         }
     }
 
     console.log(`[updateSubscriptionTier] User tier updated successfully for ${user.id}.`);
+    return user.id as string;
+}
+
+async function syncSubscriptionFormsEntitlement(
+    event: any,
+    eventKey: string,
+    userId: string,
+    accessState: SubscriptionAccessState,
+) {
+    const classified = subscriptionAccessState(event.type);
+    if (classified !== accessState) throw new Error('Subscription event classification mismatch.');
+    const eventTimestamp = event.data.updated_at || event.data.created_at || event.created_at;
+    const projection = buildFormsSubscriptionProjection({
+        userId,
+        productId: accessState === 'inactive' ? null : event.data.product_id,
+        accessState,
+        eventKey,
+        eventTimestamp,
+        eventType: event.type,
+    });
+    await syncFormsWorkspaceProjection(projection);
 }

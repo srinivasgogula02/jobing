@@ -9,6 +9,7 @@ import { UserButton, useUser, SignUpButton } from "@clerk/nextjs";
 import { Zap, Menu, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { DEFAULT_AUTH_DESTINATION } from "@/lib/app-navigation";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -79,7 +80,7 @@ export function DashboardShell({ children, credits, breadcrumbs, fullBleed }: Da
               <Menu size={20} />
             </button>
             <div className="flex items-center gap-2 overflow-hidden flex-nowrap min-w-0">
-              <Link href="/" className="flex items-center shrink-0">
+              <Link href="/dashboard" className="flex items-center shrink-0">
                 <span className="font-bold text-[14px] text-[#1a1a1a] tracking-tight hover:text-[#8bb800] transition-colors">Jobing AI</span>
               </Link>
               
@@ -136,7 +137,7 @@ export function DashboardShell({ children, credits, breadcrumbs, fullBleed }: Da
                 </UserButton>
               </>
             ) : isLoaded && !isSignedIn ? (
-              <SignUpButton forceRedirectUrl="/tools">
+              <SignUpButton forceRedirectUrl={DEFAULT_AUTH_DESTINATION}>
                 <button className="btn-primary px-4 py-1.5 text-sm font-bold shadow-lg shadow-[#C1FF00]/20 hover:scale-[1.02] transition-transform flex items-center gap-1.5">
                   Get Started <ArrowRight size={14} />
                 </button>

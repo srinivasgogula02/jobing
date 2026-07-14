@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { createDualmarkMiddleware } from '@dualmark/nextjs'
 import { dualmarkConfig, hasMarkdownTwin, markdownTwinPath } from '@/lib/dualmark'
 import { resolveClerkAuthorizedParties } from '@/lib/clerk-config'
+import { isAuthOnlyProductPath } from '@/lib/app-navigation'
 
 // ─── DualMark (AEO) ───────────────────────────────────────────────────────────
 //
@@ -114,6 +115,7 @@ const isRetiredRoute = createRouteMatcher([
 //   Good for billing, account management, etc.
 //
 const isAuthOnlyRoute = createRouteMatcher([
+  '/dashboard(.*)',
   '/billing(.*)',
   '/connector/manage(.*)',
   '/forms/app(.*)',
@@ -157,7 +159,7 @@ export default clerkMiddleware(
     }
 
     // TIER 2: Auth-only routes — signed in but no payment check
-    if (isAuthOnlyRoute(req)) {
+    if (isAuthOnlyRoute(req) || isAuthOnlyProductPath(pathname)) {
       return NextResponse.next();
     }
 

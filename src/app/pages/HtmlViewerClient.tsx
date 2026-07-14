@@ -419,7 +419,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
                     <PanelLeftOpen size={16} />
                   </button>
                 )}
-                <Link href="/pages" className="flex items-center gap-1.5 shrink-0" title="Jobing Pages">
+                <Link href={isSignedIn ? "/dashboard/pages" : "/pages"} className="flex items-center gap-1.5 shrink-0" title={isSignedIn ? "Back to my pages" : "Jobing Pages"}>
                   <img src="/logo.png" alt="Jobing Pages" className="w-5 h-5 object-contain hover:scale-105 transition-transform" />
                   <span className="text-[#C1FF00] text-xs font-black uppercase tracking-wider hidden sm:inline">Jobing Pages</span>
                 </Link>
@@ -645,16 +645,8 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
                 </span>
               </a>
             </div>
-            <p className="text-black/50 text-xs sm:text-sm font-medium text-center sm:text-right">
-              Stop getting rejected.{" "}
-              <a
-                href="/tools"
-                target="_blank"
-                className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold"
-              >
-                Check your AI-Readiness Score
-              </a>
-              .
+            <p className="text-black/60 text-xs sm:text-sm font-medium text-center sm:text-right">
+              {isSignedIn ? <Link href="/dashboard/pages" className="text-black underline decoration-black/30 underline-offset-4 font-bold">Manage all published pages</Link> : "Sign in before publishing if you want to edit this page later."}
             </p>
           </div>
         </footer>

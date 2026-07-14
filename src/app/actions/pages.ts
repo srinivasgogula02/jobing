@@ -1,6 +1,7 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isValidPageId, normalizePageId, PAGE_ID_ERROR } from "@/lib/page-id";
 import { auth } from "@clerk/nextjs/server";
 
@@ -99,9 +100,9 @@ export async function getUserPages() {
   const { userId } = await auth();
   if (!userId) return [];
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseAdmin()
     .from("pages")
-    .select("id, updated_at")
+    .select("id, created_at, updated_at")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 

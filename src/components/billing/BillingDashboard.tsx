@@ -8,8 +8,10 @@ import {
 import Link from "next/link";
 import {
     cancelSubscription,
+    changePlan,
     restoreSubscription,
 } from "@/app/actions/billing";
+import { getBillingPlanByProductId, getBillingPlans } from "@/lib/billing-plans";
 
 // ─────────────────────────────────
 // Types
@@ -28,7 +30,7 @@ interface Subscription {
     payment_period_interval: string;
     subscription_period_interval: string;
     customer_email: string;
-    metadata: any;
+    metadata: Record<string, unknown> | null;
 }
 
 interface Payment {
@@ -66,8 +68,6 @@ export function BillingDashboard({
     subscription,
     userRow,
     invoices,
-    userName,
-    userEmail,
     isLiveMode,
 }: BillingDashboardProps) {
     const [activeTab, setActiveTab] = useState<"billing" | "invoices">("billing");
@@ -80,14 +80,14 @@ export function BillingDashboard({
     return (
         <div className="w-full max-w-3xl mx-auto px-4 py-6 md:px-0 md:py-0">
             <div className="mb-6">
-                <p className="text-[#6b7280] font-medium">Manage your plan, track credits, and view invoices.</p>
+                <p className="text-[#6b7280] font-medium">Manage your plan, monthly allowance, and payment history.</p>
             </div>
 
             {/* Credits Card */}
             <div className="mb-8 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-slate-500 font-medium mb-1">Available Credits</p>
+                        <p className="text-sm text-slate-500 font-medium mb-1">Connector allowance</p>
                         <div className="flex items-center gap-2.5">
                             <div className="w-10 h-10 rounded-full bg-[#C1FF00]/20 flex items-center justify-center">
                                 <Zap size={20} className="text-[#8bb800] fill-[#8bb800]" />
@@ -103,7 +103,7 @@ export function BillingDashboard({
                             className="yellow-glow px-5 py-2.5 bg-[#C1FF00] hover:opacity-90 text-[#1a1a1a] text-sm font-bold rounded-xl transition-all duration-300 flex items-center gap-2"
                         >
                             <ArrowUpRight size={16} />
-                            Get Credits
+                            See plans
                         </Link>
                     )}
                 </div>
@@ -175,6 +175,20 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
         });
     };
 
+    const handlePlanChange = (newProductId: string) => {
+        if (!subscription) return;
+        if (!confirm("Change plan now? Dodo Payments may apply a prorated charge or credit.")) return;
+        startTransition(async () => {
+            const res = await changePlan(subscription.subscription_id, newProductId);
+            if (res.success) {
+                setActionMsg({ type: "success", text: "Plan change requested. Your limits will update after payment confirmation." });
+                setTimeout(() => window.location.reload(), 1800);
+            } else {
+                setActionMsg({ type: "error", text: res.error || "The plan could not be changed." });
+            }
+        });
+    };
+
     // No subscription state
     if (!subscription) {
         return (
@@ -184,7 +198,7 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
                 </div>
                 <h3 className="text-xl font-bold text-slate-950 mb-2">No active subscription</h3>
                 <p className="text-slate-500 mb-8 max-w-sm mx-auto font-medium">
-                    Subscribe to unlock credits and premium features. Cancel anytime with no hassle.
+                    Choose a plan to increase your Forms limits and connector allowance. Cancel anytime.
                 </p>
                 <Link
                     href="/pricing"
@@ -202,6 +216,8 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
     const price = (subscription.recurring_pre_tax_amount / 100).toFixed(2);
     const currency = subscription.currency === "USD" ? "$" : subscription.currency;
     const interval = subscription.payment_period_interval === "Month" ? "mo" : subscription.payment_period_interval === "Year" ? "yr" : "";
+    const currentPlan = getBillingPlanByProductId(subscription.product_id);
+    const availablePlans = getBillingPlans().filter((plan) => plan.productId && plan.productId !== subscription.product_id);
 
     return (
         <div className="space-y-6">
@@ -241,7 +257,7 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
                                     {subscription.status}
                                 </span>
                             </div>
-                            <p className="text-slate-500 text-sm font-medium">Product: {subscription.product_id}</p>
+                            <p className="text-slate-500 text-sm font-medium">{currentPlan ? `${currentPlan.name} plan` : "Jobing AI subscription"}</p>
                         </div>
                         <div className="text-right">
                             <span className="text-3xl font-bold text-slate-950">{currency}{price}</span>
@@ -302,6 +318,20 @@ function SubscriptionPanel({ subscription }: { subscription: Subscription | null
                             </button>
                         )}
                     </div>
+
+                    {availablePlans.length > 0 && isActive && !isCancelling ? (
+                        <div className="mt-7 border-t border-slate-200 pt-6">
+                            <p className="text-sm font-bold text-slate-950">Change plan</p>
+                            <p className="mt-1 text-sm text-slate-500">The price difference is prorated immediately.</p>
+                            <div className="mt-4 flex flex-wrap gap-3">
+                                {availablePlans.map((plan) => (
+                                    <button key={plan.key} type="button" onClick={() => handlePlanChange(plan.productId)} disabled={isPending} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                                        Switch to {plan.name} · ${plan.price}/mo
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
             </div>
         </div>

@@ -3,10 +3,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  FileText, Settings, CreditCard, LogOut,
+  Settings, CreditCard, LogOut,
   ChevronDown, ChevronUp,
-  LayoutGrid, PanelLeftClose, PanelLeftOpen,
+  LayoutDashboard, PanelLeftClose, PanelLeftOpen,
   PlugZap,
+  Globe2,
+  FormInput,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { useState } from "react";
@@ -21,9 +23,11 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const navItems = [
-    { name: "Tools", href: "/tools", icon: LayoutGrid },
-    { name: "AI Connector", href: "/connector", icon: PlugZap },
-    { name: "Blog", href: "/blog", icon: FileText },
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
+    { name: "Pages", href: "/dashboard/pages", icon: Globe2 },
+    { name: "Forms", href: "/forms/app", icon: FormInput },
+    { name: "AI connector", href: "/connector/manage", icon: PlugZap },
+    { name: "Billing", href: "/billing", icon: CreditCard },
   ];
 
   return (
@@ -35,15 +39,16 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
       {/* Header: Logo + Collapse button — flush to top, matched h-14 */}
       <div className={`flex items-center h-14 shrink-0 border-b border-[#f0f0f0] px-4 ${collapsed ? "justify-center px-2" : "justify-between"}`}>
         {!collapsed && (
-          <Link href="/" onClick={onClose} className="flex items-center">
+          <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2">
             <Image
               src="/logo.png"
               alt="Jobing AI"
-              width={52}
-              height={20}
-              className="object-contain h-5 w-auto"
+              width={26}
+              height={26}
+              className="h-6 w-6 rounded-md object-contain"
               priority
             />
+            <span className="text-sm font-bold tracking-[-.02em] text-[#151914]">Jobing AI</span>
           </Link>
         )}
         {/* Collapse toggle — desktop only */}
@@ -61,7 +66,9 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
       {/* Nav */}
       <nav className={`flex-1 space-y-0.5 mt-2 ${collapsed ? "px-1.5" : "px-4"}`}>
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = item.exact
+            ? pathname === item.href
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           if (collapsed) {
             const collapsedClass = `flex items-center justify-center w-9 h-9 mx-auto rounded-lg transition-all focus:outline-none ${

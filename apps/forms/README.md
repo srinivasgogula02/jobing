@@ -37,7 +37,10 @@ Create two Vercel projects from this Git repository:
 | `jobing-forms` | `apps/forms` | `jobing.site/forms` via the main project rewrite | New Neon project |
 
 Use Node.js 22 and the committed npm 11.6.2 lockfiles. Keep Git-based preview
-deployments enabled for both projects. The Forms build has `basePath: "/forms"`;
+deployments enabled for both projects. In the `jobing-forms` project, keep
+"Include source files outside of the Root Directory" disabled; Forms has its own
+lockfile and does not import from the repository root. The Forms build has
+`basePath: "/forms"`;
 the main deployment proxies `/forms` and `/forms/:path*` to the stable
 `jobing-forms.vercel.app` production alias.
 

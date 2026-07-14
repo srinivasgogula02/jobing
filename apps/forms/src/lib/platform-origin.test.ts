@@ -7,9 +7,13 @@ afterEach(() => {
 });
 
 describe("isPagesRuntimeOrigin", () => {
-  it("allows an exact deployment origin", () => {
-    process.env.PAGES_RUNTIME_ALLOWED_ORIGINS = "https://jobing-pages.vercel.app";
+  it("always allows the first-party Pages production origin", () => {
     expect(isPagesRuntimeOrigin("https://jobing-pages.vercel.app")).toBe(true);
+  });
+
+  it("allows an exact deployment origin", () => {
+    process.env.PAGES_RUNTIME_ALLOWED_ORIGINS = "https://pages-preview.example";
+    expect(isPagesRuntimeOrigin("https://pages-preview.example")).toBe(true);
   });
 
   it("allows exactly one HTTPS page subdomain", () => {
@@ -19,4 +23,3 @@ describe("isPagesRuntimeOrigin", () => {
     expect(isPagesRuntimeOrigin("http://launch.pages.example")).toBe(false);
   });
 });
-

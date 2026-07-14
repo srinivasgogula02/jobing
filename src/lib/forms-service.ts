@@ -78,6 +78,11 @@ function withPublicEndpoint<T extends { endpointId: string }>(form: T) {
   };
 }
 
+function withoutDraftEndpoint<T extends { endpointId: string }>(form: T) {
+  const draft = Object.fromEntries(Object.entries(form).filter(([key]) => key !== "endpointId")) as Omit<T, "endpointId">;
+  return { ...draft, publishRequired: true as const };
+}
+
 export type ConnectorFormDefinition = {
   schemaVersion: 1;
   title: string;
@@ -423,14 +428,14 @@ export async function createConnectorForm(
   const rawBody = serializeFormsPayload({ operationId, actor, form });
   await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms("/api/internal/v1/forms", rawBody);
-  return withPublicEndpoint(parseServiceResponse(z.object({ data: createdFormSchema }), body).data);
+  return withoutDraftEndpoint(parseServiceResponse(z.object({ data: createdFormSchema }), body).data);
 }
 
 export async function listConnectorForms(actor: FormsActor) {
   const rawBody = serializeFormsPayload({ actor });
   await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms("/api/internal/v1/forms/list", rawBody);
-  return parseServiceResponse(z.object({ data: z.object({ forms: z.array(formSummarySchema) }) }), body).data.forms.map(withPublicEndpoint);
+  return parseServiceResponse(z.object({ data: z.object({ forms: z.array(formSummarySchema) }) }), body).data.forms.map((form) => form.status === "published" ? withPublicEndpoint(form) : withoutDraftEndpoint(form));
 }
 
 export async function publishConnectorForm(

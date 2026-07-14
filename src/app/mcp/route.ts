@@ -99,7 +99,7 @@ const handler = createMcpHandler(
           const actor = requireConnectorActor(authInfo, "forms:write");
           const form = await createConnectorForm(actor, buildConnectorFormDraft(input), input.operationId);
           return {
-            content: [{ type: "text", text: `Created form draft "${form.name}" (${form.id}), revision ${form.revision}.` }],
+            content: [{ type: "text", text: `Created form draft "${form.name}" (${form.id}), revision ${form.revision}. It has no public URL until it is published.` }],
             structuredContent: form,
           };
         } catch (error) {

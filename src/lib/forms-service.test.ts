@@ -138,6 +138,19 @@ describe("Forms internal request signing", () => {
     expect(JSON.parse(body)).toMatchObject({ operationId: "operation-123", actor, form });
   });
 
+  it("does not expose a public endpoint for an unpublished draft", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(workspaceResponse), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(createdResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createConnectorForm(actor, form, "operation-123");
+
+    expect(result).not.toHaveProperty("endpointUrl");
+    expect(result).not.toHaveProperty("endpointId");
+    expect(result).toMatchObject({ status: "draft", publishRequired: true });
+  });
+
   it("retries a server failure with the same body and a fresh nonce", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(workspaceResponse), { status: 200 }))

@@ -6,6 +6,10 @@ type SubmissionResult =
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
+export function isHoneypotRejection(input: { value: string; origin: string | null; hostedOrigin: string }) {
+  return Boolean(input.value) && input.origin !== input.hostedOrigin;
+}
+
 export function validateSubmission(definition: FormDefinition, input: Record<string, unknown>): SubmissionResult {
   const errors: Record<string, string> = {};
   const values: Record<string, string | string[]> = {};

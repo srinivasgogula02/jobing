@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { validateSubmission } from "@/lib/submission-validation";
+import { isHoneypotRejection, validateSubmission } from "@/lib/submission-validation";
 
 const definition = {
   schemaVersion: 1 as const,
@@ -27,5 +27,15 @@ describe("validateSubmission", () => {
       success: false,
       errors: { name: "Name is required.", email: "Enter a valid email address.", topic: "Choose a valid option." },
     });
+  });
+});
+
+describe("isHoneypotRejection", () => {
+  it("does not reject the Turnstile-protected hosted form when autofill touches the trap", () => {
+    expect(isHoneypotRejection({ value: "autofilled", origin: "https://jobing.site", hostedOrigin: "https://jobing.site" })).toBe(false);
+  });
+
+  it("rejects a filled trap on an approved external form", () => {
+    expect(isHoneypotRejection({ value: "spam", origin: "https://example.com", hostedOrigin: "https://jobing.site" })).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ import {
   FormsServiceError,
   formsSignaturePayload,
   MAX_FORMS_INTERNAL_REQUEST_BYTES,
+  publicFormsEndpointUrl,
   signFormsRequest,
   syncFormsWorkspaceProjection,
 } from "./forms-service";
@@ -78,12 +79,17 @@ const projection = {
 beforeEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
-  vi.stubEnv("FORMS_SERVICE_URL", "https://jobing.site/forms");
+  vi.stubEnv("FORMS_SERVICE_URL", "https://forms.jobing.site/forms");
   vi.stubEnv("FORMS_INTERNAL_KEY_ID", "phase1");
   vi.stubEnv("FORMS_INTERNAL_SECRET", "a-secret-that-is-at-least-thirty-two-characters");
 });
 
 describe("Forms internal request signing", () => {
+  it("publishes form actions only on the dedicated Forms deployment", () => {
+    expect(publicFormsEndpointUrl("frm_public"))
+      .toBe("https://forms.jobing.site/forms/f/frm_public");
+  });
+
   it("uses the documented canonical payload and base64url HMAC", () => {
     const input = {
       method: "post",
@@ -113,7 +119,7 @@ describe("Forms internal request signing", () => {
 
     await createConnectorForm(actor, form, "operation-123");
 
-    expect(fetchMock.mock.calls[0][0]).toBe("https://jobing.site/forms/api/internal/v1/workspaces/sync");
+    expect(fetchMock.mock.calls[0][0]).toBe("https://forms.jobing.site/forms/api/internal/v1/workspaces/sync");
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
       operationId: "phase1-personal-workspace:user_123:v1",
       workspace: { sourceWorkspaceId: "user_123", sourceVersion: 1 },
@@ -123,7 +129,7 @@ describe("Forms internal request signing", () => {
     const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     const headers = init.headers as Record<string, string>;
     const body = String(init.body);
-    expect(url).toBe("https://jobing.site/forms/api/internal/v1/forms");
+    expect(url).toBe("https://forms.jobing.site/forms/api/internal/v1/forms");
     expect(headers["x-jobing-content-sha256"]).toBe(crypto.createHash("sha256").update(body).digest("hex"));
     expect(headers["x-jobing-signature"]).toBe(`v1=${signFormsRequest(
       "a-secret-that-is-at-least-thirty-two-characters",

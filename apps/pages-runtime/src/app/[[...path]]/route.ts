@@ -13,7 +13,7 @@ const documentHeaders = {
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'none'",
-    "form-action 'self' https://jobing.site",
+    "form-action 'self' https://forms.jobing.site",
     "script-src 'self' https: 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' https: 'unsafe-inline'",
     "connect-src 'self' https:",
@@ -53,4 +53,3 @@ export async function GET(
     return document(renderErrorDocument("Temporarily unavailable", "Please try again in a moment."), 503);
   }
 }
-

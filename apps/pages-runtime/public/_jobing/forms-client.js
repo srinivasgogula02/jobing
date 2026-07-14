@@ -18,7 +18,7 @@
   function endpoint(form) {
     try {
       var url = new URL(form.action, window.location.href);
-      if (url.origin !== "https://jobing.site" || !FORM_PATH.test(url.pathname)) return null;
+      if (url.origin !== "https://forms.jobing.site" || !url.pathname.startsWith("/forms") || !FORM_PATH.test(url.pathname.slice(6))) return null;
       return url;
     } catch {
       return null;

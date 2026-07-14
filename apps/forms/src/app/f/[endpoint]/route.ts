@@ -15,7 +15,7 @@ const securityHeaders = {
 };
 
 function html(body: string, status = 200) { return new NextResponse(body, { status, headers: securityHeaders }); }
-function canonical(endpoint: string) { return `${process.env.NEXT_PUBLIC_JOBING_SITE_URL || "https://jobing.site"}/f/${encodeURIComponent(endpoint)}`; }
+function canonical(endpoint: string) { return `${process.env.NEXT_PUBLIC_FORMS_API_URL || "https://forms.jobing.site/forms"}/f/${encodeURIComponent(endpoint)}`; }
 function corsHeaders(origin: string | null) { return origin ? { "access-control-allow-origin": origin, vary: "Origin" } : undefined; }
 function jsonError(code: string, message: string, status: number, origin: string | null) {
   return NextResponse.json({ error: { code, message } }, { status, headers: corsHeaders(origin) });

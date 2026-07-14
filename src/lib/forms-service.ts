@@ -6,7 +6,7 @@ import { z } from "zod";
 const REQUEST_TIMEOUT_MS = 8_000;
 export const MAX_FORMS_INTERNAL_REQUEST_BYTES = 256 * 1024;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
-const PRODUCTION_FORMS_BASE_URL = "https://jobing.site/forms";
+const PRODUCTION_FORMS_BASE_URL = "https://forms.jobing.site/forms";
 const OPERATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~:/-]{7,199}$/;
 const KEY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SAFE_ERROR_CODE_PATTERN = /^[a-z][a-z0-9_]{0,99}$/;
@@ -88,8 +88,12 @@ function nativeFormHtml(definition: ConnectorFormDefinition, action: string) {
   return `<form method="POST" action="${escapeHtml(action)}">\n${fields}\n\n  <div aria-hidden="true" style="position:absolute;left:-9999px">\n    <label>Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>\n  </div>\n  <button type="submit">Submit</button>\n</form>`;
 }
 
+export function publicFormsEndpointUrl(endpointId: string) {
+  return `${PRODUCTION_FORMS_BASE_URL}/f/${encodeURIComponent(endpointId)}`;
+}
+
 function withPublicEndpoint<T extends { endpointId: string; definition?: unknown }>(form: T, suppliedDefinition?: ConnectorFormDefinition) {
-  const endpointUrl = `https://jobing.site/f/${encodeURIComponent(form.endpointId)}`;
+  const endpointUrl = publicFormsEndpointUrl(form.endpointId);
   const definition = suppliedDefinition ?? form.definition as ConnectorFormDefinition;
   return {
     ...form,

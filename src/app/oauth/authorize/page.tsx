@@ -13,7 +13,7 @@ import {
   serializeOAuthScopes,
   type OAuthScope,
 } from "@/lib/oauth-scopes";
-import { approveAuthorization, denyAuthorization } from "./actions";
+import { AuthorizationActions } from "./AuthorizationActions";
 
 export const dynamic = "force-dynamic";
 
@@ -140,18 +140,7 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
             code_challenge: challenge,
             code_challenge_method: "S256",
           }).map(([key, value]) => value ? <input key={key} type="hidden" name={key} value={value} /> : null)}
-          <button
-            formAction={denyAuthorization}
-            className="min-h-11 rounded-xl border border-[#262D3A] px-4 py-3 font-semibold transition-colors hover:bg-[#1F2531] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C6F24E]"
-          >
-            Deny
-          </button>
-          <button
-            formAction={approveAuthorization}
-            className="min-h-11 rounded-xl bg-[#C6F24E] px-4 py-3 font-bold text-[#0E1219] transition-colors hover:bg-[#D4FA70] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C6F24E]"
-          >
-            Allow access
-          </button>
+          <AuthorizationActions />
         </form>
       </section>
     </main>

@@ -121,10 +121,14 @@ describe("Forms internal request signing", () => {
 
     expect(fetchMock.mock.calls[0][0]).toBe("https://forms.jobing.site/forms/api/internal/v1/workspaces/sync");
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
-      operationId: "phase1-personal-workspace:user_123:v1",
-      workspace: { sourceWorkspaceId: "user_123", sourceVersion: 1 },
-      membership: { actorId: "user_123", role: "owner", sourceVersion: 1 },
-      entitlement: { planKey: "free", sourceVersion: 1 },
+      operationId: "personal-workspace:user_123:v2",
+      workspace: { sourceWorkspaceId: "user_123", sourceVersion: 2 },
+      membership: { actorId: "user_123", role: "owner", sourceVersion: 2 },
+      entitlement: {
+        planKey: "free",
+        sourceVersion: 2,
+        limits: { "forms.total": 5, "forms.published": 5 },
+      },
     });
     const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     const headers = init.headers as Record<string, string>;

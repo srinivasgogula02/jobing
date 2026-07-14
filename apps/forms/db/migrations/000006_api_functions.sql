@@ -335,8 +335,8 @@ begin
   end if;
 
   v_effective_limits := jsonb_build_object(
-    'forms.total', 3,
-    'forms.published', 1,
+    'forms.total', 5,
+    'forms.published', 5,
     'submissions.accepted', 50,
     'storage.bytes', 0,
     'team.seats', 1

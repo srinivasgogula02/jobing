@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Sans } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono, Instrument_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import Script from "next/script";
 import { PostHogIdentify } from "@/components/PostHogIdentify";
@@ -10,10 +10,14 @@ const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
 });
 
+const homeDisplay = Fraunces({ variable: "--font-home-display", subsets: ["latin"], weight: ["600"] });
+const homeSans = Geist({ variable: "--font-home-sans", subsets: ["latin"] });
+const homeMono = Geist_Mono({ variable: "--font-home-mono", subsets: ["latin"] });
+
 export const metadata: Metadata = {
-  title: "Jobing | Simple, Useful Web Tools",
-  description: "Fast, focused tools for sharing text, previewing HTML, and getting everyday work done.",
-  keywords: ["online clipboard", "online notepad", "HTML viewer", "productivity tools", "Jobing"],
+  title: "Jobing — Ask for a website. Get a live URL.",
+  description: "Connect Jobing to your AI and turn one conversation into a live page with a working form.",
+  keywords: ["AI website builder", "ChatGPT connector", "Claude connector", "form backend", "Jobing"],
   authors: [{ name: "Jobing" }],
   creator: "Jobing AI",
   publisher: "Jobing AI",
@@ -40,16 +44,16 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   openGraph: {
-    title: "Jobing | Simple, Useful Web Tools",
-    description: "Fast, focused tools for sharing text, previewing HTML, and getting everyday work done.",
+    title: "Ask for a website. Get a live URL.",
+    description: "One AI conversation. One published page. One working form.",
     url: "https://jobing.site",
     siteName: "Jobing AI",
     images: [
       {
-        url: "/og-image.png", // Recommended to generate this later
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Jobing web tools",
+        alt: "Ask for a website and get a live URL with Jobing",
       },
     ],
     locale: "en_US",
@@ -57,9 +61,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Jobing | Simple, Useful Web Tools",
-    description: "Fast, focused tools for sharing text, previewing HTML, and getting everyday work done.",
-    images: ["/og-image.png"],
+    title: "Ask for a website. Get a live URL.",
+    description: "One AI conversation. One published page. One working form.",
+    images: ["/opengraph-image"],
     creator: "@jobing_ai",
   },
   robots: {
@@ -146,7 +150,7 @@ export default function RootLayout({
         />
         )}
       </head>
-      <body className={`${instrumentSans.variable} antialiased`}>
+      <body className={`${instrumentSans.variable} ${homeDisplay.variable} ${homeSans.variable} ${homeMono.variable} antialiased`}>
         {analyticsEnabled && (
         <noscript>
           <img

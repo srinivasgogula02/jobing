@@ -416,26 +416,29 @@ async function postToForms(path: string, payload: unknown) {
  */
 export async function ensureFormsWorkspace(actor: FormsActor) {
   return syncFormsWorkspaceProjection({
-    operationId: `phase1-personal-workspace:${actor.userId}:v1`,
+    operationId: `personal-workspace:${actor.userId}:v2`,
     workspace: {
       sourceWorkspaceId: actor.userId,
       kind: "personal",
       displayName: "Personal workspace",
       status: "active",
-      sourceVersion: 1,
+      sourceVersion: 2,
     },
     membership: {
       actorId: actor.userId,
       role: "owner",
       status: "active",
-      sourceVersion: 1,
+      sourceVersion: 2,
     },
     entitlement: {
       planKey: "free",
       status: "active",
-      sourceVersion: 1,
+      sourceVersion: 2,
       features: {},
-      limits: {},
+      limits: {
+        "forms.total": 5,
+        "forms.published": 5,
+      },
     },
   });
 }

@@ -45,7 +45,7 @@ export default async function DashboardPage() {
       <section className="panel reliabilityPanel">
         <div className="panelHeading"><div><p className="eyebrow">Reliability</p><h2>Open failures</h2></div><span>Sentry</span></div>
         <ProviderNotice result={dashboard.issues} name="Sentry" />
-        {dashboard.issues.status === "ok" && (dashboard.issues.data.length ? <div className="issueList">{dashboard.issues.data.map((issue) => <a href={issue.permalink} target="_blank" rel="noreferrer" key={issue.id}><div><strong>{issue.title}</strong><span>{issue.count} events · {issue.users} affected</span></div><time>{new Date(issue.lastSeen).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</time></a>)}</div> : <div className="empty good"><strong>No unresolved issues</strong><span>Sentry has no open production failures in the last 7 days.</span></div>)}
+        {dashboard.issues.status === "ok" && (dashboard.issues.data.length ? <div className="issueList">{dashboard.issues.data.map((issue) => <a href={issue.permalink} target="_blank" rel="noreferrer" key={issue.id}><div><strong>{issue.title}</strong><span>{issue.count} events · {issue.users} affected</span></div><time>{new Date(issue.lastSeen).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</time></a>)}</div> : <div className="empty good"><strong>No unresolved issues</strong><span>Sentry has no open production failures in the last 14 days.</span></div>)}
       </section>
     </div>
 

@@ -2,6 +2,7 @@ import "server-only";
 
 import { attachDatabasePool } from "@vercel/functions";
 import { Pool, type QueryResultRow } from "pg";
+import { hardenDatabaseSslMode } from "@/lib/database-url";
 
 declare global {
   var __jobingFormsPool: Pool | undefined;
@@ -16,7 +17,7 @@ function createPool() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not configured for Jobing Forms.");
   return new Pool({
-    connectionString,
+    connectionString: hardenDatabaseSslMode(connectionString),
     max: 5,
     idleTimeoutMillis: 20_000,
     connectionTimeoutMillis: 5_000,

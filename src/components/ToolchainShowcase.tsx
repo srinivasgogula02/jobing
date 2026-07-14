@@ -21,7 +21,7 @@ const toolLogos = {
   bolt: "https://bolt.new/static/favicon.svg",
   webflow: "https://cdn.simpleicons.org/webflow/146EF5",
   airtable: "https://cdn.simpleicons.org/airtable/18BFFF",
-  zapier: "https://cdn.simpleicons.org/zapier/FF4F00",
+  zapier: "https://zapier.com/favicon.ico",
 } as const;
 
 const tools = [

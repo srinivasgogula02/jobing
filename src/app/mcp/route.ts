@@ -85,7 +85,7 @@ const handler = createMcpHandler(
       "create_form_draft",
       {
         title: "Create a Jobing form draft",
-        description: "Creates a versioned form draft in the connected user's Forms workspace. Use this whenever a page needs a form.",
+        description: "Creates a versioned form draft and a native HTML form template. Use this whenever a page needs a form. Never embed Jobing Forms in an iframe; place the returned form markup directly in the page and customize its HTML/CSS.",
         inputSchema: createFormDraftToolInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -139,7 +139,7 @@ const handler = createMcpHandler(
       "publish_form",
       {
         title: "Publish a Jobing form",
-        description: "Publishes an immutable version of an existing form draft after an explicit user request.",
+        description: "Publishes an immutable form and returns its API action plus complete native HTML. Put that HTML directly in the custom page. Never use an iframe for a Jobing form.",
         inputSchema: {
           formId: z.string().uuid(),
           expectedRevision: z.number().int().positive().describe("Draft revision returned by create_form_draft or list_forms."),
@@ -157,7 +157,7 @@ const handler = createMcpHandler(
           const actor = requireConnectorActor(authInfo, "forms:publish");
           const form = await publishConnectorForm(actor, formId, expectedRevision, operationId);
           return {
-            content: [{ type: "text", text: `Published form version ${form.version}. Hosted form and submission endpoint: ${form.endpointUrl}. Use the returned HTML contract to wire it into the page.` }],
+            content: [{ type: "text", text: `Published form version ${form.version}. Submission endpoint: ${form.endpointUrl}. Use the returned native HTML directly in the page and customize it there. Do not use an iframe.` }],
             structuredContent: form,
           };
         } catch (error) {

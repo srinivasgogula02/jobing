@@ -149,6 +149,10 @@ describe("Forms internal request signing", () => {
     expect(result).not.toHaveProperty("endpointUrl");
     expect(result).not.toHaveProperty("endpointId");
     expect(result).toMatchObject({ status: "draft", publishRequired: true });
+    expect(result.iframeSupported).toBe(false);
+    expect(result.htmlTemplate).toContain('<form method="POST" action="{{JOBING_FORM_ACTION}}">');
+    expect(result.htmlTemplate).toContain('name="email"');
+    expect(result.htmlTemplate).not.toContain("iframe");
   });
 
   it("retries a server failure with the same body and a fresh nonce", async () => {

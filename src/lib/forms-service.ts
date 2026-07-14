@@ -21,6 +21,7 @@ const formSummarySchema = z.object({
   revision: z.coerce.number().int().positive(),
   publishedVersion: z.coerce.number().int().nonnegative(),
   endpointId: z.string(),
+  definition: z.unknown(),
   updatedAt: z.string(),
 });
 
@@ -68,19 +69,41 @@ export type FormsActor = {
   scopes: string[];
 };
 
-function withPublicEndpoint<T extends { endpointId: string }>(form: T) {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/gu, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!);
+}
+
+function nativeFormHtml(definition: ConnectorFormDefinition, action: string) {
+  const fields = definition.fields.map((field) => {
+    const name = escapeHtml(field.key);
+    const label = escapeHtml(field.label);
+    const required = field.required ? " required" : "";
+    if (field.type === "textarea") return `  <label>${label}\n    <textarea name="${name}"${required}></textarea>\n  </label>`;
+    if (field.type === "select") return `  <label>${label}\n    <select name="${name}"${required}>\n      <option value="">Choose one</option>\n${(field.options ?? []).map((option) => `      <option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("\n")}\n    </select>\n  </label>`;
+    if (["radio", "checkbox"].includes(field.type)) return `  <fieldset>\n    <legend>${label}</legend>\n${(field.options ?? []).map((option) => `    <label><input type="${field.type}" name="${name}" value="${escapeHtml(option.value)}"${required}> ${escapeHtml(option.label)}</label>`).join("\n")}\n  </fieldset>`;
+    if (field.type === "consent") return `  <label><input type="checkbox" name="${name}" value="yes"${required}> ${label}</label>`;
+    const type = ["email", "number", "tel", "url", "date"].includes(field.type) ? field.type : "text";
+    return `  <label>${label}\n    <input type="${type}" name="${name}"${required}>\n  </label>`;
+  }).join("\n\n");
+  return `<form method="POST" action="${escapeHtml(action)}">\n${fields}\n\n  <div aria-hidden="true" style="position:absolute;left:-9999px">\n    <label>Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>\n  </div>\n  <button type="submit">Submit</button>\n</form>`;
+}
+
+function withPublicEndpoint<T extends { endpointId: string; definition?: unknown }>(form: T, suppliedDefinition?: ConnectorFormDefinition) {
   const endpointUrl = `https://jobing.site/f/${encodeURIComponent(form.endpointId)}`;
+  const definition = suppliedDefinition ?? form.definition as ConnectorFormDefinition;
   return {
     ...form,
     endpointUrl,
-    html: `<form method="post" action="${endpointUrl}">…your fields…<button type="submit">Submit</button></form>`,
-    integration: "Use the exact field keys from the form definition and POST as form data. Publish before accepting responses. The hosted form includes Turnstile; custom sites must first add their HTTPS origin to settings.allowedOrigins and should include the _gotcha honeypot field.",
+    integrationMode: "native_html_api" as const,
+    iframeSupported: false as const,
+    html: nativeFormHtml(definition, endpointUrl),
+    integration: "Render the returned HTML as native page markup. Do not use an iframe. The page may freely customize the labels, layout and CSS, but must preserve the form action, POST method, and field name attributes.",
   };
 }
 
-function withoutDraftEndpoint<T extends { endpointId: string }>(form: T) {
+function withoutDraftEndpoint<T extends { endpointId: string }>(form: T, definition?: ConnectorFormDefinition) {
   const draft = Object.fromEntries(Object.entries(form).filter(([key]) => key !== "endpointId")) as Omit<T, "endpointId">;
-  return { ...draft, publishRequired: true as const };
+  return { ...draft, publishRequired: true as const, integrationMode: "native_html_api" as const, iframeSupported: false as const, htmlTemplate: definition ? nativeFormHtml(definition, "{{JOBING_FORM_ACTION}}") : undefined };
 }
 
 export type ConnectorFormDefinition = {
@@ -428,7 +451,7 @@ export async function createConnectorForm(
   const rawBody = serializeFormsPayload({ operationId, actor, form });
   await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms("/api/internal/v1/forms", rawBody);
-  return withoutDraftEndpoint(parseServiceResponse(z.object({ data: createdFormSchema }), body).data);
+  return withoutDraftEndpoint(parseServiceResponse(z.object({ data: createdFormSchema }), body).data, form.definition);
 }
 
 export async function listConnectorForms(actor: FormsActor) {
@@ -452,5 +475,8 @@ export async function publishConnectorForm(
   });
   await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/publish`, rawBody);
-  return withPublicEndpoint(parseServiceResponse(z.object({ data: publishedFormSchema }), body).data);
+  const published = parseServiceResponse(z.object({ data: publishedFormSchema }), body).data;
+  const listed = (await listConnectorForms(actor)).find((form) => form.id === published.id);
+  if (!listed?.definition) throw new FormsServiceError("invalid_response", "Forms returned an invalid response.", 502);
+  return withPublicEndpoint({ ...published, definition: listed.definition });
 }

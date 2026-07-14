@@ -12,6 +12,7 @@ const formSummarySchema = z.object({
   revision: z.coerce.number().int().positive(),
   publishedVersion: z.coerce.number().int().nonnegative(),
   endpointId: z.string(),
+  definition: z.unknown().optional(),
   updatedAt: z.string(),
 });
 

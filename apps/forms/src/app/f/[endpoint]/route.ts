@@ -50,7 +50,8 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
     return NextResponse.redirect(`${canonical(endpoint)}?submitted=1`, 303);
   }
   const turnstileToken = String(data.get("cf-turnstile-response") || "");
-  if ((!originHeader || originHeader === hostedOrigin || turnstileToken) && !await verifyTurnstile(turnstileToken, ip)) return NextResponse.json({ error: { code: "challenge_failed", message: "Please complete the security check and try again." } }, { status: 400 });
+  const isHostedForm = data.get("_jobing_form_context") === "hosted";
+  if ((isHostedForm || turnstileToken) && !await verifyTurnstile(turnstileToken, ip)) return NextResponse.json({ error: { code: "challenge_failed", message: "Please complete the security check and try again." } }, { status: 400 });
   const raw: Record<string, unknown> = {};
   for (const field of form.definition.fields) {
     const values = data.getAll(field.key).filter((value): value is string => typeof value === "string");

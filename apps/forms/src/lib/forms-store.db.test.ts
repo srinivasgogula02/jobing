@@ -109,5 +109,23 @@ describe.skipIf(!databaseUrl)("forms database grant-scoped idempotency", () => {
       [publishOperationId],
     );
     expect(publishRecords.rows[0]).toEqual({ records: 2, scopes: 2 });
+
+    const endpoint = await client.query<{ public_id: string }>("select public_id from forms.form_endpoints where form_id=$1 and status='active'", [formId]);
+    const publicId = endpoint.rows[0]!.public_id;
+    const publicForm = await client.query<{ value: { formId: string } }>("select forms_api.get_public_form($1) as value", [publicId]);
+    expect(publicForm.rows[0]?.value.formId).toBe(formId);
+
+    const submissionKey = `submission-${randomUUID()}`;
+    const accepted = await client.query<{ value: { submissionId: string; message: string } }>(
+      "select forms_api.accept_submission($1,$2,$3::jsonb,$4,$5) as value",
+      [publicId, submissionKey, JSON.stringify({ email: "ada@example.com" }), null, "a".repeat(64)],
+    );
+    const replay = await client.query<{ value: { submissionId: string } }>(
+      "select forms_api.accept_submission($1,$2,$3::jsonb,$4,$5) as value",
+      [publicId, submissionKey, JSON.stringify({ email: "ada@example.com" }), null, "a".repeat(64)],
+    );
+    expect(replay.rows[0]?.value.submissionId).toBe(accepted.rows[0]?.value.submissionId);
+    const inbox = await client.query<{ value: { id: string } }>("select value from forms_api.list_submissions($1,$2,50) as value", [actorId, formId]);
+    expect(inbox.rows[0]?.value.id).toBe(accepted.rows[0]?.value.submissionId);
   });
 });

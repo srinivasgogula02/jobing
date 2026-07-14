@@ -157,7 +157,7 @@ const handler = createMcpHandler(
           const actor = requireConnectorActor(authInfo, "forms:publish");
           const form = await publishConnectorForm(actor, formId, expectedRevision, operationId);
           return {
-            content: [{ type: "text", text: `Published immutable form definition version ${form.version}. Its endpoint is reserved for the response runtime.` }],
+            content: [{ type: "text", text: `Published form version ${form.version}. Hosted form and submission endpoint: ${form.endpointUrl}. Use the returned HTML contract to wire it into the page.` }],
             structuredContent: form,
           };
         } catch (error) {

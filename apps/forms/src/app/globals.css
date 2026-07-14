@@ -285,6 +285,17 @@ a {
   padding: 14px 0;
 }
 
+a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
+.back-link { display: inline-flex; min-height: 44px; align-items: center; color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+.response-count { color: var(--muted); margin: 12px 0 0; }
+.response-list { margin-top: 40px; border-top: 1px solid var(--line); }
+.response-card { padding: 24px 0; border-bottom: 1px solid var(--line); }
+.response-card__head { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font: 11px/1.4 var(--font-mono), monospace; }
+.response-card dl { margin: 20px 0 0; display: grid; gap: 14px; }
+.response-card dl div { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 20px; }
+.response-card dt { color: var(--muted); font: 11px/1.5 var(--font-mono), monospace; text-transform: uppercase; letter-spacing: .09em; }
+.response-card dd { margin: 0; overflow-wrap: anywhere; line-height: 1.55; white-space: pre-wrap; }
+
 .ledger-row--header {
   min-height: 48px;
   color: var(--muted);
@@ -367,6 +378,7 @@ a {
   .ledger-row > :last-child {
     display: none;
   }
+  .response-card dl div { grid-template-columns: 1fr; gap: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

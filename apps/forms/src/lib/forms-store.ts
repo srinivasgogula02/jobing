@@ -33,6 +33,15 @@ const publishResultSchema = z.object({
 
 export type FormSummary = z.infer<typeof formSummarySchema>;
 
+const publicFormSchema = z.object({
+  formId: z.string().uuid(), endpointId: z.string(), versionId: z.string().uuid(),
+  version: z.coerce.number().int().positive(), name: z.string(), definition: z.unknown(),
+});
+
+const submissionSummarySchema = z.object({
+  id: z.string().uuid(), formId: z.string().uuid(), receivedAt: z.string(), values: z.record(z.string(), z.unknown()),
+});
+
 function idempotencyRequestHash(value: unknown) {
   return sha256Hex(JSON.stringify(value));
 }
@@ -49,6 +58,26 @@ export async function listFormsForActor(actorId: string): Promise<FormSummary[]>
   if (!databaseConfigured()) return [];
   const result = await query<{ value: unknown }>("select value from forms_api.list_forms($1) as value", [actorId]);
   return result.rows.map((row) => formSummarySchema.parse(row.value));
+}
+
+export async function getPublicForm(endpointId: string) {
+  const result = await query<{ value: unknown }>("select forms_api.get_public_form($1) as value", [endpointId]);
+  if (!result.rows[0]?.value) return null;
+  const publicForm = publicFormSchema.parse(result.rows[0].value);
+  return { ...publicForm, definition: (await import("@/lib/form-definition")).formDefinitionSchema.parse(publicForm.definition) };
+}
+
+export async function acceptSubmission(input: { endpointId: string; idempotencyKey: string; values: Record<string, string | string[]>; origin: string | null; ipHash: string }) {
+  const result = await query<{ value: unknown }>(
+    "select forms_api.accept_submission($1,$2,$3::jsonb,$4,$5) as value",
+    [input.endpointId, input.idempotencyKey, JSON.stringify(input.values), input.origin, input.ipHash],
+  );
+  return z.object({ submissionId: z.string().uuid(), message: z.string(), redirectUrl: z.string().nullable() }).parse(result.rows[0]?.value);
+}
+
+export async function listSubmissionsForActor(actorId: string, formId: string) {
+  const result = await query<{ value: unknown }>("select value from forms_api.list_submissions($1,$2::uuid,50) as value", [actorId, formId]);
+  return result.rows.map((row) => submissionSummarySchema.parse(row.value));
 }
 
 export async function createFormDraft(input: CreateFormDraftRequest) {

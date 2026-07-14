@@ -8,6 +8,8 @@ const isPublicRoute = createRouteMatcher([
   "/forms/api/health",
   "/api/internal(.*)",
   "/forms/api/internal(.*)",
+  "/f(.*)",
+  "/forms/f(.*)",
 ]);
 
 export default clerkMiddleware(

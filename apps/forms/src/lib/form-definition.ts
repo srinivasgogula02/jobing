@@ -56,7 +56,11 @@ export const formDefinitionSchema = z.object({
   fields: z.array(formFieldSchema).min(1).max(100),
   confirmation: z.object({
     message: z.string().trim().min(1).max(1_000).default("Thanks — your response was received."),
+    redirectUrl: z.string().url().refine((value) => new URL(value).protocol === "https:", "Use an HTTPS redirect URL.").optional(),
   }).default({ message: "Thanks — your response was received." }),
+  settings: z.object({
+    allowedOrigins: z.array(z.string().url().transform((value) => new URL(value).origin)).max(20).default([]),
+  }).optional(),
 }).superRefine((definition, context) => {
   const ids = new Set<string>();
   const keys = new Set<string>();

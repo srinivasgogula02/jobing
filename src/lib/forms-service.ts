@@ -68,6 +68,16 @@ export type FormsActor = {
   scopes: string[];
 };
 
+function withPublicEndpoint<T extends { endpointId: string }>(form: T) {
+  const endpointUrl = `https://jobing.site/f/${encodeURIComponent(form.endpointId)}`;
+  return {
+    ...form,
+    endpointUrl,
+    html: `<form method="post" action="${endpointUrl}">…your fields…<button type="submit">Submit</button></form>`,
+    integration: "Use the exact field keys from the form definition and POST as form data. Publish before accepting responses. The hosted form includes Turnstile; custom sites must first add their HTTPS origin to settings.allowedOrigins and should include the _gotcha honeypot field.",
+  };
+}
+
 export type ConnectorFormDefinition = {
   schemaVersion: 1;
   title: string;
@@ -412,14 +422,14 @@ export async function createConnectorForm(
   const rawBody = serializeFormsPayload({ operationId, actor, form });
   await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms("/api/internal/v1/forms", rawBody);
-  return parseServiceResponse(z.object({ data: createdFormSchema }), body).data;
+  return withPublicEndpoint(parseServiceResponse(z.object({ data: createdFormSchema }), body).data);
 }
 
 export async function listConnectorForms(actor: FormsActor) {
   const rawBody = serializeFormsPayload({ actor });
   await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms("/api/internal/v1/forms/list", rawBody);
-  return parseServiceResponse(z.object({ data: z.object({ forms: z.array(formSummarySchema) }) }), body).data.forms;
+  return parseServiceResponse(z.object({ data: z.object({ forms: z.array(formSummarySchema) }) }), body).data.forms.map(withPublicEndpoint);
 }
 
 export async function publishConnectorForm(
@@ -436,5 +446,5 @@ export async function publishConnectorForm(
   });
   await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/publish`, rawBody);
-  return parseServiceResponse(z.object({ data: publishedFormSchema }), body).data;
+  return withPublicEndpoint(parseServiceResponse(z.object({ data: publishedFormSchema }), body).data);
 }

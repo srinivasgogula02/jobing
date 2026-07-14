@@ -51,14 +51,14 @@ export default async function FormsDashboardPage() {
                 </div>
               </div>
             ) : forms.map((form) => (
-              <div className="ledger-row" role="row" key={form.id}>
+              <Link className="ledger-row" role="row" key={form.id} href={`/app/forms/${form.id}`}>
                 <div role="cell">
                   <div className="ledger-title">{form.name}</div>
                   <div className="ledger-meta">{form.id}</div>
                 </div>
                 <span className="ledger-meta" role="cell">{form.status}</span>
                 <time className="ledger-meta" role="cell" dateTime={form.updatedAt}>{new Date(form.updatedAt).toLocaleDateString("en-IN")}</time>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

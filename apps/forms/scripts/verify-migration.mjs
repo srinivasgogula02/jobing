@@ -41,7 +41,7 @@ try {
   const history = await migrationClient.query(
     "select name from public.jobing_forms_schema_migrations order by version",
   );
-  assert(history.rowCount === 7, `Expected 7 migrations, found ${history.rowCount}.`);
+  assert(history.rowCount === 8, `Expected 8 migrations, found ${history.rowCount}.`);
 
   const privileges = await migrationClient.query(`
     select
@@ -60,6 +60,7 @@ try {
         'forms_api.apply_workspace_projection(text,text,jsonb,jsonb,jsonb,text)',
         'EXECUTE'
       ) as sync_can_project,
+      has_function_privilege('jobing_forms_ingest','forms_api.accept_submission(text,text,jsonb,text,text)','EXECUTE') as ingest_can_submit,
       has_table_privilege('jobing_forms_control', 'forms.forms', 'SELECT') as control_can_read_tables,
       pg_has_role('jobing_forms_control', 'jobing_forms_owner', 'MEMBER') as control_is_owner,
       pg_has_role('jobing_forms_sync', 'jobing_forms_owner', 'MEMBER') as sync_is_owner
@@ -68,6 +69,7 @@ try {
   assert(proof.control_can_create === true, "Control role cannot create form drafts.");
   assert(proof.control_can_publish === true, "Control role cannot publish forms.");
   assert(proof.sync_can_project === true, "Sync role cannot apply workspace projections.");
+  assert(proof.ingest_can_submit === true, "Ingest role cannot accept submissions.");
   assert(proof.control_can_read_tables === false, "Control role unexpectedly has base-table access.");
   assert(proof.control_is_owner === false && proof.sync_is_owner === false, "Runtime role inherits owner privileges.");
 
@@ -115,6 +117,7 @@ try {
       pg_has_role(current_user, 'jobing_forms_owner', 'MEMBER') as is_owner_member,
       pg_has_role(current_user, 'jobing_forms_control', 'MEMBER') as is_control_member,
       pg_has_role(current_user, 'jobing_forms_sync', 'MEMBER') as is_sync_member,
+      pg_has_role(current_user, 'jobing_forms_ingest', 'MEMBER') as is_ingest_member,
       (select pg_get_userbyid(datdba) = current_user from pg_database where datname = current_database())
         as owns_database
     from pg_roles as roles
@@ -131,6 +134,7 @@ try {
   assert(runtime.is_owner_member === false, "DATABASE_URL inherits the Forms owner role.");
   assert(runtime.is_control_member === true, "DATABASE_URL is missing the control role.");
   assert(runtime.is_sync_member === true, "DATABASE_URL is missing the sync role.");
+  assert(runtime.is_ingest_member === true, "DATABASE_URL is missing the ingest role.");
   assert(runtime.owns_database === false, "DATABASE_URL owns the database.");
 
   const ownedObjects = await runtimeClient.query(`
@@ -182,10 +186,14 @@ try {
   `);
   const executableNames = executableFunctions.rows.map((row) => row.proname);
   const expectedNames = [
+    "accept_submission",
     "apply_workspace_projection",
     "claim_request_nonce",
     "create_form_draft",
+    "get_public_form",
+    "get_submission",
     "list_forms",
+    "list_submissions",
     "publish_form",
   ];
   assert(

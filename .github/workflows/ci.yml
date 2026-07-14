@@ -148,7 +148,7 @@ jobs:
           psql "$DATABASE_MIGRATION_URL" --set=ON_ERROR_STOP=1 \
             --command="create role jobing_forms_ci_runtime login password 'ci-runtime-password' nosuperuser nocreatedb nocreaterole noreplication nobypassrls"
           psql "$DATABASE_MIGRATION_URL" --set=ON_ERROR_STOP=1 \
-            --command="grant jobing_forms_control, jobing_forms_sync to jobing_forms_ci_runtime"
+            --command="grant jobing_forms_control, jobing_forms_sync, jobing_forms_ingest to jobing_forms_ci_runtime"
           npm run db:verify
 
       - name: Run Forms tests

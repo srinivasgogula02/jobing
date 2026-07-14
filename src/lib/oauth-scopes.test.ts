@@ -25,8 +25,8 @@ describe("OAuth scope normalization", () => {
     );
   });
 
-  it("turns a cached legacy request into canonical note/page scopes", () => {
-    expect(normalizeRequestedScopes("mcp")).toEqual(["notes:write", "pages:write"]);
+  it("shows the complete permission set when a cached client requests the legacy mcp alias", () => {
+    expect(normalizeRequestedScopes("mcp")).toEqual(DEFAULT_CONNECTOR_SCOPES);
   });
 
   it("rejects unsupported scopes instead of silently broadening or dropping them", () => {
@@ -36,6 +36,10 @@ describe("OAuth scope normalization", () => {
 
   it("does not add default scopes to a refresh request that omitted scope", () => {
     expect(normalizeOptionalRequestedScopes(undefined)).toBeUndefined();
+  });
+
+  it("treats a cached legacy mcp refresh scope as preserving the existing grant", () => {
+    expect(normalizeOptionalRequestedScopes("mcp")).toBeUndefined();
   });
 });
 

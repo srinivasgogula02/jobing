@@ -1,9 +1,11 @@
 /**
  * OAuth scopes exposed by the Jobing MCP connector.
  *
- * `mcp` was the original all-or-nothing scope. It is deliberately not issued
- * to new grants. Existing rows that contain it retain only the two permissions
- * shown on the original consent screen: creating notes and deploying pages.
+ * `mcp` was the original all-or-nothing scope. It is deliberately not stored
+ * on new grants. During fresh consent it is a compatibility alias for the
+ * complete current connector scope set. Existing rows that contain it retain
+ * only the two permissions shown on the original consent screen: creating
+ * notes and deploying pages.
  */
 export const OAUTH_SCOPES = [
   "notes:write",
@@ -68,8 +70,10 @@ function sortScopes(scopes: Iterable<OAuthScope>): OAuthScope[] {
 /**
  * Validate scopes requested during a new authorization flow.
  *
- * Clients with cached pre-Phase-1 metadata may still request `mcp`. We accept
- * it only as a compatibility alias and issue the canonical note/page scopes.
+ * Clients with cached pre-Phase-1 metadata may still request `mcp`. Fresh
+ * consent expands that alias to every current connector permission so the user
+ * sees and explicitly approves the complete list before canonical scopes are
+ * stored.
  */
 export function normalizeRequestedScopes(scope: string | null | undefined): OAuthScope[] {
   const requested = splitScope(scope ?? "");
@@ -80,7 +84,7 @@ export function normalizeRequestedScopes(scope: string | null | undefined): OAut
 
   for (const value of requested) {
     if (value === LEGACY_MCP_SCOPE) {
-      normalized.push("notes:write", "pages:write");
+      normalized.push(...DEFAULT_CONNECTOR_SCOPES);
     } else if (KNOWN_SCOPES.has(value)) {
       normalized.push(value as OAuthScope);
     } else {
@@ -95,6 +99,8 @@ export function normalizeRequestedScopes(scope: string | null | undefined): OAut
 /** Validate a refresh request without adding the default creator scopes. */
 export function normalizeOptionalRequestedScopes(scope: string | null | undefined): OAuthScope[] | undefined {
   if (!scope?.trim()) return undefined;
+  const requested = splitScope(scope);
+  if (requested.every((value) => value === LEGACY_MCP_SCOPE)) return undefined;
   return normalizeRequestedScopes(scope);
 }
 

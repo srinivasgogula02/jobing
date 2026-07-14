@@ -138,6 +138,29 @@ describe("OAuth token exchange", () => {
     expect(await response.json()).toMatchObject({ access_token: "jbat_new", refresh_token: "jbrt_new", scope: "forms:read" });
   });
 
+  it("preserves a grant when a cached client refreshes with the legacy mcp alias", async () => {
+    mocks.rotateRefreshToken.mockResolvedValue({
+      access_token: "jbat_new",
+      refresh_token: "jbrt_new",
+      expires_in: 3600,
+      scope: "notes:write pages:write forms:read forms:write forms:publish",
+      grant_id: "grant-1",
+    });
+    const response = await POST(tokenRequest({
+      grant_type: "refresh_token",
+      refresh_token: "jbrt_old",
+      client_id: "client-1",
+      scope: "mcp",
+    }));
+    expect(response.status).toBe(200);
+    expect(mocks.rotateRefreshToken).toHaveBeenCalledWith({
+      refreshToken: "jbrt_old",
+      clientId: "client-1",
+      resource: "https://jobing.site/mcp",
+      requestedScopes: undefined,
+    });
+  });
+
   it("rejects unsupported scopes on refresh", async () => {
     const response = await POST(tokenRequest({
       grant_type: "refresh_token",

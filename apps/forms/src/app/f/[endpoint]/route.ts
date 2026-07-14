@@ -4,6 +4,7 @@ import { acceptSubmission, getPublicForm } from "@/lib/forms-store";
 import { renderPublicForm } from "@/lib/public-form-html";
 import { isHoneypotRejection, validateSubmission } from "@/lib/submission-validation";
 import { isPagesRuntimeOrigin } from "@/lib/platform-origin";
+import { parseSubmissionRequest, SubmissionRequestError } from "@/lib/submission-request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,14 +43,26 @@ async function verifyTurnstile(token: string, ip: string | null) {
 export async function POST(request: Request, context: { params: Promise<{ endpoint: string }> }) {
   const { endpoint } = await context.params;
   const originHeader = request.headers.get("origin");
-  const wantsJson = request.headers.get("accept")?.includes("application/json") ?? false;
+  const contentType = request.headers.get("content-type") ?? "";
+  const wantsJson = (request.headers.get("accept")?.includes("application/json") ?? false) || contentType.includes("application/json");
   const platformOrigin = isPagesRuntimeOrigin(originHeader);
-  const responseOrigin = platformOrigin ? originHeader : null;
+  let responseOrigin = platformOrigin ? originHeader : null;
   const length = Number(request.headers.get("content-length") || 0);
   if (length > MAX_BYTES) return jsonError("request_too_large", "The submission is too large.", 413, responseOrigin);
   const form = await getPublicForm(endpoint);
   if (!form) return jsonError("form_not_found", "This form is unavailable.", 404, responseOrigin);
-  const data = await request.formData();
+  if (originHeader && (form.definition.settings?.allowedOrigins ?? []).includes(originHeader)) responseOrigin = originHeader;
+  let data: FormData;
+  try {
+    data = (await parseSubmissionRequest(request, MAX_BYTES)).data;
+  } catch (error) {
+    if (error instanceof SubmissionRequestError) {
+      const status = error.code === "request_too_large" ? 413 : error.code === "unsupported_media_type" ? 415 : 400;
+      const message = status === 413 ? "The submission is too large." : status === 415 ? "Submit the form as form data or JSON." : "The submission payload is invalid.";
+      return jsonError(error.code, message, status, responseOrigin);
+    }
+    return jsonError("invalid_payload", "The submission payload is invalid.", 400, responseOrigin);
+  }
   const approximateBytes = [...data.entries()].reduce((sum, [key, value]) => sum + Buffer.byteLength(key) + (typeof value === "string" ? Buffer.byteLength(value) : value.size), 0);
   if (approximateBytes > MAX_BYTES || [...data.keys()].length > 120) return jsonError("request_too_large", "The submission is too large.", 413, responseOrigin);
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
@@ -86,8 +99,14 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
 }
 
 export async function OPTIONS(request: Request, context: { params: Promise<{ endpoint: string }> }) {
-  const form = await getPublicForm((await context.params).endpoint);
   const origin = request.headers.get("origin");
-  if (!form || !origin || (!(form.definition.settings?.allowedOrigins ?? []).includes(origin) && !isPagesRuntimeOrigin(origin))) return new NextResponse(null, { status: 403 });
+  if (!origin) return new NextResponse(null, { status: 403 });
+  // Generated pages are a first-party client. Approving their preflight before
+  // the form lookup lets the browser receive a useful, CORS-wrapped 404 from
+  // POST when an endpoint is stale or mistyped.
+  if (!isPagesRuntimeOrigin(origin)) {
+    const form = await getPublicForm((await context.params).endpoint);
+    if (!form || !(form.definition.settings?.allowedOrigins ?? []).includes(origin)) return new NextResponse(null, { status: 403 });
+  }
   return new NextResponse(null, { status: 204, headers: { "access-control-allow-origin": origin, "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "Content-Type, Idempotency-Key", "access-control-max-age": "86400", vary: "Origin" } });
 }

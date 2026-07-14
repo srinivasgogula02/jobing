@@ -28,10 +28,15 @@
   document.addEventListener("submit", async function (event) {
     var form = event.target;
     if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== "post") return;
+    if (form.dataset.jobingHandler === "manual") return;
     var url = endpoint(form);
     if (!url) return;
 
     event.preventDefault();
+    // Jobing owns submission for its endpoint. Generated pages sometimes add
+    // another fetch handler; stopping it prevents duplicate and incompatible
+    // JSON requests while preserving unrelated form scripts.
+    event.stopImmediatePropagation();
     if (form.dataset.jobingSubmitting === "true") return;
 
     var status = statusElement(form);

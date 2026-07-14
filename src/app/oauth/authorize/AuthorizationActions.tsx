@@ -39,9 +39,9 @@ export function AuthorizationActions() {
       </button>
       <span className="sr-only" role="status" aria-live="polite">
         {isApproving
-          ? "Connection approved. Returning you to your AI app."
+          ? "Approving connection. You will return to your AI app shortly."
           : isDenying
-            ? "Connection denied. Returning you to your AI app."
+            ? "Denying connection. You will return to your AI app shortly."
             : ""}
       </span>
     </>

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // This repository intentionally has independent lockfiles for the main app
   // and Forms. Keep Turbopack and output tracing inside the Forms project root.
+  outputFileTracingRoot: process.cwd(),
   turbopack: {
     root: process.cwd(),
   },

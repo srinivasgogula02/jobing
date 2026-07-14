@@ -41,7 +41,7 @@ try {
   const history = await migrationClient.query(
     "select name from public.jobing_forms_schema_migrations order by version",
   );
-  assert(history.rowCount === 9, `Expected 9 migrations, found ${history.rowCount}.`);
+  assert(history.rowCount === 12, `Expected 12 migrations, found ${history.rowCount}.`);
 
   const privileges = await migrationClient.query(`
     select
@@ -187,14 +187,25 @@ try {
   const executableNames = executableFunctions.rows.map((row) => row.proname);
   const expectedNames = [
     "accept_submission",
+    "accept_submission_v2",
     "apply_workspace_projection",
     "claim_request_nonce",
+    "create_dashboard_form",
     "create_form_draft",
+    "duplicate_dashboard_form",
+    "get_submission_file",
     "get_public_form",
     "get_submission",
+    "list_blocked_submissions",
     "list_forms",
+    "list_submission_files",
     "list_submissions",
+    "list_submissions_v2",
+    "publish_dashboard_form",
     "publish_form",
+    "record_blocked_submission",
+    "set_submission_review_state",
+    "update_dashboard_form",
   ];
   assert(
     JSON.stringify(executableNames) === JSON.stringify(expectedNames),

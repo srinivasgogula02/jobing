@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Dodo's webhook SDK exposes a broad event union; handlers narrow by event.type below. */
 import { headers } from 'next/headers';
-import { Webhook } from 'standardwebhooks';
 import { createClient } from '@supabase/supabase-js';
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendMetaPurchaseEvent } from '@/lib/metaCAPI';
@@ -8,46 +8,39 @@ import crypto from 'node:crypto';
 import { syncFormsWorkspaceProjection } from '@/lib/forms-service';
 import { buildFormsSubscriptionProjection, subscriptionAccessState, type SubscriptionAccessState } from '@/lib/subscription-entitlements';
 import { getBillingPlanByProductId } from '@/lib/billing-plans';
+import { dodoWebhookHeaders, verifyDodoWebhook } from '@/lib/dodo-webhook';
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
 
     if (!WEBHOOK_SECRET) {
-        throw new Error('Please add DODO_WEBHOOK_SECRET to .env.local');
+        console.error('[Dodo Webhook] DODO_WEBHOOK_SECRET is not configured.');
+        return new Response('Webhook temporarily unavailable', { status: 503 });
     }
 
     // Get the headers from Dodo Payments
     const headerPayload = await headers();
-    const webhookHeaders = {
-        'webhook-id': headerPayload.get('webhook-id') || '',
-        'webhook-signature': headerPayload.get('webhook-signature') || '',
-        'webhook-timestamp': headerPayload.get('webhook-timestamp') || '',
-    };
+    const webhookHeaders = dodoWebhookHeaders(headerPayload);
 
     // If there are no signature headers, error out
-    if (!webhookHeaders['webhook-id'] || !webhookHeaders['webhook-timestamp'] || !webhookHeaders['webhook-signature']) {
+    if (!webhookHeaders) {
         return new Response('Error occurred -- missing Dodo headers', { status: 400 });
     }
 
     // Get the body
     const body = await req.text();
     const eventKey = crypto.createHash('sha256').update(body).digest('hex').slice(0, 32);
+
+    if (!verifyDodoWebhook(body, webhookHeaders, WEBHOOK_SECRET)) {
+        console.error('[Dodo Webhook] Signature verification failed. Confirm the secret belongs to the same live/test endpoint as the API key.');
+        return new Response('Invalid webhook signature', { status: 400 });
+    }
+
     let payload: any;
     try {
         payload = JSON.parse(body);
-    } catch (e) {
+    } catch {
         return new Response('Error parsing JSON body', { status: 400 });
-    }
-
-    // Initialize Standard Webhook
-    const wh = new Webhook(WEBHOOK_SECRET);
-
-    // Verify the payload with the headers
-    try {
-        wh.verify(body, webhookHeaders);
-    } catch (err) {
-        console.error('Error verifying webhook:', err);
-        return new Response('Invalid webhook signature', { status: 400 });
     }
 
     const event = payload;
@@ -281,8 +274,6 @@ async function updateSubscriptionTierAndCredits(props: {
     const supabase = getSupabaseAdmin();
 
     let user: any = null;
-    let fetchError: any = null;
-
     // Try finding the user by clerk_user_id first (from checkout metadata)
     if (props.clerkUserId) {
         const result = await supabase
@@ -291,7 +282,6 @@ async function updateSubscriptionTierAndCredits(props: {
             .eq("id", props.clerkUserId)
             .single();
         user = result.data;
-        fetchError = result.error;
     }
 
     // Fallback: try finding by dodo_customer_id
@@ -302,7 +292,6 @@ async function updateSubscriptionTierAndCredits(props: {
             .eq("dodo_customer_id", props.dodoCustomerId)
             .single();
         user = result.data;
-        fetchError = result.error;
     }
 
     if (!user) {

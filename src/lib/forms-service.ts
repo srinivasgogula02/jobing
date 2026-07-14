@@ -74,18 +74,20 @@ function escapeHtml(value: string) {
 }
 
 function nativeFormHtml(definition: ConnectorFormDefinition, action: string) {
-  const fields = definition.fields.map((field) => {
+  const fields = definition.fields.filter((field) => !field.hidden).map((field) => {
     const name = escapeHtml(field.key);
     const label = escapeHtml(field.label);
     const required = field.required ? " required" : "";
-    if (field.type === "textarea") return `  <label>${label}\n    <textarea name="${name}"${required}></textarea>\n  </label>`;
+    const placeholder = field.placeholder ? ` placeholder="${escapeHtml(field.placeholder)}"` : "";
+    if (field.type === "textarea") return `  <label>${label}\n    <textarea name="${name}"${placeholder}${required}></textarea>\n  </label>`;
     if (field.type === "select") return `  <label>${label}\n    <select name="${name}"${required}>\n      <option value="">Choose one</option>\n${(field.options ?? []).map((option) => `      <option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("\n")}\n    </select>\n  </label>`;
     if (["radio", "checkbox"].includes(field.type)) return `  <fieldset>\n    <legend>${label}</legend>\n${(field.options ?? []).map((option) => `    <label><input type="${field.type}" name="${name}" value="${escapeHtml(option.value)}"${required}> ${escapeHtml(option.label)}</label>`).join("\n")}\n  </fieldset>`;
     if (field.type === "consent") return `  <label><input type="checkbox" name="${name}" value="yes"${required}> ${label}</label>`;
+    if (field.type === "file") return `  <label>${label}\n    <input type="file" name="${name}"${required}${field.validation?.acceptedFileTypes?.length ? ` accept="${escapeHtml(field.validation.acceptedFileTypes.join(","))}"` : ""}>\n  </label>`;
     const type = ["email", "number", "tel", "url", "date"].includes(field.type) ? field.type : "text";
-    return `  <label>${label}\n    <input type="${type}" name="${name}"${required}>\n  </label>`;
+    return `  <label>${label}\n    <input type="${type}" name="${name}"${placeholder}${required}>\n  </label>`;
   }).join("\n\n");
-  return `<form method="POST" action="${escapeHtml(action)}">\n${fields}\n\n  <div aria-hidden="true" style="position:absolute;left:-9999px">\n    <label>Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>\n  </div>\n  <button type="submit">Submit</button>\n</form>`;
+  return `<form method="POST" enctype="multipart/form-data" action="${escapeHtml(action)}">\n${fields}\n\n  <div aria-hidden="true" style="position:absolute;left:-9999px">\n    <label>Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>\n  </div>\n  <button type="submit">Submit</button>\n</form>`;
 }
 
 export function publicFormsEndpointUrl(endpointId: string) {
@@ -117,19 +119,23 @@ export type ConnectorFormDefinition = {
   fields: Array<{
     id: string;
     key: string;
-    type: "text" | "email" | "textarea" | "number" | "tel" | "url" | "date" | "select" | "radio" | "checkbox" | "consent";
+    type: "text" | "email" | "textarea" | "number" | "tel" | "url" | "date" | "select" | "radio" | "checkbox" | "consent" | "file";
     label: string;
     description?: string;
+    placeholder?: string;
     required?: boolean;
+    hidden?: boolean;
     options?: Array<{ value: string; label: string }>;
     validation?: {
       minLength?: number;
       maxLength?: number;
       min?: number;
       max?: number;
+      acceptedFileTypes?: string[];
+      maxFileSizeMb?: number;
     };
   }>;
-  confirmation?: { message: string; redirectUrl?: string };
+  confirmation?: { title?: string; message: string; redirectUrl?: string };
   settings?: { allowedOrigins: string[] };
 };
 

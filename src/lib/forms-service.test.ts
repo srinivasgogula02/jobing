@@ -30,6 +30,7 @@ const form = {
       key: "email",
       type: "email" as const,
       label: "Email",
+      placeholder: "you@example.com",
       required: true,
     }],
   },
@@ -160,8 +161,9 @@ describe("Forms internal request signing", () => {
     expect(result).not.toHaveProperty("endpointId");
     expect(result).toMatchObject({ status: "draft", publishRequired: true });
     expect(result.iframeSupported).toBe(false);
-    expect(result.htmlTemplate).toContain('<form method="POST" action="{{JOBING_FORM_ACTION}}">');
+    expect(result.htmlTemplate).toContain('<form method="POST" enctype="multipart/form-data" action="{{JOBING_FORM_ACTION}}">');
     expect(result.htmlTemplate).toContain('name="email"');
+    expect(result.htmlTemplate).toContain('placeholder="you@example.com"');
     expect(result.htmlTemplate).not.toContain("iframe");
   });
 

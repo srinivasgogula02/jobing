@@ -12,6 +12,7 @@ export const fieldTypeSchema = z.enum([
   "radio",
   "checkbox",
   "consent",
+  "file",
 ]);
 
 const optionSchema = z.object({
@@ -25,13 +26,17 @@ export const formFieldSchema = z.object({
   type: fieldTypeSchema,
   label: z.string().trim().min(1).max(200),
   description: z.string().trim().max(500).optional(),
+  placeholder: z.string().trim().max(200).optional(),
   required: z.boolean().default(false),
+  hidden: z.boolean().default(false),
   options: z.array(optionSchema).min(1).max(100).optional(),
   validation: z.object({
     minLength: z.number().int().min(0).max(10_000).optional(),
     maxLength: z.number().int().min(1).max(100_000).optional(),
     min: z.number().finite().optional(),
     max: z.number().finite().optional(),
+    acceptedFileTypes: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
+    maxFileSizeMb: z.number().int().min(1).max(2).optional(),
   }).optional(),
 }).superRefine((field, context) => {
   const needsOptions = field.type === "select" || field.type === "radio" || field.type === "checkbox";
@@ -40,6 +45,9 @@ export const formFieldSchema = z.object({
   }
   if (!needsOptions && field.options) {
     context.addIssue({ code: "custom", path: ["options"], message: `${field.type} fields cannot include options.` });
+  }
+  if (field.type !== "file" && (field.validation?.acceptedFileTypes || field.validation?.maxFileSizeMb)) {
+    context.addIssue({ code: "custom", path: ["validation"], message: "File validation can only be used on file fields." });
   }
   if (field.validation?.minLength !== undefined && field.validation.maxLength !== undefined && field.validation.minLength > field.validation.maxLength) {
     context.addIssue({ code: "custom", path: ["validation"], message: "minLength cannot exceed maxLength." });
@@ -55,12 +63,30 @@ export const formDefinitionSchema = z.object({
   description: z.string().trim().max(2_000).optional(),
   fields: z.array(formFieldSchema).min(1).max(100),
   confirmation: z.object({
-    message: z.string().trim().min(1).max(1_000).default("Thanks — your response was received."),
+    title: z.string().trim().min(1).max(200).default("Response received"),
+    message: z.string().trim().min(1).max(1_000).default("Thanks, your response was received."),
     redirectUrl: z.string().url().refine((value) => new URL(value).protocol === "https:", "Use an HTTPS redirect URL.").optional(),
-  }).default({ message: "Thanks — your response was received." }),
+  }).default({ title: "Response received", message: "Thanks, your response was received." }),
   settings: z.object({
     allowedOrigins: z.array(z.string().url().transform((value) => new URL(value).origin)).max(20).default([]),
-  }).optional(),
+  }).default({ allowedOrigins: [] }),
+  presentation: z.object({
+    colorMode: z.enum(["dark", "light"]).default("dark"),
+    accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#c6f24e"),
+    backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#0e1219"),
+    textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#f2f4f7"),
+    fontFamily: z.enum(["sans", "serif", "mono"]).default("sans"),
+    spacing: z.enum(["compact", "comfortable", "spacious"]).default("comfortable"),
+    buttonStyle: z.enum(["solid", "outline"]).default("solid"),
+  }).default({
+    colorMode: "dark",
+    accentColor: "#c6f24e",
+    backgroundColor: "#0e1219",
+    textColor: "#f2f4f7",
+    fontFamily: "sans",
+    spacing: "comfortable",
+    buttonStyle: "solid",
+  }),
 }).superRefine((definition, context) => {
   const ids = new Set<string>();
   const keys = new Set<string>();
@@ -122,6 +148,7 @@ export const workspaceProjectionRequestSchema = z.object({
 });
 
 export type FormDefinition = z.infer<typeof formDefinitionSchema>;
-export type CreateFormDraftRequest = z.infer<typeof createFormDraftRequestSchema>;
+export type FormDefinitionInput = z.input<typeof formDefinitionSchema>;
+export type CreateFormDraftRequest = z.input<typeof createFormDraftRequestSchema>;
 export type PublishFormRequest = z.infer<typeof publishFormRequestSchema>;
 export type WorkspaceProjectionRequest = z.infer<typeof workspaceProjectionRequestSchema>;

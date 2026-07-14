@@ -75,7 +75,7 @@ async function ensureMigrationTable(client) {
 
 async function verifyHistory(client, migrations) {
   const result = await client.query(
-    "select version::text, name, checksum from public.jobing_forms_schema_migrations order by version",
+    "select version::text, name, checksum from public.jobing_forms_schema_migrations order by version::bigint",
   );
   if (result.rows.length > migrations.length) {
     throw new Error("The database has more applied migrations than this checkout.");
@@ -85,7 +85,9 @@ async function verifyHistory(client, migrations) {
     const local = migrations[index];
     if (applied.version !== String(local.version)) {
       throw new Error(
-        `Applied migrations must be an exact prefix of local history; expected ${local.version}, found ${applied.version}.`,
+        `Applied migrations must be an exact prefix of local history; expected ${local.version}, found ${applied.version}. ` +
+        `Database sequence: ${result.rows.map((row) => row.version).join(",")}. ` +
+        `Local sequence: ${migrations.map((migration) => migration.version).join(",")}.`,
       );
     }
     if (local.name !== applied.name) {

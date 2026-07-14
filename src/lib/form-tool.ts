@@ -12,10 +12,12 @@ export const formOperationIdSchema = z.string()
 
 const formFieldInputSchema = z.object({
   key: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/).describe("Stable lowercase key, for example work_email."),
-  type: z.enum(["text", "email", "textarea", "number", "tel", "url", "date", "select", "radio", "checkbox", "consent"]),
+  type: z.enum(["text", "email", "textarea", "number", "tel", "url", "date", "select", "radio", "checkbox", "consent", "file"]),
   label: z.string().trim().min(1).max(200),
   description: z.string().trim().max(500).optional(),
+  placeholder: z.string().trim().max(200).optional(),
   required: z.boolean().default(false),
+  hidden: z.boolean().default(false),
   options: z.array(z.object({
     value: z.string().min(1).max(120),
     label: z.string().min(1).max(160),
@@ -25,6 +27,8 @@ const formFieldInputSchema = z.object({
     maxLength: z.number().int().min(1).max(100_000).optional(),
     min: z.number().finite().optional(),
     max: z.number().finite().optional(),
+    acceptedFileTypes: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
+    maxFileSizeMb: z.number().int().min(1).max(2).optional(),
   }).optional(),
 }).superRefine((field, context) => {
   const needsOptions = field.type === "select" || field.type === "radio" || field.type === "checkbox";
@@ -90,7 +94,9 @@ export function buildConnectorFormDraft(input: CreateFormDraftToolInput): Create
         type: field.type,
         label: field.label,
         ...(field.description !== undefined ? { description: field.description } : {}),
+        ...(field.placeholder !== undefined ? { placeholder: field.placeholder } : {}),
         required: field.required,
+        hidden: field.hidden,
         ...(field.options !== undefined ? {
           options: field.options.map((option) => ({ value: option.value, label: option.label })),
         } : {}),
@@ -100,11 +106,14 @@ export function buildConnectorFormDraft(input: CreateFormDraftToolInput): Create
             ...(field.validation.maxLength !== undefined ? { maxLength: field.validation.maxLength } : {}),
             ...(field.validation.min !== undefined ? { min: field.validation.min } : {}),
             ...(field.validation.max !== undefined ? { max: field.validation.max } : {}),
+            ...(field.validation.acceptedFileTypes !== undefined ? { acceptedFileTypes: field.validation.acceptedFileTypes } : {}),
+            ...(field.validation.maxFileSizeMb !== undefined ? { maxFileSizeMb: field.validation.maxFileSizeMb } : {}),
           },
         } : {}),
       })),
       confirmation: {
-        message: input.confirmationMessage ?? "Thanks — your response was received.",
+        title: "Response received",
+        message: input.confirmationMessage ?? "Thanks, your response was received.",
         ...(input.redirectUrl ? { redirectUrl: input.redirectUrl } : {}),
       },
       ...(input.allowedOrigins ? { settings: { allowedOrigins: input.allowedOrigins } } : {}),

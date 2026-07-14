@@ -1,4 +1,4 @@
-import type { FormDefinition } from "@/lib/form-definition";
+import { formDefinitionSchema, type FormDefinitionInput } from "@/lib/form-definition";
 
 type SubmissionResult =
   | { success: true; values: Record<string, string | string[]> }
@@ -10,11 +10,13 @@ export function isHoneypotRejection(input: { value: string; origin: string | nul
   return Boolean(input.value) && input.origin !== input.hostedOrigin;
 }
 
-export function validateSubmission(definition: FormDefinition, input: Record<string, unknown>): SubmissionResult {
+export function validateSubmission(definitionInput: FormDefinitionInput, input: Record<string, unknown>): SubmissionResult {
+  const definition = formDefinitionSchema.parse(definitionInput);
   const errors: Record<string, string> = {};
   const values: Record<string, string | string[]> = {};
 
   for (const field of definition.fields) {
+    if (field.hidden) continue;
     const raw = input[field.key];
     const multiple = Array.isArray(raw) ? raw.map(String).map((value) => value.trim()).filter(Boolean) : undefined;
     const value = multiple ?? (raw === undefined || raw === null ? "" : String(raw).trim());

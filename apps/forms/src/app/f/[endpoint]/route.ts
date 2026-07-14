@@ -1,10 +1,11 @@
 import { createHmac, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { acceptSubmission, getPublicForm } from "@/lib/forms-store";
+import { acceptSubmission, getPublicForm, recordBlockedSubmission } from "@/lib/forms-store";
 import { renderPublicForm } from "@/lib/public-form-html";
 import { isHoneypotRejection, validateSubmission } from "@/lib/submission-validation";
 import { isPagesRuntimeOrigin } from "@/lib/platform-origin";
 import { parseSubmissionRequest, SubmissionRequestError } from "@/lib/submission-request";
+import { collectSubmissionFiles, MAX_UPLOAD_BYTES } from "@/lib/submission-files";
 import {
   captureFormsOperationalError,
   durationBucket,
@@ -14,11 +15,12 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const MAX_BYTES = 256 * 1024;
+const MAX_VALUE_BYTES = 256 * 1024;
+const MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + MAX_VALUE_BYTES;
 
 const securityHeaders = {
   "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff",
-  "content-security-policy": "default-src 'none'; style-src 'self'; script-src https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com; form-action 'self' https://jobing.site; base-uri 'none'; frame-ancestors 'none'",
+  "content-security-policy": "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com; form-action 'self' https://jobing.site; base-uri 'none'; frame-ancestors 'none'",
 };
 
 function html(body: string, status = 200) { return new NextResponse(body, { status, headers: securityHeaders }); }
@@ -78,17 +80,30 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
   try {
   const { endpoint } = await context.params;
   const length = Number(request.headers.get("content-length") || 0);
-  if (length > MAX_BYTES) return complete(jsonError("request_too_large", "The submission is too large.", 413, responseOrigin), { outcome: "rejected", reason: "request_too_large", status_code: 413 });
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+  const secret = process.env.SUBMISSION_IP_HASH_SECRET;
+  const ipHash = secret && Buffer.byteLength(secret) >= 32
+    ? createHmac("sha256", secret).update(`${new Date().toISOString().slice(0,10)}:${ip || "unknown"}`).digest("hex")
+    : null;
+  const rememberBlocked = async (reason: string) => {
+    if (!ipHash) return;
+    try { await recordBlockedSubmission({ endpointId: endpoint, reason, origin: originHeader, ipHash }); } catch { /* Rejection logging must never break the form response. */ }
+  };
+  if (length > MAX_REQUEST_BYTES) {
+    await rememberBlocked("request_too_large");
+    return complete(jsonError("request_too_large", "The submission is too large.", 413, responseOrigin), { outcome: "rejected", reason: "request_too_large", status_code: 413 });
+  }
   const form = await getPublicForm(endpoint);
   if (!form) return complete(jsonError("form_not_found", "This form is unavailable.", 404, responseOrigin), { outcome: "rejected", reason: "form_not_found", status_code: 404 });
   if (originHeader && (form.definition.settings?.allowedOrigins ?? []).includes(originHeader)) responseOrigin = originHeader;
   let data: FormData;
   try {
-    data = (await parseSubmissionRequest(request, MAX_BYTES)).data;
+    data = (await parseSubmissionRequest(request, contentType.includes("application/json") ? MAX_VALUE_BYTES : MAX_REQUEST_BYTES)).data;
   } catch (error) {
     if (error instanceof SubmissionRequestError) {
       const status = error.code === "request_too_large" ? 413 : error.code === "unsupported_media_type" ? 415 : 400;
       const message = status === 413 ? "The submission is too large." : status === 415 ? "Submit the form as form data or JSON." : "The submission payload is invalid.";
+      await rememberBlocked(error.code === "unsupported_media_type" ? "unsupported_media_type" : error.code === "request_too_large" ? "request_too_large" : "invalid_payload");
       return complete(jsonError(error.code, message, status, responseOrigin), {
         outcome: "rejected",
         reason: error.code,
@@ -98,30 +113,42 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
     return complete(jsonError("invalid_payload", "The submission payload is invalid.", 400, responseOrigin), { outcome: "rejected", reason: "invalid_payload", status_code: 400 });
   }
   const approximateBytes = [...data.entries()].reduce((sum, [key, value]) => sum + Buffer.byteLength(key) + (typeof value === "string" ? Buffer.byteLength(value) : value.size), 0);
-  if (approximateBytes > MAX_BYTES || [...data.keys()].length > 120) return complete(jsonError("request_too_large", "The submission is too large.", 413, responseOrigin), { outcome: "rejected", reason: "request_too_large", status_code: 413 });
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+  if (approximateBytes > MAX_REQUEST_BYTES || [...data.keys()].length > 120) {
+    await rememberBlocked("request_too_large");
+    return complete(jsonError("request_too_large", "The submission is too large.", 413, responseOrigin), { outcome: "rejected", reason: "request_too_large", status_code: 413 });
+  }
   const hostedOrigin = new URL(process.env.NEXT_PUBLIC_JOBING_SITE_URL || "https://jobing.site").origin;
   if (isHoneypotRejection({ value: String(data.get("_gotcha") || ""), origin: originHeader, hostedOrigin })) {
+    await rememberBlocked("honeypot");
     return complete(NextResponse.redirect(`${canonical(endpoint)}?submitted=1`, 303), { outcome: "rejected", reason: "honeypot", status_code: 303 });
   }
   const turnstileToken = String(data.get("cf-turnstile-response") || "");
   const isHostedForm = data.get("_jobing_form_context") === "hosted";
-  if ((isHostedForm || turnstileToken) && !await verifyTurnstile(turnstileToken, ip)) return complete(jsonError("challenge_failed", "Please complete the security check and try again.", 400, responseOrigin), { outcome: "rejected", reason: "challenge_failed", status_code: 400 });
+  if ((isHostedForm || turnstileToken) && !await verifyTurnstile(turnstileToken, ip)) {
+    await rememberBlocked("challenge_failed");
+    return complete(jsonError("challenge_failed", "Please complete the security check and try again.", 400, responseOrigin), { outcome: "rejected", reason: "challenge_failed", status_code: 400 });
+  }
+  const uploads = await collectSubmissionFiles(form.definition, data);
   const raw: Record<string, unknown> = {};
   for (const field of form.definition.fields) {
+    if (field.type === "file") {
+      raw[field.key] = uploads.names[field.key];
+      continue;
+    }
     const values = data.getAll(field.key).filter((value): value is string => typeof value === "string");
     raw[field.key] = values.length > 1 ? values : values[0];
   }
   const validated = validateSubmission(form.definition, raw);
-  if (!validated.success) {
-    if (wantsJson) return complete(NextResponse.json({ error: { code: "validation_failed", message: "Check the highlighted fields and try again.", fields: validated.errors } }, { status: 422, headers: corsHeaders(responseOrigin) }), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
-    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "", submissionId: String(data.get("_submission_id") || randomUUID()), errors: validated.errors }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
+  const validationErrors = { ...(validated.success ? {} : validated.errors), ...uploads.errors };
+  if (!validated.success || Object.keys(uploads.errors).length > 0) {
+    await rememberBlocked("validation_failed");
+    if (wantsJson) return complete(NextResponse.json({ error: { code: "validation_failed", message: "Check the highlighted fields and try again.", fields: validationErrors } }, { status: 422, headers: corsHeaders(responseOrigin) }), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
+    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "", submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
   }
-  const secret = process.env.SUBMISSION_IP_HASH_SECRET;
   if (!secret || Buffer.byteLength(secret) < 32) return complete(jsonError("unavailable", "Forms is temporarily unavailable.", 503, responseOrigin), { outcome: "unavailable", reason: "configuration_missing", status_code: 503 }, new Error("Forms submission configuration is unavailable"));
   const origin = originHeader === hostedOrigin || platformOrigin ? null : originHeader;
   try {
-    const result = await acceptSubmission({ endpointId: endpoint, idempotencyKey: String(data.get("_submission_id") || request.headers.get("idempotency-key") || randomUUID()), values: validated.values, origin, ipHash: createHmac("sha256", secret).update(`${new Date().toISOString().slice(0,10)}:${ip || "unknown"}`).digest("hex") });
+    const result = await acceptSubmission({ endpointId: endpoint, idempotencyKey: String(data.get("_submission_id") || request.headers.get("idempotency-key") || randomUUID()), values: validated.values, files: uploads.files, origin, ipHash: ipHash! });
     if (wantsJson) return complete(NextResponse.json({ data: result }, { status: 201, headers: corsHeaders(responseOrigin) }), { outcome: "accepted", reason: "success", status_code: 201 });
     if (result.redirectUrl) return complete(NextResponse.redirect(result.redirectUrl, 303), { outcome: "accepted", reason: "success", status_code: 303 });
     return complete(NextResponse.redirect(`${canonical(endpoint)}?submitted=1`, 303), { outcome: "accepted", reason: "success", status_code: 303 });
@@ -129,6 +156,7 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
     const message = error instanceof Error ? error.message : "";
     const status = message.includes("RATE_LIMITED") ? 429 : message.includes("ORIGIN_NOT_ALLOWED") ? 403 : message.includes("FORM_LIMIT_REACHED") ? 429 : 500;
     const reason: FormSubmissionTelemetry["reason"] = status === 429 ? "rate_limited" : status === 403 ? "origin_not_allowed" : "submission_failed";
+    if (status === 429 || status === 403) await rememberBlocked(reason);
     return complete(jsonError(reason, status === 500 ? "The response could not be saved." : "This submission is not allowed.", status, responseOrigin), { outcome: status === 500 ? "unavailable" : "rejected", reason, status_code: status }, status === 500 ? error : undefined);
   }
   } catch (error) {

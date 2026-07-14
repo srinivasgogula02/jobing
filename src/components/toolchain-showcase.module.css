@@ -105,6 +105,15 @@
   display: block;
   object-fit: contain;
 }
+.zapierMark {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #ff4f00;
+  font-size: 24px;
+  line-height: 1;
+}
 .usualSide > p {
   margin: 24px 0 0;
   display: flex;

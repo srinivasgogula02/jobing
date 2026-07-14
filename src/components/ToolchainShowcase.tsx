@@ -21,17 +21,22 @@ const toolLogos = {
   bolt: "https://bolt.new/static/favicon.svg",
   webflow: "https://cdn.simpleicons.org/webflow/146EF5",
   airtable: "https://cdn.simpleicons.org/airtable/18BFFF",
-  zapier: "https://zapier.com/favicon.ico",
 } as const;
 
-const tools = [
+type Tool = {
+  name: string;
+  logo?: string;
+  mark?: "zapier";
+};
+
+const tools: readonly Tool[] = [
   { name: "Google Forms", logo: toolLogos.googleForms },
   { name: "Typeform", logo: toolLogos.typeform },
   { name: "Lovable", logo: toolLogos.lovable },
   { name: "Bolt", logo: toolLogos.bolt },
   { name: "Webflow", logo: toolLogos.webflow },
   { name: "Airtable", logo: toolLogos.airtable },
-  { name: "Zapier", logo: toolLogos.zapier },
+  { name: "Zapier", mark: "zapier" },
 ] as const;
 
 const roles = [
@@ -84,22 +89,28 @@ const roles = [
 function ToolLogo({
   name,
   logo,
+  mark,
   compact = false,
 }: {
   name: string;
-  logo: string;
+  logo?: string;
+  mark?: "zapier";
   compact?: boolean;
 }) {
   return (
     <span className={compact ? styles.compactTool : styles.toolChip}>
-      <img
-        src={logo}
-        alt=""
-        width={compact ? 18 : 22}
-        height={compact ? 18 : 22}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-      />
+      {mark === "zapier" ? (
+        <span className={styles.zapierMark} aria-hidden="true">✱</span>
+      ) : (
+        <img
+          src={logo}
+          alt=""
+          width={compact ? 18 : 22}
+          height={compact ? 18 : 22}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      )}
       <span>{name}</span>
     </span>
   );

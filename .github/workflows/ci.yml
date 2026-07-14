@@ -136,7 +136,9 @@ jobs:
         run: npm install --global npm@11.6.2
 
       - name: Install locked Forms dependencies
-        run: npm ci
+        # The lint/build graph contains optional peer ranges for both
+        # picomatch 2 and 4. Preserve the committed tree across platforms.
+        run: npm ci --legacy-peer-deps
 
       - name: Apply and verify Forms migrations
         run: |

@@ -55,6 +55,7 @@ describe("OAuth public URL discovery", () => {
   });
 
   it("defaults localhost hosts to HTTP", () => {
+    vi.stubEnv("OAUTH_ISSUER", "");
     const request = new Request("http://localhost:3000/discovery", {
       headers: { host: "localhost:3000" },
     });

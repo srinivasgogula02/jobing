@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { saveNote, checkIdTaken } from "@/app/actions/copy";
 import { track } from "@/lib/analytics";
 import { 
@@ -29,13 +30,49 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
   const [content, setContent] = useState(initialContent);
   const [isEditingContent, setIsEditingContent] = useState(isNew);
   const [showGuide, setShowGuide] = useState(false);
+  const [showConnectorAnnouncement, setShowConnectorAnnouncement] = useState(false);
+  const [copiedConnectorUrl, setCopiedConnectorUrl] = useState(false);
+
+  const dismissConnectorAnnouncement = useCallback(() => {
+    setShowConnectorAnnouncement(false);
+    try {
+      window.localStorage.setItem("jobing_connector_announcement_v1", "dismissed");
+    } catch {
+      // The announcement can still be dismissed when storage is unavailable.
+    }
+    track("connector_announcement_dismissed", { from: "copy_popup" });
+  }, []);
   
   useEffect(() => {
     // Only automatically slide open the guide for brand new visitors on Desktop/Tablet viewports to preserve mobile typing real-estate.
-    if (isNew && window.innerWidth >= 640) {
-      setShowGuide(true);
-    }
+    const timer = window.setTimeout(() => {
+      if (isNew && window.innerWidth >= 640) setShowGuide(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [isNew]);
+
+  useEffect(() => {
+    if (!isNew) return;
+    const timer = window.setTimeout(() => {
+      try {
+        if (window.localStorage.getItem("jobing_connector_announcement_v1") !== "dismissed") {
+          setShowConnectorAnnouncement(true);
+        }
+      } catch {
+        setShowConnectorAnnouncement(true);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isNew]);
+
+  useEffect(() => {
+    if (!showConnectorAnnouncement) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") dismissConnectorAnnouncement();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [dismissConnectorAnnouncement, showConnectorAnnouncement]);
   
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [copiedLink, setCopiedLink] = useState(false);
@@ -51,8 +88,21 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
 
   const router = useRouter();
 
+  const handleCopyConnectorUrl = async () => {
+    const connectorUrl = "https://jobing.site/mcp";
+    try {
+      await navigator.clipboard.writeText(connectorUrl);
+    } catch {
+      window.prompt("Copy your Jobing AI connector URL", connectorUrl);
+    }
+    setCopiedConnectorUrl(true);
+    track("connector_url_copied", { from: "copy_popup" });
+    window.setTimeout(() => setCopiedConnectorUrl(false), 2000);
+  };
+
   useEffect(() => {
-    setHostname(window.location.host);
+    const timer = window.setTimeout(() => setHostname(window.location.host), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleCopyLink = () => {
@@ -428,7 +478,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
                </div>
                <div className="pl-11 pr-2">
                  <p className="text-[12px] sm:text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed mb-3">
-                   Using a private link by swapping <strong className="text-neutral-700 dark:text-neutral-300 font-mono">/c/</strong> for <strong className="text-neutral-700 dark:text-neutral-300 font-mono">/p/</strong>, it shows a "No internet" page. By clicking the dinosaur icon, you can securely copy the contents you saved.
+                   Using a private link by swapping <strong className="text-neutral-700 dark:text-neutral-300 font-mono">/c/</strong> for <strong className="text-neutral-700 dark:text-neutral-300 font-mono">/p/</strong>, it shows a &quot;No internet&quot; page. By clicking the dinosaur icon, you can securely copy the contents you saved.
                  </p>
                  <div className="mt-3 rounded-t-lg rounded-b-sm overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-950">
                    <img src="/privacypage.gif" alt="Privacy Page Stealth Guide" className="w-full h-auto object-contain" />
@@ -455,6 +505,80 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
         </aside>
       </main>
 
+      {showConnectorAnnouncement && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 p-3 backdrop-blur-[2px] sm:items-center sm:p-6"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) dismissConnectorAnnouncement();
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="connector-announcement-title"
+            aria-describedby="connector-announcement-description"
+            className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-neutral-200 bg-white text-neutral-950 shadow-[0_24px_90px_rgba(0,0,0,.28)] dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
+          >
+            <div className="h-1.5 w-full bg-[#C1FF00]" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={dismissConnectorAnnouncement}
+              autoFocus
+              className="absolute right-3 top-4 flex h-11 w-11 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8bb800] dark:hover:bg-neutral-800 dark:hover:text-white"
+              aria-label="Close Jobing AI announcement"
+            >
+              <X size={19} />
+            </button>
+
+            <div className="px-5 pb-6 pt-7 sm:px-8 sm:pb-8 sm:pt-9">
+              <div className="mb-5 flex items-center gap-3 pr-12">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#C1FF00]">
+                  <Image src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#719500] dark:text-[#C1FF00]">New from Jobing AI</p>
+                  <p className="mt-0.5 text-sm font-semibold text-neutral-500 dark:text-neutral-400">One connector. Real work from your AI.</p>
+                </div>
+              </div>
+
+              <h2 id="connector-announcement-title" className="max-w-md text-2xl font-black leading-[1.08] tracking-[-0.035em] sm:text-3xl">
+                Your AI can now publish the work it creates.
+              </h2>
+              <p id="connector-announcement-description" className="mt-3 max-w-md text-[15px] leading-6 text-neutral-600 dark:text-neutral-300">
+                Connect Jobing AI once. Then ask your AI to publish web pages, create custom forms, and help you work with the responses.
+              </p>
+
+              <div className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50 p-2 dark:border-neutral-700 dark:bg-neutral-950 sm:flex sm:items-center sm:gap-2">
+                <code className="block min-w-0 flex-1 truncate px-2 py-2 font-mono text-[13px] font-bold text-neutral-700 dark:text-neutral-200 sm:text-sm">
+                  https://jobing.site/mcp
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyConnectorUrl}
+                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-neutral-950 px-4 text-sm font-bold text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8bb800] dark:bg-[#C1FF00] dark:text-black dark:hover:bg-[#aee600] sm:w-auto"
+                  aria-label="Copy https://jobing.site/mcp"
+                >
+                  {copiedConnectorUrl ? <Check size={16} /> : <Copy size={16} />}
+                  {copiedConnectorUrl ? "Copied" : "Copy connector URL"}
+                </button>
+              </div>
+
+              <div className="mt-4 flex justify-center sm:justify-start">
+                <Link
+                  href="/connector"
+                  target="_blank"
+                  onClick={() => track("connector_setup_opened", { from: "copy_popup" })}
+                  className="inline-flex min-h-11 items-center text-sm font-bold text-neutral-700 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-black hover:decoration-neutral-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8bb800] dark:text-neutral-200 dark:decoration-neutral-600 dark:hover:text-white"
+                >
+                  See how to connect it
+                </Link>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
       {/* ─────── Brand Awareness CTA ─────── */}
       <footer className="w-full bg-[#C1FF00] border-t border-[#aee600] py-3 px-4 shrink-0 transition-colors z-10 selection:bg-black/10 relative">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
@@ -470,7 +594,7 @@ export default function CopyClient({ id, initialContent, isNew = false }: { id: 
             </a>
           </div>
           <p className="text-black/50 text-xs sm:text-sm font-medium text-center sm:text-right">
-            Need another utility? <a href="/tools" target="_blank" onClick={() => track("tool_cta_click", { from: "copy_footer", target: "tools" })} className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold">Explore Jobing tools</a>.
+            Want your AI to publish pages and collect responses? <a href="/connector" target="_blank" onClick={() => track("connector_setup_opened", { from: "copy_footer" })} className="text-black hover:text-black/80 underline decoration-black/30 hover:decoration-black/60 underline-offset-4 transition-all font-bold">Connect Jobing AI</a>.
           </p>
         </div>
       </footer>

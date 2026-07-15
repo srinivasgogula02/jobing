@@ -31,6 +31,9 @@ export type AnalyticsEvent =
   | "feedback_started" // user picked a sentiment on the feedback page (intent)
   | "feedback_submitted" // a feedback message was successfully sent
   | "mcp_url_copied"
+  | "connector_url_copied"
+  | "connector_announcement_dismissed"
+  | "connector_setup_opened"
   | "connector_platform_selected"
   | "homepage_role_selected"
   | "setup_video_loaded"

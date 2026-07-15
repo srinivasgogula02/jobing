@@ -151,6 +151,15 @@ export default clerkMiddleware(
       return withAlternate(NextResponse.next(), pathname);
     }
 
+    // Let Next.js resolve unknown document routes before Clerk runs. Otherwise
+    // every mistyped URL is treated as a protected product and anonymous users
+    // are sent to sign-in instead of seeing the branded 404 page. The current
+    // authenticated product surfaces are explicitly represented by
+    // isAuthOnlyProductPath; API endpoints continue through their own auth flow.
+    if (!pathname.startsWith('/api') && !isAuthOnlyProductPath(pathname)) {
+      return NextResponse.next();
+    }
+
     // For all non-public routes, require authentication
     const { userId, sessionClaims, redirectToSignIn } = await auth();
 

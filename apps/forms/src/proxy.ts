@@ -12,9 +12,19 @@ const isPublicRoute = createRouteMatcher([
   "/forms/f(.*)",
 ]);
 
+const isProtectedRoute = createRouteMatcher([
+  "/app(.*)",
+  "/forms/app(.*)",
+  "/api/app(.*)",
+  "/forms/api/app(.*)",
+]);
+
 export default clerkMiddleware(
   async (auth, request) => {
-    if (!isPublicRoute(request)) {
+    // Only real dashboard surfaces require a session. Unknown document paths
+    // must reach Next.js so the branded 404 is shown instead of a sign-in
+    // redirect loop.
+    if (!isPublicRoute(request) && isProtectedRoute(request)) {
       await auth.protect();
     }
   },

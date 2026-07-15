@@ -6,6 +6,7 @@ import { AiAppMarks, FormsProductStory } from "./forms-product-story";
 import styles from "./forms-marketing.module.css";
 
 const connectorUrl = "https://jobing.site/mcp";
+const formsDashboardUrl = "https://jobing.site/forms/app";
 
 export const metadata: Metadata = {
   title: "Jobing Forms | Custom forms your AI can create and understand",
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 function PrimaryAction({ compact = false }: { compact?: boolean }) {
-  return <Link className={compact ? styles.headerCta : styles.primaryCta} href="/app" prefetch={false}>{compact ? "Forms dashboard" : "Open my forms"}<span aria-hidden="true">→</span></Link>;
+  return <a className={compact ? styles.headerCta : styles.primaryCta} href={formsDashboardUrl}>{compact ? "Forms dashboard" : "Open my forms"}<span aria-hidden="true">→</span></a>;
 }
 
 const useCases = [
@@ -118,7 +119,7 @@ export default function FormsMarketingPage() {
 
       <section className={styles.finalCta}><p>One URL. One connection.</p><h2>Ask for the form.<br /><span>Keep the answer useful.</span></h2><div className={styles.finalActions}><div><small>MCP CONNECTOR URL</small><code>{connectorUrl}</code></div><ConnectorCopyButton value={connectorUrl} /></div><PrimaryAction /></section>
 
-      <footer className={styles.footer}><Link className={styles.footerBrand} href="/"><Image src="/forms/logo.png" alt="" width={28} height={28} /><strong>Jobing Forms</strong></Link><p>Make the form. Understand the answer.</p><nav><a href="https://jobing.site">Jobing AI</a><Link href="/app" prefetch={false}>Dashboard</Link><a href="https://jobing.site/pricing">Pricing</a></nav></footer>
+      <footer className={styles.footer}><Link className={styles.footerBrand} href="/"><Image src="/forms/logo.png" alt="" width={28} height={28} /><strong>Jobing Forms</strong></Link><p>Make the form. Understand the answer.</p><nav><a href="https://jobing.site">Jobing AI</a><a href={formsDashboardUrl}>Dashboard</a><a href="https://jobing.site/pricing">Pricing</a></nav></footer>
     </main>
   );
 }

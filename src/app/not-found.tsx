@@ -1,28 +1,43 @@
-import Link from 'next/link';
+import Image from "next/image";
+import Link from "next/link";
+import styles from "./not-found.module.css";
 
 export default function NotFound() {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-white selection:bg-yellow-200">
-            <div className="max-w-md w-full text-center relative">
-                <h1 className="text-9xl font-extrabold tracking-tighter text-slate-100 absolute -top-16 left-1/2 -translate-x-1/2 -z-10 select-none">
-                    404
-                </h1>
+  return (
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <Link href="/" className={styles.brand} aria-label="Jobing AI home">
+          <Image src="/logo.png" alt="" width={38} height={38} priority />
+          <strong>Jobing AI</strong>
+        </Link>
+        <Link className={styles.dashboard} href="/dashboard">Dashboard</Link>
+      </header>
 
-                <h2 className="text-4xl font-bold tracking-tight text-slate-900 mb-4 mt-8">
-                    Page not found
-                </h2>
-
-                <p className="text-lg text-slate-500 mb-8 font-medium">
-                    Sorry, we couldn't find the page or profile you're looking for. It might have been deleted or the link is incorrect.
-                </p>
-
-                <Link
-                    href="/"
-                    className="inline-flex items-center justify-center px-8 py-3 bg-yellow-400 hover:bg-black hover:text-white text-black font-bold rounded-xl transition-all duration-300"
-                >
-                    Return Home
-                </Link>
-            </div>
+      <section className={styles.stage}>
+        <div className={styles.copy}>
+          <p className={styles.eyebrow}>404 · LOST BETWEEN PROMPT AND PUBLISH</p>
+          <h1>This page never<br />made it live.</h1>
+          <p>The address may be mistyped, the page may still be a draft, or its owner may have removed it.</p>
+          <div className={styles.actions}>
+            <Link href="/">Return home <span aria-hidden="true">→</span></Link>
+            <Link href="/dashboard/pages">Open my pages</Link>
+          </div>
         </div>
-    );
+
+        <div className={styles.art} aria-hidden="true">
+          <div className={styles.chatTop}><i /><span>AI conversation</span><b>Connected</b></div>
+          <div className={styles.message}>Open the page I published yesterday.</div>
+          <div className={styles.reply}>
+            <div><Image src="/logo.png" alt="" width={27} height={27} /></div>
+            <section><b>I can&apos;t find a live page at this address.</b><p>Check your Pages dashboard for the draft or published URL.</p><span>Open Pages dashboard →</span></section>
+          </div>
+          <div className={styles.status}><i /><span>404</span><strong>Page not found</strong></div>
+          <div className={styles.note}>Your work may still be saved</div>
+          <svg className={styles.arrow} viewBox="0 0 98 54"><path d="M4 46C25 16 50 7 85 12m0 0-12-8m12 8-10 12" /></svg>
+        </div>
+      </section>
+
+      <footer className={styles.footer}><span>Jobing AI</span><span>Give your AI the tools to finish the work.</span></footer>
+    </main>
+  );
 }

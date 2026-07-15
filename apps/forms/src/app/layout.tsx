@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
 const display = Fraunces({
@@ -19,6 +19,11 @@ const mono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument-sans",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Jobing Forms",
   description: "Create, publish, and manage forms with Jobing and your connected AI.",
@@ -29,13 +34,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0E1219",
+  themeColor: "#C1FF00",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+      <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} ${instrumentSans.variable}`}>
         <body>{children}</body>
       </html>
     </ClerkProvider>

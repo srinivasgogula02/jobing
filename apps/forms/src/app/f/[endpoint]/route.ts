@@ -47,6 +47,27 @@ type TurnstileResult =
   | { status: "rejected" }
   | { status: "unavailable"; error: Error };
 
+const TURNSTILE_OPERATIONAL_ERRORS = new Set([
+  "bad-request",
+  "hostname-mismatch",
+  "internal-error",
+  "invalid-content-type",
+  "invalid-input-secret",
+  "missing-input-response",
+  "missing-input-secret",
+  "missing-token",
+  "upstream-timeout",
+  "upstream-unreachable",
+]);
+
+function expectedTurnstileHostname() {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_FORMS_API_URL || "https://forms.jobing.site/forms").hostname;
+  } catch {
+    return "forms.jobing.site";
+  }
+}
+
 async function verifyTurnstile(token: string, ip: string | null): Promise<TurnstileResult> {
   if (!token) return { status: "rejected" };
   const url = process.env.TURNSTILE_VERIFY_URL?.trim();
@@ -54,9 +75,23 @@ async function verifyTurnstile(token: string, ip: string | null): Promise<Turnst
   try {
     const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token, remoteip: ip, action: TURNSTILE_ACTION }), signal: AbortSignal.timeout(5000), cache: "no-store" });
     if (!response.ok) return { status: "unavailable", error: new Error(`Turnstile verifier returned HTTP ${response.status}`) };
-    const body = await response.json() as { success?: boolean };
-    if (body.success === true) return { status: "verified" };
-    if (body.success === false) return { status: "rejected" };
+    const body = await response.json() as { success?: boolean; hostname?: string; action?: string; "error-codes"?: string[] };
+    if (body.success === true) {
+      if (body.hostname !== expectedTurnstileHostname()) {
+        return { status: "unavailable", error: new Error(`Turnstile verifier hostname mismatch: expected ${expectedTurnstileHostname()}`) };
+      }
+      if (body.action !== TURNSTILE_ACTION) {
+        return { status: "unavailable", error: new Error(`Turnstile verifier action mismatch: expected ${TURNSTILE_ACTION}`) };
+      }
+      return { status: "verified" };
+    }
+    if (body.success === false) {
+      const errorCodes = Array.isArray(body["error-codes"]) ? body["error-codes"] : [];
+      if (errorCodes.some((code) => TURNSTILE_OPERATIONAL_ERRORS.has(code))) {
+        return { status: "unavailable", error: new Error(`Turnstile verifier configuration or service failure: ${errorCodes.join(",") || "unknown"}`) };
+      }
+      return { status: "rejected" };
+    }
     return { status: "unavailable", error: new Error("Turnstile verifier returned an invalid response") };
   } catch (error) {
     return { status: "unavailable", error: error instanceof Error ? error : new Error("Turnstile verifier request failed") };

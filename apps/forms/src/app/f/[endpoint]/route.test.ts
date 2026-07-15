@@ -138,7 +138,11 @@ describe("public form submission telemetry", () => {
     vi.stubEnv("SUBMISSION_IP_HASH_SECRET", "0123456789abcdef0123456789abcdef");
     mocks.getPublicForm.mockResolvedValue(form);
     mocks.acceptSubmission.mockResolvedValue({ responseId: "response-test" });
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ success: true }), {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      hostname: "forms.jobing.site",
+      action: "turnstile-spin-v1",
+    }), {
       status: 200,
       headers: { "content-type": "application/json" },
     }));
@@ -148,6 +152,45 @@ describe("public form submission telemetry", () => {
     expect(response.status).toBe(303);
     expect(mocks.acceptSubmission).toHaveBeenCalledTimes(1);
     expect(mocks.recordCompletion).toHaveBeenCalledWith(expect.objectContaining({ outcome: "accepted", reason: "success" }));
+  });
+
+  it("treats a verifier hostname mismatch as an operational failure", async () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    vi.stubEnv("NEXT_PUBLIC_FORMS_API_URL", "https://forms.jobing.site/forms");
+    vi.stubEnv("TURNSTILE_VERIFY_URL", "https://verify.example.test");
+    vi.stubEnv("SUBMISSION_IP_HASH_SECRET", "0123456789abcdef0123456789abcdef");
+    mocks.getPublicForm.mockResolvedValue(form);
+    mocks.acceptSubmission.mockResolvedValue({ responseId: "response-test" });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      hostname: "jobing.site",
+      action: "turnstile-spin-v1",
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+
+    const response = await POST(hostedRequest(), context);
+
+    expect(response.status).toBe(503);
+    expect(mocks.acceptSubmission).not.toHaveBeenCalled();
+    expect(mocks.captureError).toHaveBeenCalledWith(expect.any(Error), expect.objectContaining({
+      outcome: "unavailable",
+      reason: "security_check_unavailable",
+    }));
+  });
+
+  it("treats a verifier secret mismatch as an operational failure", async () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    vi.stubEnv("TURNSTILE_VERIFY_URL", "https://verify.example.test");
+    mocks.getPublicForm.mockResolvedValue(form);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      success: false,
+      "error-codes": ["invalid-input-secret"],
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+
+    const response = await POST(hostedRequest(), context);
+
+    expect(response.status).toBe(503);
+    expect(mocks.captureError).toHaveBeenCalledTimes(1);
+    expect(mocks.acceptSubmission).not.toHaveBeenCalled();
   });
 
   it("does not silently serve a test challenge when the site key is missing", async () => {

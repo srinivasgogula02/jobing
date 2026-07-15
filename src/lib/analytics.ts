@@ -34,6 +34,7 @@ export type AnalyticsEvent =
   | "connector_url_copied"
   | "connector_announcement_dismissed"
   | "connector_setup_opened"
+  | "connector_prompt_copied"
   | "connector_platform_selected"
   | "homepage_role_selected"
   | "setup_video_loaded"

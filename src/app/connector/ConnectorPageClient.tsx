@@ -3,150 +3,370 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, CheckCircle2, ChevronRight, Copy, FileText, Globe2, Lock, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Copy,
+  FilePenLine,
+  FormInput,
+  Globe2,
+  Inbox,
+  Menu,
+  MessageSquareText,
+  Play,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { track } from "@/lib/analytics";
+import styles from "./connector-v2.module.css";
 
 const CONNECTOR_URL = "https://jobing.site/mcp";
 
-const apps = [
-  { name: "ChatGPT", icon: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" },
-  { name: "Claude", icon: "https://cdn.simpleicons.org/claude/D97757" },
-  { name: "Gemini", icon: "https://cdn.simpleicons.org/googlegemini/4285F4" },
-  { name: "Cursor", icon: "https://cdn.simpleicons.org/cursor/111111" },
-];
+const platformLogos = {
+  chatgpt: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg",
+  claude: "https://cdn.simpleicons.org/claude/D97757",
+} as const;
 
-function ConnectorUrl({ compact = false }: { compact?: boolean }) {
+const platforms = {
+  claude: {
+    label: "Claude",
+    playbackId: "owFFBz2hKX6GLXroqC9lK9v3E1VwXAe02g00ZQR02Cx00B8",
+    steps: ["Open Claude Settings", "Choose Connectors", "Add the Jobing AI URL"],
+  },
+  chatgpt: {
+    label: "ChatGPT",
+    playbackId: process.env.NEXT_PUBLIC_MUX_CHATGPT_PLAYBACK_ID,
+    steps: ["Open ChatGPT Settings", "Choose Apps & Connectors", "Add the Jobing AI URL"],
+  },
+} as const;
+
+const abilities = [
+  {
+    number: "01",
+    icon: Globe2,
+    title: "Publish and manage web pages",
+    description: "Create a page, publish it to its own jobing.online address, edit it later without changing the link, or delete it after you confirm.",
+    example: "Publish a page for my Saturday workshop with the agenda and venue.",
+  },
+  {
+    number: "02",
+    icon: FormInput,
+    title: "Create forms that match the page",
+    description: "Build contact, application, registration, waitlist, and enquiry forms with custom fields and native HTML that can be styled freely.",
+    example: "Add a consultation form that looks like the rest of the page.",
+  },
+  {
+    number: "03",
+    icon: FilePenLine,
+    title: "Improve forms without losing responses",
+    description: "Edit a versioned draft, duplicate an existing form, and publish only when you are ready. The current live form keeps working until then.",
+    example: "Add a budget field, but let me review the draft before it goes live.",
+  },
+  {
+    number: "04",
+    icon: Inbox,
+    title: "Work with the responses",
+    description: "Search new responses, summarize what people need, and organize each response into inbox, spam, or archive from the same conversation.",
+    example: "Show this week’s enquiries and summarize the three strongest leads.",
+  },
+] as const;
+
+const prompts = [
+  {
+    id: "launch",
+    label: "Launch a business page",
+    outcome: "Live page + custom form + response inbox",
+    prompt: "Create a marketing page for my accounting firm. Add a contact form that matches the page, publish both, and give me the live link.",
+  },
+  {
+    id: "edit-page",
+    label: "Update a live page",
+    outcome: "Same link, updated content",
+    prompt: "Open my latest published page and change the main headline to ‘Clear books. Better decisions.’ Keep everything else the same.",
+  },
+  {
+    id: "improve-form",
+    label: "Improve a form safely",
+    outcome: "New draft, current form stays live",
+    prompt: "Update my application form to add a portfolio URL and expected salary. Keep the current live form unchanged until I approve the draft.",
+  },
+  {
+    id: "responses",
+    label: "Review new responses",
+    outcome: "Lead summary + organized inbox",
+    prompt: "Show me new responses from my contact form. Summarize what each person needs and move obvious spam out of the inbox.",
+  },
+] as const;
+
+function ConnectorUrl({ placement }: { placement: "connector_hero" | "connector_footer" }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(CONNECTOR_URL);
+    try {
+      await navigator.clipboard.writeText(CONNECTOR_URL);
+    } catch {
+      window.prompt("Copy your Jobing AI connector URL", CONNECTOR_URL);
+    }
+    track("mcp_url_copied", { placement });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
-    <div className={`flex w-full items-center gap-2 rounded-xl border border-[#d9ddd3] bg-white p-2 shadow-[0_8px_30px_rgba(18,25,16,.07)] ${compact ? "max-w-xl" : "max-w-[620px]"}`}>
-      <code className="min-w-0 flex-1 truncate px-2 font-mono text-[12px] font-medium text-[#343a32] sm:px-3 sm:text-sm">{CONNECTOR_URL}</code>
-      <button onClick={copy} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-[#151914] px-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#293025] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#719500] sm:px-4" aria-label={`Copy ${CONNECTOR_URL}`}>
-        {copied ? <Check size={16} /> : <Copy size={16} />}
-        <span>{copied ? "Copied" : "Copy"}</span>
+    <div className={styles.connectorUrl}>
+      <div>
+        <span>Jobing AI connector URL</span>
+        <code>{CONNECTOR_URL}</code>
+      </div>
+      <button type="button" onClick={copy} aria-label={`Copy ${CONNECTOR_URL}`}>
+        {copied ? <Check size={17} /> : <Copy size={17} />}
+        <span>{copied ? "Copied" : "Copy URL"}</span>
       </button>
     </div>
   );
 }
 
 export function ConnectorPageClient() {
+  const [platform, setPlatform] = useState<keyof typeof platforms>("claude");
+  const [platformOpen, setPlatformOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
+  const current = platforms[platform];
+
+  async function copyPrompt(id: string, prompt: string) {
+    try {
+      await navigator.clipboard.writeText(prompt);
+    } catch {
+      window.prompt("Copy this prompt", prompt);
+    }
+    setCopiedPrompt(id);
+    track("connector_prompt_copied", { prompt_id: id });
+    window.setTimeout(() => setCopiedPrompt(null), 1600);
+  }
+
   return (
-    <main className="min-h-screen bg-[#f7f8f4] text-[#151914] selection:bg-[#c1ff00] selection:text-[#151914]">
-      <header className="border-b border-[#e1e4dc] bg-[#f7f8f4]/95 backdrop-blur">
-        <div className="mx-auto flex h-[72px] max-w-[1180px] items-center justify-between px-5 sm:px-8">
-          <Link href="/" className="flex items-center gap-3" aria-label="Jobing AI home">
-            <Image src="/logo.png" alt="" width={36} height={36} className="h-9 w-9 rounded-[10px]" priority />
-            <span className="text-base font-bold tracking-[-0.025em]">Jobing AI</span>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <Link href="/" className={styles.brand} aria-label="Jobing AI home">
+            <Image src="/logo.png" alt="" width={36} height={36} priority />
+            <span>Jobing AI</span>
           </Link>
-          <nav className="flex items-center gap-6 text-sm font-medium">
-            <a href="#how" className="hidden text-[#62695f] hover:text-[#151914] sm:block">How it works</a>
-            <Link href="/connector/manage" className="hidden text-[#62695f] hover:text-[#151914] sm:block">Manage</Link>
-            <Link href="/dashboard" className="inline-flex min-h-11 items-center rounded-lg bg-[#151914] px-4 text-white hover:bg-[#293025]">Dashboard</Link>
+          <nav className={styles.desktopNav} aria-label="Connector navigation">
+            <a href="#setup">How to connect</a>
+            <a href="#abilities">What it can do</a>
+            <a href="#prompts">Prompts to try</a>
+            <Link href="/connector/manage">Manage connection</Link>
+            <Link className={styles.navCta} href="/dashboard">Dashboard</Link>
           </nav>
+          <div className={styles.mobileActions}>
+            <Link className={styles.mobileDashboard} href="/dashboard">Dashboard</Link>
+            <button type="button" className={styles.menuButton} onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-label="Toggle navigation">
+              {menuOpen ? <X /> : <Menu />}
+            </button>
+          </div>
         </div>
+        {menuOpen && (
+          <nav className={styles.mobileNav} aria-label="Mobile connector navigation">
+            <a href="#setup" onClick={() => setMenuOpen(false)}>How to connect</a>
+            <a href="#abilities" onClick={() => setMenuOpen(false)}>What it can do</a>
+            <a href="#prompts" onClick={() => setMenuOpen(false)}>Prompts to try</a>
+            <Link href="/connector/manage" onClick={() => setMenuOpen(false)}>Manage connection</Link>
+          </nav>
+        )}
       </header>
 
-      <section className="mx-auto max-w-[1180px] px-5 pb-16 pt-14 text-center sm:px-8 sm:pb-24 sm:pt-20">
-        <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-[#dce1d6] bg-white px-3 py-1.5 text-xs font-semibold text-[#596153] shadow-sm">
-          <span className="h-2 w-2 rounded-full bg-[#87b000]" /> Works with ChatGPT, Claude, Gemini and more
+      <section className={styles.hero}>
+        <div className={styles.compatibilityBadge}>
+          <img src={platformLogos.chatgpt} alt="ChatGPT" />
+          <img src={platformLogos.claude} alt="Claude" />
+          <span>Add one link to the AI app you already use</span>
         </div>
-        <h1 className="mx-auto mt-7 max-w-[900px] text-[clamp(2.8rem,7vw,5.8rem)] font-bold leading-[.95] tracking-[-0.068em]">
-          Your AI can now<br className="hidden sm:block" /> publish things for you.
-        </h1>
-        <p className="mx-auto mt-7 max-w-[690px] text-[17px] leading-7 text-[#656c62] sm:text-xl sm:leading-8">
-          Save a conversation as a shareable note or turn an idea into a live web page—without leaving the AI app you already use.
+        <h1>Connect Jobing AI.<br />Let your AI finish the work.</h1>
+        <p className={styles.heroCopy}>
+          Paste one link into your AI app and sign in once. Then your AI can <strong>publish web pages</strong>, <strong>create custom forms</strong>, and <strong>help you work with every response</strong> without sending you to another builder.
         </p>
-        <div id="connect" className="mx-auto mt-9 flex max-w-[620px] scroll-mt-24 flex-col items-center">
-          <p className="mb-2.5 text-xs font-semibold uppercase tracking-[.1em] text-[#747b70]">Copy this connector link</p>
-          <ConnectorUrl />
-          <p className="mt-3 flex items-center gap-1.5 text-xs text-[#7a8176]"><Lock size={12} /> You will sign in securely on Jobing AI</p>
+        <div className={styles.heroUrl}><ConnectorUrl placement="connector_hero" /></div>
+        <p className={styles.trustLine}><ShieldCheck size={15} /> No API keys. You choose the permissions. Disconnect whenever you want.</p>
+
+        <div className={styles.outcomeRail} aria-label="One Jobing AI connection creates pages, forms, and a response inbox">
+          <div className={styles.railApps}>
+            <span><img src={platformLogos.chatgpt} alt="" /><img src={platformLogos.claude} alt="" /></span>
+            <b>Your AI app</b>
+          </div>
+          <ArrowRight aria-hidden="true" />
+          <div className={styles.railConnector}>
+            <Image src="/logo.png" alt="" width={35} height={35} />
+            <b>Jobing AI</b>
+            <small>ONE CONNECTION</small>
+          </div>
+          <ArrowRight aria-hidden="true" />
+          <div className={styles.railResults}>
+            <span><Globe2 size={18} />Live page</span>
+            <span><FormInput size={18} />Custom form</span>
+            <span><Inbox size={18} />Responses</span>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1180px] px-5 pb-20 sm:px-8 sm:pb-28">
-        <div className="overflow-hidden rounded-[24px] border border-[#d9ddd3] bg-white shadow-[0_30px_90px_rgba(32,42,25,.12)]">
-          <div className="flex items-center gap-2 border-b border-[#e4e7df] bg-[#fafbf8] px-5 py-3">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#e2a5a0]" /><span className="h-2.5 w-2.5 rounded-full bg-[#e5cf84]" /><span className="h-2.5 w-2.5 rounded-full bg-[#9bc998]" />
-            <span className="ml-3 text-xs font-medium text-[#858c81]">From an idea to a live page</span>
-          </div>
-          <div className="grid lg:grid-cols-[1fr_72px_1fr]">
-            <div className="p-5 sm:p-8 lg:p-10">
-              <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eef0eb]"><img src={apps[0].icon} alt="ChatGPT logo" className="h-6 w-6" /></span><div><p className="text-sm font-bold">ChatGPT</p><p className="text-xs text-[#858c81]">Jobing AI is connected</p></div></div>
-              <div className="mt-8 ml-auto max-w-[90%] rounded-2xl rounded-br-md bg-[#eff1ec] px-4 py-3.5 text-sm leading-6 text-[#343a32]">Create a simple event page for our design meetup on 18 July in Hyderabad, then publish it.</div>
-              <div className="mt-5 max-w-[92%] rounded-2xl rounded-bl-md border border-[#dfe3da] px-4 py-4">
-                <p className="flex items-center gap-2 text-xs font-bold text-[#678800]"><Sparkles size={14} /> Jobing AI is publishing your page</p>
-                <div className="mt-4 space-y-3"><div className="h-2 w-full rounded-full bg-[#edf0e9] motion-safe:animate-pulse" /><div className="h-2 w-3/4 rounded-full bg-[#edf0e9] motion-safe:animate-pulse" /></div>
+      <section id="setup" className={styles.setupSection}>
+        <div className={styles.setupHeading}>
+          <p>Watch the exact setup</p>
+          <h2>
+            <span>Connect Jobing AI to</span>
+            <span className={styles.platformPicker}>
+              <button type="button" onClick={() => setPlatformOpen((open) => !open)} aria-expanded={platformOpen}>
+                <img src={platformLogos[platform]} alt="" />{current.label}<ChevronDown size={19} />
+              </button>
+              {platformOpen && (
+                <span className={styles.platformMenu}>
+                  {(Object.keys(platforms) as Array<keyof typeof platforms>).map((key) => (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => {
+                        setPlatform(key);
+                        setPlatformOpen(false);
+                        track("connector_platform_selected", { platform: key, placement: "connector_page" });
+                      }}
+                    >
+                      <img src={platformLogos[key]} alt="" />
+                      {platforms[key].label}
+                      {platform === key && <Check size={15} />}
+                    </button>
+                  ))}
+                </span>
+              )}
+            </span>
+            <span>in 2 minutes.</span>
+          </h2>
+          <span>The same connector URL works in both. You only sign in once.</span>
+        </div>
+
+        <div className={styles.videoShell}>
+          <div className={styles.videoFrame}>
+            {current.playbackId ? (
+              <iframe
+                key={current.playbackId}
+                src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`}
+                title={`How to connect Jobing AI to ${current.label}`}
+                loading="eager"
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                onLoad={() => track("setup_video_loaded", { platform, placement: "connector_page" })}
+              />
+            ) : (
+              <div className={styles.videoPlaceholder}>
+                <span><Play fill="currentColor" /></span>
+                <strong>{current.label} setup</strong>
+                <p>Follow the three steps below. The connection link is the same.</p>
               </div>
-            </div>
+            )}
+          </div>
+          <ol className={styles.setupSteps}>
+            {current.steps.map((step, index) => (
+              <li key={step}><span>{index + 1}</span><b>{step}</b></li>
+            ))}
+          </ol>
+        </div>
+      </section>
 
-            <div className="relative hidden items-center justify-center border-x border-[#e4e7df] bg-[#fafbf8] lg:flex">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#c1ff00] shadow-[0_8px_24px_rgba(126,167,0,.2)]"><ChevronRight size={20} /></div>
-            </div>
-
-            <div className="border-t border-[#e4e7df] bg-[#f4f6f0] p-5 sm:p-8 lg:border-t-0 lg:p-10">
-              <div className="flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-[.1em] text-[#71796e]">Published page</p><span className="flex items-center gap-1.5 text-xs font-semibold text-[#608000]"><Check size={13} /> Live</span></div>
-              <div className="mt-5 overflow-hidden rounded-2xl border border-[#d7dcd2] bg-white shadow-sm">
-                <div className="flex items-center gap-2 border-b border-[#eceee9] bg-[#fafbf8] px-3 py-2.5"><Globe2 size={13} className="text-[#7b8277]" /><span className="truncate font-mono text-[10px] text-[#697065]">hyderabad-design-meetup.jobing.online</span></div>
-                <div className="p-6 sm:p-8">
-                  <p className="text-xs font-bold uppercase tracking-[.13em] text-[#718d19]">Hyderabad · 18 July</p>
-                  <h2 className="mt-4 text-3xl font-bold leading-tight tracking-[-.045em]">Designing products people understand.</h2>
-                  <p className="mt-4 text-sm leading-6 text-[#6e756b]">An evening for designers, builders, and curious minds. Talks, demos, and good conversations.</p>
-                  <span className="mt-6 inline-flex rounded-lg bg-[#151914] px-4 py-2.5 text-xs font-semibold text-white">Save my seat</span>
+      <section id="abilities" className={styles.abilitiesSection}>
+        <div className={styles.sectionIntro}>
+          <p>What becomes possible after connecting</p>
+          <h2>It does the next step, not just explains it.</h2>
+          <span>Jobing AI gives your conversation a safe way to create, publish, update, and organize real work.</span>
+        </div>
+        <div className={styles.abilityList}>
+          {abilities.map((ability) => {
+            const Icon = ability.icon;
+            return (
+              <article key={ability.number}>
+                <span className={styles.abilityNumber}>{ability.number}</span>
+                <div className={styles.abilityIcon}><Icon size={23} /></div>
+                <div className={styles.abilityCopy}>
+                  <h3>{ability.title}</h3>
+                  <p>{ability.description}</p>
                 </div>
+                <blockquote>“{ability.example}”</blockquote>
+              </article>
+            );
+          })}
+        </div>
+        <div className={styles.soonStrip}>
+          <Sparkles size={18} />
+          <span><b>Email follow-up is coming soon.</b> Your AI will be able to draft and send replies using the same connection.</span>
+        </div>
+      </section>
+
+      <section id="prompts" className={styles.promptsSection}>
+        <div className={styles.sectionIntroLight}>
+          <p>Try it after connecting</p>
+          <h2>You do not need to learn commands.</h2>
+          <span>Ask in normal language. Start with one of these prompts and change the business, words, fields, or design to match what you need.</span>
+        </div>
+        <div className={styles.promptGrid}>
+          {prompts.map((item) => (
+            <article key={item.id}>
+              <div className={styles.promptTop}>
+                <MessageSquareText size={18} />
+                <span>{item.label}</span>
               </div>
-              <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#343a32]"><CheckCircle2 size={17} className="text-[#719500]" /> Your AI sends this live link back to you</p>
-            </div>
+              <blockquote>“{item.prompt}”</blockquote>
+              <div className={styles.promptResult}>
+                <span><Check size={15} />{item.outcome}</span>
+                <button type="button" onClick={() => copyPrompt(item.id, item.prompt)} aria-label={`Copy prompt: ${item.label}`}>
+                  {copiedPrompt === item.id ? <Check size={15} /> : <Copy size={15} />}
+                  {copiedPrompt === item.id ? "Copied" : "Copy prompt"}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.permissionSection}>
+        <div className={styles.permissionCopy}>
+          <p>You stay in control</p>
+          <h2>Approve only what your AI can use.</h2>
+          <span>Jobing AI shows every permission before connecting. New abilities need your approval, and deleting a page still requires an explicit confirmation.</span>
+          <Link href="/connector/manage">Manage connected AI apps <ArrowRight size={17} /></Link>
+        </div>
+        <div className={styles.permissionReceipt}>
+          <div className={styles.receiptHeader}>
+            <span><Image src="/logo.png" alt="" width={32} height={32} /><b>Jobing AI connection</b></span>
+            <ShieldCheck size={23} />
           </div>
+          <ul>
+            <li><Check size={16} /><span><b>Pages</b><small>View, publish, edit, and delete after confirmation</small></span></li>
+            <li><Check size={16} /><span><b>Forms</b><small>View, create, edit drafts, duplicate, and publish</small></span></li>
+            <li><Check size={16} /><span><b>Responses</b><small>Search answers and organize inbox, spam, or archive</small></span></li>
+            <li><Check size={16} /><span><b>Notes</b><small>Save useful output as a shareable note</small></span></li>
+          </ul>
+          <p>Passwords, payment details, and uploaded file contents are never shared with the AI app.</p>
         </div>
       </section>
 
-      <section className="border-y border-[#e0e4dc] bg-white">
-        <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-5 py-9 sm:px-8 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm font-semibold text-[#646b61]">Connect Jobing AI to</p>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:flex sm:items-center sm:gap-10">
-            {apps.map((app) => <div key={app.name} className="flex items-center gap-2.5"><img src={app.icon} alt={`${app.name} logo`} className="h-7 w-7 object-contain" /><span className="text-sm font-bold">{app.name}</span></div>)}
-          </div>
+      <section className={styles.finalCta}>
+        <div>
+          <p>One connection. Real outcomes.</p>
+          <h2>Copy the link and give your AI a way to act.</h2>
         </div>
+        <ConnectorUrl placement="connector_footer" />
       </section>
 
-      <section id="how" className="mx-auto max-w-[1180px] scroll-mt-20 px-5 py-20 sm:px-8 sm:py-28">
-        <div className="text-center"><p className="text-sm font-bold text-[#668500]">Simple setup</p><h2 className="mt-3 text-3xl font-bold tracking-[-.045em] sm:text-5xl">Connect once. Then just ask.</h2><p className="mx-auto mt-4 max-w-xl text-[#6e756b]">No coding and no API keys. It takes a few minutes.</p></div>
-        <ol className="mx-auto mt-12 grid max-w-[1000px] gap-5 md:grid-cols-3">
-          {[{ t: "Open your AI settings", d: "Look for Apps, Connectors, or Integrations." }, { t: "Paste the Jobing AI link", d: `Add ${CONNECTOR_URL} as a connector.` }, { t: "Sign in and approve", d: "Return to your AI and start asking it to create things." }].map((item, index) => <li key={item.t} className="rounded-2xl border border-[#dfe3da] bg-white p-6 shadow-[0_10px_30px_rgba(31,40,25,.05)]"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#c1ff00] text-sm font-bold">{index + 1}</span><h3 className="mt-6 text-xl font-bold">{item.t}</h3><p className="mt-3 leading-6 text-[#6f766c]">{item.d}</p></li>)}
-        </ol>
-      </section>
-
-      <section className="bg-[#151914] text-white">
-        <div className="mx-auto max-w-[1180px] px-5 py-20 sm:px-8 sm:py-24">
-          <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
-            <div><p className="text-sm font-bold text-[#c1ff00]">Useful from day one</p><h2 className="mt-4 text-3xl font-bold tracking-[-.045em] sm:text-4xl">Two things your AI can do right now.</h2><p className="mt-4 leading-7 text-[#aeb5aa]">More Jobing AI tools will appear automatically after they launch.</p></div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <article className="rounded-2xl bg-[#20261f] p-6"><FileText className="text-[#c1ff00]" size={23} /><h3 className="mt-6 text-xl font-bold">Save a note</h3><p className="mt-3 leading-6 text-[#aeb5aa]">Turn any answer, summary, checklist, or draft into a clean link you can share.</p><p className="mt-6 text-sm font-semibold text-white">“Save this as a note.”</p></article>
-              <article className="rounded-2xl bg-[#20261f] p-6"><Globe2 className="text-[#c1ff00]" size={23} /><h3 className="mt-6 text-xl font-bold">Publish a page</h3><p className="mt-3 leading-6 text-[#aeb5aa]">Turn generated HTML into a live web page for an event, project, or idea.</p><p className="mt-6 text-sm font-semibold text-white">“Publish this as a page.”</p></article>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto grid max-w-[1180px] gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-2 lg:items-center">
-        <div><p className="text-sm font-bold text-[#668500]">Secure by design</p><h2 className="mt-4 text-3xl font-bold tracking-[-.045em] sm:text-4xl">Your password stays private.</h2><p className="mt-4 max-w-xl leading-7 text-[#6e756b]">You sign in directly on Jobing AI. Your AI app receives permission to use the tools you approve—not your password. You can disconnect whenever you want.</p><Link href="/connector/manage" className="mt-5 inline-flex min-h-11 items-center font-semibold underline decoration-[#9bbf3c] underline-offset-4">Manage connected clients</Link></div>
-        <ul className="grid gap-3 text-sm font-semibold text-[#353b33] sm:grid-cols-2">{["No API key needed", "Approve access yourself", "Disconnect anytime", "Approve new permissions explicitly"].map(item => <li key={item} className="flex items-center gap-3 rounded-xl border border-[#dfe3da] bg-white p-4"><CheckCircle2 size={18} className="shrink-0 text-[#719500]" />{item}</li>)}</ul>
-      </section>
-
-      <section className="border-t border-[#e0e4dc] bg-white">
-        <div className="mx-auto flex max-w-[1180px] flex-col items-start justify-between gap-8 px-5 py-16 sm:px-8 md:flex-row md:items-center">
-          <div><h2 className="text-3xl font-bold tracking-[-.04em]">Give your AI a way to finish the job.</h2><p className="mt-3 text-[#6e756b]">Copy the visible link below and add it to your AI app.</p></div>
-          <ConnectorUrl compact />
-        </div>
-      </section>
-
-      <footer className="border-t border-[#e4e7df]">
-        <div className="mx-auto flex max-w-[1180px] flex-col gap-5 px-5 py-8 text-xs text-[#737a70] sm:flex-row sm:items-center sm:justify-between sm:px-8"><div className="flex items-center gap-2.5"><Image src="/logo.png" alt="" width={22} height={22} className="h-5 w-5 rounded-[5px]" /><span>Jobing AI · 2026</span></div><div className="flex gap-5"><Link href="/privacy" className="hover:text-black">Privacy</Link><Link href="/terms" className="hover:text-black">Terms</Link><a href="mailto:hello@jobing.site" className="hover:text-black">Support</a></div></div>
+      <footer className={styles.footer}>
+        <div><Image src="/logo.png" alt="" width={24} height={24} /><span>Jobing AI · The connector that finishes the work</span></div>
+        <nav>
+          <Link href="/dashboard">Dashboard</Link>
+          <Link href="/dashboard/pages">Pages</Link>
+          <Link href="/forms/app">Forms</Link>
+          <Link href="/pricing">Pricing</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
       </footer>
     </main>
   );

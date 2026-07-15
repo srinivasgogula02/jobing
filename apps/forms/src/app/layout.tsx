@@ -22,7 +22,7 @@ const mono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Jobing Forms",
   description: "Create, publish, and manage forms with Jobing and your connected AI.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_FORMS_SITE_URL || "https://jobing.site/forms"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_FORMS_SITE_URL || "https://forms.jobing.site"),
   robots: { index: false, follow: false },
 };
 

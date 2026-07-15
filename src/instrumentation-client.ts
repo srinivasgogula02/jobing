@@ -4,7 +4,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
-import { scrubMainSentryEvent, scrubMainSentryTransaction } from "@/lib/sentry-privacy";
+import { filterMainClientSentryEvent, scrubMainSentryTransaction } from "@/lib/sentry-privacy";
 
 const observabilityEnabled = process.env.NEXT_PUBLIC_OBSERVABILITY_ENABLED === "true"
   || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
@@ -18,7 +18,7 @@ Sentry.init({
   tracesSampleRate: observabilityEnabled ? 0.02 : 0,
   tracePropagationTargets: [/^\//, /^https:\/\/jobing\.site/],
   sendDefaultPii: false,
-  beforeSend: scrubMainSentryEvent,
+  beforeSend: filterMainClientSentryEvent,
   beforeSendTransaction: scrubMainSentryTransaction,
 });
 

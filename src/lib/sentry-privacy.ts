@@ -1,5 +1,10 @@
 import type { Event } from "@sentry/nextjs";
 
+const ANDROID_NAVIGATION_LOGGER_URL = "app://navigation_performance_logger_android";
+const DESTROYED_ANDROID_BRIDGE_ERROR = "Error invoking postMessage: Java object is gone";
+const IOS_INJECTED_SCRIPT_URL = "app:///";
+const MISSING_IOS_BRIDGE_ERROR = "undefined is not an object (evaluating 'window.webkit.messageHandlers')";
+
 function pathOnly(value: string | undefined) {
   if (!value) return undefined;
   try {
@@ -23,6 +28,33 @@ export function scrubMainSentryEvent<T extends Event>(event: T): T {
     for (const frame of value.stacktrace?.frames ?? []) frame.vars = undefined;
   }
   return event;
+}
+
+/** Drop errors raised by injected mobile navigation loggers when their native bridges are unavailable. */
+export function filterMainClientSentryEvent<T extends Event>(event: T): T | null {
+  const values = event.exception?.values ?? [];
+  const hasAndroidLoggerFrame = (value: (typeof values)[number]) => value.stacktrace?.frames?.some((frame) =>
+    frame.filename?.startsWith(ANDROID_NAVIGATION_LOGGER_URL)
+    || frame.abs_path?.startsWith(ANDROID_NAVIGATION_LOGGER_URL),
+  );
+  const hasIosBridgeFrame = (value: (typeof values)[number]) => value.stacktrace?.frames?.some((frame) =>
+    frame.function === "sendDataToNative"
+    && (frame.filename?.startsWith(IOS_INJECTED_SCRIPT_URL) || frame.abs_path?.startsWith(IOS_INJECTED_SCRIPT_URL)),
+  );
+  const isAndroidLoggerBridgeError = values.some((value) =>
+    value.value === DESTROYED_ANDROID_BRIDGE_ERROR && hasAndroidLoggerFrame(value),
+  ) || (
+    event.message === DESTROYED_ANDROID_BRIDGE_ERROR
+    && values.some(hasAndroidLoggerFrame)
+  );
+  const isIosLoggerBridgeError = values.some((value) =>
+    value.value === MISSING_IOS_BRIDGE_ERROR && hasIosBridgeFrame(value),
+  ) || (
+    event.message === MISSING_IOS_BRIDGE_ERROR
+    && values.some(hasIosBridgeFrame)
+  );
+
+  return isAndroidLoggerBridgeError || isIosLoggerBridgeError ? null : scrubMainSentryEvent(event);
 }
 
 export function scrubMainSentryTransaction<T extends Event>(event: T): T {

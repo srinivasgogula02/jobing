@@ -1,32 +1,68 @@
-import { UserButton } from "@clerk/nextjs";
-import Link from "next/link";
+"use client";
 
-export function AppShell({ children, current = "forms" }: { children: React.ReactNode; current?: "forms" }) {
+import { UserButton } from "@clerk/nextjs";
+import {
+  CreditCard,
+  FormInput,
+  Globe2,
+  LayoutDashboard,
+  Menu,
+  PlugZap,
+  X,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+
+const navigation = [
+  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, local: false },
+  { label: "Pages", path: "/dashboard/pages", icon: Globe2, local: false },
+  { label: "Forms", path: "/forms/app", icon: FormInput, local: true },
+  { label: "AI connector", path: "/connector/manage", icon: PlugZap, local: false },
+  { label: "Billing", path: "/billing", icon: CreditCard, local: false },
+] as const;
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const mainSite = process.env.NEXT_PUBLIC_JOBING_SITE_URL || "https://jobing.site";
+
+  const navigationLinks = navigation.map(({ label, path, icon: Icon, local }) => {
+    const className = `workspace-nav-link${label === "Forms" ? " workspace-nav-link--active" : ""}`;
+    const content = <><Icon size={17} aria-hidden="true" /><span>{label}</span></>;
+    return local
+      ? <Link key={label} className={className} href="/app" onClick={() => setMobileOpen(false)} aria-current="page">{content}</Link>
+      : <a key={label} className={className} href={`${mainSite}${path}`} onClick={() => setMobileOpen(false)}>{content}</a>;
+  });
+
   return (
-    <div className="app-layout">
-      <aside className="app-sidebar">
-        <a className="brand" href={`${mainSite}/dashboard`} aria-label="Jobing AI dashboard">
-          <span className="brand__mark" aria-hidden="true">J</span>
-          <span className="brand__jobing">Jobing</span>
-          <span className="brand__product">Forms</span>
-        </a>
-        <nav className="app-nav" aria-label="Forms navigation">
-          <a href={`${mainSite}/dashboard`}>Dashboard</a>
-          <Link href="/app" aria-current={current === "forms" ? "page" : undefined}>Forms</Link>
-        </nav>
-        <div className="sidebar-note">
-          <span>Need the connector?</span>
-          <a href={`${mainSite}/dashboard`}>Copy the MCP URL</a>
+    <div className="workspace-shell">
+      <aside className={`workspace-sidebar${mobileOpen ? " workspace-sidebar--open" : ""}`} aria-label="Jobing workspace">
+        <div className="workspace-sidebar-head">
+          <a className="workspace-brand" href={`${mainSite}/dashboard`} aria-label="Jobing AI dashboard">
+            <Image src="/forms/logo.png" alt="" width={28} height={28} priority />
+            <strong>Jobing AI</strong>
+          </a>
+          <button className="workspace-close" type="button" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={19} /></button>
         </div>
+        <nav className="workspace-nav" aria-label="Workspace navigation">{navigationLinks}</nav>
+        <div className="workspace-sidebar-foot"><span>JOBING FORMS</span><p>Create forms, collect responses, and ask your AI what they mean.</p></div>
       </aside>
-      <main className="app-main">
-        <header className="app-topbar">
-          <Link href="/app" className="mobile-brand">Jobing Forms</Link>
-          <UserButton />
+
+      {mobileOpen ? <button className="workspace-scrim" type="button" aria-label="Close navigation" onClick={() => setMobileOpen(false)} /> : null}
+
+      <div className="workspace-main">
+        <header className="workspace-topbar">
+          <div className="workspace-topbar-left">
+            <button className="workspace-menu" type="button" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={20} /></button>
+            <Link className="workspace-topbar-brand" href="/app">
+              <Image src="/forms/logo.png" alt="" width={27} height={27} priority />
+              <strong>Jobing AI</strong><span>/</span><b>Forms</b>
+            </Link>
+          </div>
+          <UserButton appearance={{ elements: { avatarBox: "workspace-avatar" } }} />
         </header>
-        {children}
-      </main>
+        <main className="workspace-content">{children}</main>
+      </div>
     </div>
   );
 }

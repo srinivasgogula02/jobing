@@ -66,7 +66,12 @@ export async function duplicateFormAction(formId: string) {
 }
 
 export async function saveFormAction(input: unknown) {
-  const userId = await actor();
+  let userId: string;
+  try {
+    userId = await actor();
+  } catch {
+    return { ok: false as const, error: "Your session expired. Sign in again, then return to this form." };
+  }
   const parsed = saveInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Check the highlighted settings before saving." };
   try {
@@ -80,7 +85,12 @@ export async function saveFormAction(input: unknown) {
 }
 
 export async function publishFormAction(input: unknown) {
-  const userId = await actor();
+  let userId: string;
+  try {
+    userId = await actor();
+  } catch {
+    return { ok: false as const, error: "Your session expired. Sign in again before publishing." };
+  }
   const parsed = z.object({ formId: z.string().uuid(), expectedRevision: z.number().int().positive() }).safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "The publish request is invalid." };
   try {

@@ -3,6 +3,10 @@
     {
       "source": "/",
       "destination": "/forms"
+    },
+    {
+      "source": "/:path((?!forms(?:/|$)).*)",
+      "destination": "/forms/:path"
     }
   ],
   "headers": [

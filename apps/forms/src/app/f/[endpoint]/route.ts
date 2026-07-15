@@ -17,10 +17,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const MAX_VALUE_BYTES = 256 * 1024;
 const MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + MAX_VALUE_BYTES;
+const TURNSTILE_ACTION = "turnstile-spin-v1";
 
 const securityHeaders = {
   "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff",
-  "content-security-policy": "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com; form-action 'self' https://jobing.site; base-uri 'none'; frame-ancestors 'none'",
+  "content-security-policy": "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com; form-action 'self' https://jobing.site https://forms.jobing.site; base-uri 'none'; frame-ancestors 'none'",
 };
 
 function html(body: string, status = 200) { return new NextResponse(body, { status, headers: securityHeaders }); }
@@ -29,23 +30,37 @@ function corsHeaders(origin: string | null) { return origin ? { "access-control-
 function jsonError(code: string, message: string, status: number, origin: string | null) {
   return NextResponse.json({ error: { code, message } }, { status, headers: corsHeaders(origin) });
 }
+function turnstileSiteKey() { return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? ""; }
 
 export async function GET(request: Request, context: { params: Promise<{ endpoint: string }> }) {
   const { endpoint } = await context.params;
   const form = await getPublicForm(endpoint);
   if (!form) return html("<!doctype html><title>Form unavailable</title><p>This form is unavailable.</p>", 404);
+  const siteKey = turnstileSiteKey();
+  if (!siteKey) return html("<!doctype html><title>Form temporarily unavailable</title><p>This form is temporarily unavailable. Please try again shortly.</p>", 503);
   const submitted = new URL(request.url).searchParams.get("submitted") === "1";
-  return html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA", submissionId: randomUUID(), ...(submitted ? { message: form.definition.confirmation.message } : {}) }));
+  return html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey, submissionId: randomUUID(), ...(submitted ? { message: form.definition.confirmation.message } : {}) }));
 }
 
-async function verifyTurnstile(token: string, ip: string | null) {
-  const url = process.env.TURNSTILE_VERIFY_URL;
-  if (!url) return process.env.NODE_ENV !== "production";
+type TurnstileResult =
+  | { status: "verified" }
+  | { status: "rejected" }
+  | { status: "unavailable"; error: Error };
+
+async function verifyTurnstile(token: string, ip: string | null): Promise<TurnstileResult> {
+  if (!token) return { status: "rejected" };
+  const url = process.env.TURNSTILE_VERIFY_URL?.trim();
+  if (!url) return { status: "unavailable", error: new Error("Turnstile verifier URL is not configured") };
   try {
-    const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token, remoteip: ip, action: "turnstile-spin-v1" }), signal: AbortSignal.timeout(5000), cache: "no-store" });
-    const body = await response.json() as { success?: boolean; ok?: boolean };
-    return response.ok && (body.success === true || body.ok === true);
-  } catch { return false; }
+    const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token, remoteip: ip, action: TURNSTILE_ACTION }), signal: AbortSignal.timeout(5000), cache: "no-store" });
+    if (!response.ok) return { status: "unavailable", error: new Error(`Turnstile verifier returned HTTP ${response.status}`) };
+    const body = await response.json() as { success?: boolean };
+    if (body.success === true) return { status: "verified" };
+    if (body.success === false) return { status: "rejected" };
+    return { status: "unavailable", error: new Error("Turnstile verifier returned an invalid response") };
+  } catch (error) {
+    return { status: "unavailable", error: error instanceof Error ? error : new Error("Turnstile verifier request failed") };
+  }
 }
 
 export async function POST(request: Request, context: { params: Promise<{ endpoint: string }> }) {
@@ -124,9 +139,23 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
   }
   const turnstileToken = String(data.get("cf-turnstile-response") || "");
   const isHostedForm = data.get("_jobing_form_context") === "hosted";
-  if ((isHostedForm || turnstileToken) && !await verifyTurnstile(turnstileToken, ip)) {
-    await rememberBlocked("challenge_failed");
-    return complete(jsonError("challenge_failed", "Please complete the security check and try again.", 400, responseOrigin), { outcome: "rejected", reason: "challenge_failed", status_code: 400 });
+  if (isHostedForm || turnstileToken) {
+    const verification = await verifyTurnstile(turnstileToken, ip);
+    if (verification.status === "rejected") {
+      await rememberBlocked("challenge_failed");
+      const message = "Security check expired or could not be completed. Complete the new check below, then send your response again.";
+      const response = isHostedForm && !wantsJson
+        ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: randomUUID(), formError: message }), 400)
+        : jsonError("challenge_failed", message, 400, responseOrigin);
+      return complete(response, { outcome: "rejected", reason: "challenge_failed", status_code: 400 });
+    }
+    if (verification.status === "unavailable") {
+      const message = "The security check is temporarily unavailable. Wait a moment, then send your response again.";
+      const response = isHostedForm && !wantsJson
+        ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: randomUUID(), formError: message }), 503)
+        : jsonError("security_check_unavailable", message, 503, responseOrigin);
+      return complete(response, { outcome: "unavailable", reason: "security_check_unavailable", status_code: 503 }, verification.error);
+    }
   }
   const uploads = await collectSubmissionFiles(form.definition, data);
   const raw: Record<string, unknown> = {};
@@ -143,7 +172,7 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
   if (!validated.success || Object.keys(uploads.errors).length > 0) {
     await rememberBlocked("validation_failed");
     if (wantsJson) return complete(NextResponse.json({ error: { code: "validation_failed", message: "Check the highlighted fields and try again.", fields: validationErrors } }, { status: 422, headers: corsHeaders(responseOrigin) }), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
-    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "", submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
+    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
   }
   if (!secret || Buffer.byteLength(secret) < 32) return complete(jsonError("unavailable", "Forms is temporarily unavailable.", 503, responseOrigin), { outcome: "unavailable", reason: "configuration_missing", status_code: 503 }, new Error("Forms submission configuration is unavailable"));
   const origin = originHeader === hostedOrigin || platformOrigin ? null : originHeader;

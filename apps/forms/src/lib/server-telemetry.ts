@@ -18,6 +18,7 @@ const REASONS = new Set([
   "invalid_payload",
   "unsupported_media_type",
   "challenge_failed",
+  "security_check_unavailable",
   "validation_failed",
   "configuration_missing",
   "rate_limited",
@@ -41,6 +42,7 @@ export type FormSubmissionTelemetry = {
     | "invalid_payload"
     | "unsupported_media_type"
     | "challenge_failed"
+    | "security_check_unavailable"
     | "validation_failed"
     | "configuration_missing"
     | "rate_limited"

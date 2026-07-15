@@ -4,12 +4,14 @@ const mocks = vi.hoisted(() => ({
   acceptSubmission: vi.fn(),
   captureError: vi.fn(),
   getPublicForm: vi.fn(),
+  recordBlockedSubmission: vi.fn(),
   recordCompletion: vi.fn(),
 }));
 
 vi.mock("@/lib/forms-store", () => ({
   acceptSubmission: mocks.acceptSubmission,
   getPublicForm: mocks.getPublicForm,
+  recordBlockedSubmission: mocks.recordBlockedSubmission,
 }));
 vi.mock("@/lib/server-telemetry", () => ({
   captureFormsOperationalError: mocks.captureError,
@@ -17,12 +19,32 @@ vi.mock("@/lib/server-telemetry", () => ({
   recordFormSubmissionCompletion: mocks.recordCompletion,
 }));
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 const context = { params: Promise.resolve({ endpoint: "frm_test" }) };
+const form = {
+  definition: {
+    schemaVersion: 1 as const,
+    title: "Contact us",
+    fields: [{ id: "c9317272-29fb-4ed6-92de-2aa36fa76158", key: "email", type: "email" as const, label: "Email", required: true, hidden: false }],
+    confirmation: { title: "Response received", message: "Thanks, your response was received." },
+    settings: { allowedOrigins: [] },
+    presentation: { colorMode: "dark" as const, accentColor: "#c6f24e", backgroundColor: "#0e1219", textColor: "#f2f4f7", fontFamily: "sans" as const, spacing: "comfortable" as const, buttonStyle: "solid" as const },
+  },
+};
+
+function hostedRequest() {
+  const body = new FormData();
+  body.set("_jobing_form_context", "hosted");
+  body.set("_submission_id", "submission-test");
+  body.set("cf-turnstile-response", "browser-token");
+  body.set("email", "person@example.com");
+  return new Request("https://forms.jobing.site/forms/f/frm_test", { method: "POST", body });
+}
 
 describe("public form submission telemetry", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
     vi.stubEnv("PAGES_RUNTIME_ROOT_DOMAIN", "jobing.online");
   });
@@ -75,5 +97,66 @@ describe("public form submission telemetry", () => {
       reason: "unhandled_exception",
       status_code: 500,
     }));
+  });
+
+  it("re-renders a hosted form when the browser challenge is rejected", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    vi.stubEnv("TURNSTILE_VERIFY_URL", "https://verify.example.test");
+    mocks.getPublicForm.mockResolvedValue(form);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ success: false, "error-codes": ["timeout-or-duplicate"] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+
+    const response = await POST(hostedRequest(), context);
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    await expect(response.text()).resolves.toContain("Security check expired or could not be completed");
+    expect(mocks.acceptSubmission).not.toHaveBeenCalled();
+  });
+
+  it("reports an unavailable verifier as a temporary service problem", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    vi.stubEnv("TURNSTILE_VERIFY_URL", "");
+    mocks.getPublicForm.mockResolvedValue(form);
+
+    const response = await POST(hostedRequest(), context);
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    await expect(response.text()).resolves.toContain("security check is temporarily unavailable");
+    expect(mocks.captureError).toHaveBeenCalledTimes(1);
+    expect(mocks.acceptSubmission).not.toHaveBeenCalled();
+  });
+
+  it("accepts a hosted form exactly once after a successful challenge", async () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    vi.stubEnv("TURNSTILE_VERIFY_URL", "https://verify.example.test");
+    vi.stubEnv("SUBMISSION_IP_HASH_SECRET", "0123456789abcdef0123456789abcdef");
+    mocks.getPublicForm.mockResolvedValue(form);
+    mocks.acceptSubmission.mockResolvedValue({ responseId: "response-test" });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+
+    const response = await POST(hostedRequest(), context);
+
+    expect(response.status).toBe(303);
+    expect(mocks.acceptSubmission).toHaveBeenCalledTimes(1);
+    expect(mocks.recordCompletion).toHaveBeenCalledWith(expect.objectContaining({ outcome: "accepted", reason: "success" }));
+  });
+
+  it("does not silently serve a test challenge when the site key is missing", async () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
+    mocks.getPublicForm.mockResolvedValue(form);
+
+    const response = await GET(new Request("https://forms.jobing.site/forms/f/frm_test"), context);
+
+    expect(response.status).toBe(503);
+    await expect(response.text()).resolves.not.toContain("1x00000000000000000000AA");
   });
 });

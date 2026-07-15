@@ -3,24 +3,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { ConnectorCopyButton } from "@/components/connector-copy-button";
 import { AiAppMarks, FormsProductStory } from "./forms-product-story";
+import { FormsPositioning } from "./forms-positioning";
 import styles from "./forms-marketing.module.css";
 
 const connectorUrl = "https://jobing.site/mcp";
 const formsDashboardUrl = "https://jobing.site/forms/app";
 
 export const metadata: Metadata = {
-  title: "Jobing Forms | Turn an AI chat into a working custom form",
-  description: "Connect Jobing Forms to your AI. Ask for a custom form, publish it on your page, collect responses, and ask AI to understand the answers.",
+  title: "Jobing Forms | Add any form to any website by asking your AI",
+  description: "Ask your AI for a form that matches your website. Jobing handles responses, spam, uploads, and the inbox without a separate backend project.",
   alternates: { canonical: "https://forms.jobing.site/" },
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Turn one AI chat into a working custom form.",
-    description: "Your AI creates the form, publishes it, saves every response, and helps you act on the answers.",
+    title: "Add any form to any website by asking your AI.",
+    description: "Get the design, working response collection, and an inbox without an iframe or a separate backend project.",
     url: "https://forms.jobing.site/",
     siteName: "Jobing Forms",
     images: ["/opengraph-image"],
   },
-  twitter: { card: "summary_large_image", title: "Turn one AI chat into a working custom form.", description: "Custom forms and an inbox your AI can work with.", images: ["/opengraph-image"] },
+  twitter: { card: "summary_large_image", title: "Add any form to any website by asking your AI.", description: "Custom website forms and an inbox your AI can work with.", images: ["/opengraph-image"] },
 };
 
 function PrimaryAction({ compact = false }: { compact?: boolean }) {
@@ -54,8 +55,8 @@ export default function FormsMarketingPage() {
 
       <section className={styles.hero}>
         <div className={styles.heroBadge}><AiAppMarks /><span>One connector for the AI app you already use</span></div>
-        <h1>Turn one AI chat into a<br /><span>working custom form.</span></h1>
-        <p className={styles.heroText}>Connect Jobing Forms to ChatGPT, Claude, or any AI app that supports MCP. Describe the form once. Your AI creates it, adds it to your page, and can later read the responses.</p>
+        <h1>Add any form to any website<br />by asking your AI.</h1>
+        <p className={styles.heroText}>Tell the AI app you already use what the form should ask and how it should look. Jobing adds it to your website, keeps every response, and lets your AI help with the answers.</p>
         <div className={styles.heroConnector} id="connector">
           <div><small>MCP CONNECTOR URL</small><code>{connectorUrl}</code></div><ConnectorCopyButton value={connectorUrl} />
           <div className={styles.handNote} aria-hidden="true"><span>connect once</span><svg viewBox="0 0 76 38"><path d="M3 6c22 0 42 5 58 21m0 0-2-11m2 11-12-2" /></svg></div>
@@ -69,6 +70,8 @@ export default function FormsMarketingPage() {
           <span><b>AI-readable</b><small>Only when you ask</small></span>
         </div>
       </section>
+
+      <FormsPositioning />
 
       <section className={styles.createSection} id="create">
         <div className={styles.createCopy}>

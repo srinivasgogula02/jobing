@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import styles from "./forms-marketing.module.css";
 
@@ -23,12 +24,17 @@ export function AiAppMarks({ compact = false }: { compact?: boolean }) {
 export function FormsProductStory() {
   const [stage, setStage] = useState(0);
   const [paused, setPaused] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (paused || reducedMotion) return;
     const timer = window.setInterval(() => setStage((value) => (value + 1) % stages.length), 4800);
     return () => window.clearInterval(timer);
-  }, [paused]);
+  }, [paused, reducedMotion]);
+
+  const sceneTransition = reducedMotion
+    ? { duration: 0 }
+    : { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
     <div className={styles.storyShell} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
@@ -47,8 +53,10 @@ export function FormsProductStory() {
           <span className={styles.storyStatus}><i /> Jobing Forms connected</span>
         </div>
 
+        <div className={styles.storyStage}>
+          <AnimatePresence initial={false} mode="wait">
         {stage === 0 && (
-          <div className={styles.storyScene} key="ask">
+          <motion.div animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} className={styles.storyScene} exit={{ opacity: 0, y: -6, filter: "blur(2px)" }} initial={{ opacity: 0, y: 10, filter: "blur(3px)" }} key="ask" transition={sceneTransition}>
             <div className={styles.storyConversation}>
               <p className={styles.storyUser}>Create a project enquiry form for this page. Ask for budget, timeline, and goals. Make it match the design.</p>
               <div className={styles.storyReply}>
@@ -64,11 +72,11 @@ export function FormsProductStory() {
               <label>What are you building?<div className={styles.previewTextarea}>Tell us about the project...</div></label>
               <button tabIndex={-1}>Send project details</button>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {stage === 1 && (
-          <div className={styles.storyScene} key="collect">
+          <motion.div animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} className={styles.storyScene} exit={{ opacity: 0, y: -6, filter: "blur(2px)" }} initial={{ opacity: 0, y: 10, filter: "blur(3px)" }} key="collect" transition={sceneTransition}>
             <div className={styles.submissionMoment}>
               <div className={styles.submissionCheck}>✓</div>
               <span>FORM SUBMITTED</span>
@@ -81,11 +89,11 @@ export function FormsProductStory() {
               <article><span>DC</span><div><b>Daniel Cho</b><small>₹3L–₹5L · 8 weeks</small></div><time>4m</time></article>
               <article><span>AS</span><div><b>Arun Studio</b><small>Budget not decided</small></div><time>12m</time></article>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {stage === 2 && (
-          <div className={styles.storyScene} key="understand">
+          <motion.div animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} className={styles.storyScene} exit={{ opacity: 0, y: -6, filter: "blur(2px)" }} initial={{ opacity: 0, y: 10, filter: "blur(3px)" }} key="understand" transition={sceneTransition}>
             <div className={styles.storyConversation}>
               <p className={styles.storyUser}>Read the new enquiries. Who should I contact first, and what do they care about?</p>
               <div className={styles.storyReply}>
@@ -102,8 +110,10 @@ export function FormsProductStory() {
               <div><label>Easy handoff</label><i><em style={{ width: "42%" }} /></i><small>4 mentions</small></div>
               <p>Suggested next step: add a pricing range to the page.</p>
             </div>
-          </div>
+          </motion.div>
         )}
+          </AnimatePresence>
+        </div>
       </div>
       <div className={styles.storyProgress} aria-hidden="true"><span key={stage} /></div>
     </div>

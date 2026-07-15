@@ -25,6 +25,13 @@ describe("connector tool authorization", () => {
       .toThrow("has not been granted forms:publish");
   });
 
+  it("requires every permission for tools that read before writing", () => {
+    expect(requireConnectorActor({ ...base, scopes: ["forms:read", "forms:write"] }, ["forms:read", "forms:write"]))
+      .toMatchObject({ userId: "user_123" });
+    expect(() => requireConnectorActor({ ...base, scopes: ["forms:write"] }, ["forms:read", "forms:write"]))
+      .toThrow("has not been granted forms:read");
+  });
+
   it("maps a legacy mcp grant to notes and pages but never Forms", () => {
     expect(requireConnectorActor({ ...base, scopes: ["mcp"] }, "notes:write").scopes)
       .toEqual(["notes:write", "pages:write"]);

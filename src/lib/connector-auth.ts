@@ -21,7 +21,7 @@ export class ConnectorAuthError extends Error {
 
 export function requireConnectorActor(
   authInfo: ConnectorAuthInfo | undefined,
-  requiredScope: OAuthScope,
+  requiredScope: OAuthScope | readonly OAuthScope[],
 ): FormsActor {
   const userId = authInfo?.extra?.userId;
   const grantId = authInfo?.extra?.grantId;
@@ -30,8 +30,13 @@ export function requireConnectorActor(
   if (typeof userId !== "string" || !clientId || typeof grantId !== "string" || !UUID_PATTERN.test(grantId)) {
     throw new ConnectorAuthError("invalid_connection", "The connected Jobing account could not be identified. Reconnect Jobing and try again.");
   }
-  if (!scopes.includes(requiredScope)) {
-    throw new ConnectorAuthError("insufficient_scope", `This connector has not been granted ${requiredScope}. Reconnect Jobing and approve that permission.`);
+  const requiredScopes = Array.isArray(requiredScope) ? requiredScope : [requiredScope];
+  const missingScopes = requiredScopes.filter((scope) => !scopes.includes(scope));
+  if (missingScopes.length > 0) {
+    const permission = missingScopes.length === 1
+      ? missingScopes[0]
+      : `the required permissions (${missingScopes.join(", ")})`;
+    throw new ConnectorAuthError("insufficient_scope", `This connector has not been granted ${permission}. Reconnect Jobing and approve that permission.`);
   }
   return {
     userId,

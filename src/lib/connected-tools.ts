@@ -19,7 +19,12 @@ export class ConnectedToolError extends Error {
       | "invalid_page_id"
       | "invalid_page_html"
       | "page_id_taken"
-      | "page_storage_failed",
+      | "page_not_found"
+      | "page_changed"
+      | "page_read_failed"
+      | "page_storage_failed"
+      | "page_update_failed"
+      | "page_delete_failed",
     message: string,
   ) {
     super(message);
@@ -88,6 +93,84 @@ export async function deployConnectedPage(userId: string, requestedId: string, h
   if (error) throw new ConnectedToolError("page_storage_failed", "The page could not be deployed right now.");
 
   return { id, url: publicPageUrl(id) };
+}
+
+export async function listConnectedPages(userId: string) {
+  const { data, error } = await getSupabaseAdmin()
+    .from("pages")
+    .select("id,created_at,updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (error) throw new ConnectedToolError("page_read_failed", "Your pages could not be loaded right now.");
+  return (data ?? []).map((page) => ({
+    id: page.id,
+    url: publicPageUrl(page.id),
+    createdAt: page.created_at,
+    updatedAt: page.updated_at,
+  }));
+}
+
+export async function getConnectedPage(userId: string, requestedId: string) {
+  const id = normalizePageId(requestedId);
+  if (!isValidPageId(id)) throw new ConnectedToolError("invalid_page_id", PAGE_ID_ERROR);
+
+  const { data, error } = await getSupabaseAdmin()
+    .from("pages")
+    .select("id,html_content,created_at,updated_at")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw new ConnectedToolError("page_read_failed", "The page could not be loaded right now.");
+  if (!data) throw new ConnectedToolError("page_not_found", "That page was not found in your Jobing account.");
+  return {
+    id: data.id,
+    html: data.html_content,
+    url: publicPageUrl(data.id),
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
+export async function updateConnectedPage(userId: string, requestedId: string, html: string, expectedUpdatedAt: string) {
+  const id = normalizePageId(requestedId);
+  if (!isValidPageId(id)) throw new ConnectedToolError("invalid_page_id", PAGE_ID_ERROR);
+  if (!html || html.length > MAX_PAGE_LENGTH) {
+    throw new ConnectedToolError("invalid_page_html", "HTML must be between 1 and 500,000 characters.");
+  }
+
+  const updatedAt = new Date().toISOString();
+  const { data, error } = await getSupabaseAdmin()
+    .from("pages")
+    .update({ html_content: html, updated_at: updatedAt })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .eq("updated_at", expectedUpdatedAt)
+    .select("id,updated_at")
+    .maybeSingle();
+
+  if (error) throw new ConnectedToolError("page_update_failed", "The page could not be updated right now.");
+  if (!data) throw new ConnectedToolError("page_changed", "The page was changed after it was read. Load it again before updating.");
+  return { id: data.id, url: publicPageUrl(data.id), updatedAt: data.updated_at };
+}
+
+export async function deleteConnectedPage(userId: string, requestedId: string) {
+  const id = normalizePageId(requestedId);
+  if (!isValidPageId(id)) throw new ConnectedToolError("invalid_page_id", PAGE_ID_ERROR);
+
+  const { data, error } = await getSupabaseAdmin()
+    .from("pages")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new ConnectedToolError("page_delete_failed", "The page could not be deleted right now.");
+  if (!data) throw new ConnectedToolError("page_not_found", "That page was not found in your Jobing account.");
+  return { id: data.id, deleted: true as const };
 }
 
 function siteUrl() {

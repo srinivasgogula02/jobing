@@ -58,6 +58,8 @@ describe("stored OAuth scope compatibility", () => {
     expect(effectiveOAuthScopes("mcp")).not.toContain("forms:read");
     expect(effectiveOAuthScopes("mcp")).not.toContain("forms:write");
     expect(effectiveOAuthScopes("mcp")).not.toContain("forms:publish");
+    expect(effectiveOAuthScopes("mcp")).not.toContain("forms.responses:read");
+    expect(effectiveOAuthScopes("mcp")).not.toContain("pages:manage");
     expect(effectiveOAuthScopes("mcp")).not.toContain("feedback:write");
   });
 

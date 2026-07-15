@@ -8,6 +8,7 @@ type RegisteredTool = {
 const state = vi.hoisted(() => ({
   tools: new Map<string, RegisteredTool>(),
   reportFeedback: vi.fn(),
+  listFormResponses: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -22,11 +23,23 @@ vi.mock("mcp-handler", () => ({
   },
   withMcpAuth: (handler: unknown) => handler,
 }));
-vi.mock("@/lib/connected-tools", () => ({ createConnectedNote: vi.fn(), deployConnectedPage: vi.fn() }));
+vi.mock("@/lib/connected-tools", () => ({
+  createConnectedNote: vi.fn(),
+  deleteConnectedPage: vi.fn(),
+  deployConnectedPage: vi.fn(),
+  getConnectedPage: vi.fn(),
+  listConnectedPages: vi.fn(),
+  updateConnectedPage: vi.fn(),
+}));
 vi.mock("@/lib/forms-service", () => ({
+  FormsServiceError: class FormsServiceError extends Error {},
   createConnectorForm: vi.fn(),
+  duplicateConnectorForm: vi.fn(),
   listConnectorForms: vi.fn(),
+  listConnectorFormResponses: state.listFormResponses,
   publishConnectorForm: vi.fn(),
+  setConnectorFormResponseState: vi.fn(),
+  updateConnectorForm: vi.fn(),
 }));
 vi.mock("@/lib/connector-feedback", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/connector-feedback")>();
@@ -48,6 +61,46 @@ const authInfo = {
 
 beforeEach(() => {
   state.reportFeedback.mockReset();
+  state.listFormResponses.mockReset();
+});
+
+describe("Jobing MCP management tools", () => {
+  it("registers the relevant Phase 2 page and form management capabilities", () => {
+    expect([...state.tools.keys()]).toEqual(expect.arrayContaining([
+      "list_pages",
+      "get_page",
+      "update_page",
+      "delete_page",
+      "update_form_draft",
+      "duplicate_form",
+      "list_form_responses",
+      "set_form_response_state",
+    ]));
+    expect(state.tools.get("delete_page")?.config.annotations).toMatchObject({ destructiveHint: true, readOnlyHint: false });
+    expect(state.tools.get("list_form_responses")?.config.annotations).toMatchObject({ readOnlyHint: true });
+  });
+
+  it("reads response data only with the dedicated permission", async () => {
+    state.listFormResponses.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20, pages: 1 });
+    const tool = state.tools.get("list_form_responses");
+    const responseAuth = { ...authInfo, scopes: ["forms.responses:read"] };
+    const input = {
+      formId: "4e279eaf-0a6e-48de-a66e-3c819f3fb756",
+      state: "inbox",
+      sort: "newest",
+      page: 1,
+      pageSize: 20,
+    };
+
+    const result = await tool?.handler(input, { authInfo: responseAuth });
+    expect(state.listFormResponses).toHaveBeenCalled();
+    expect(result).toMatchObject({ structuredContent: { total: 0 } });
+
+    state.listFormResponses.mockClear();
+    const denied = await tool?.handler(input, { authInfo: { ...authInfo, scopes: ["forms:read"] } });
+    expect(state.listFormResponses).not.toHaveBeenCalled();
+    expect(denied).toMatchObject({ isError: true });
+  });
 });
 
 describe("Jobing MCP feedback tool", () => {

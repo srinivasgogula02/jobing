@@ -42,7 +42,7 @@ function toolError(failure: PublicToolFailure) {
 export async function runConnectorTool<T>(input: {
   toolName: string;
   authInfo: ConnectorAuthInfo | undefined;
-  requiredScope: OAuthScope;
+  requiredScope: OAuthScope | readonly OAuthScope[];
   fallback: string;
   execute: (actor: FormsActor) => Promise<T>;
 }): Promise<T | ReturnType<typeof toolError>> {

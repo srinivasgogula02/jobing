@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildConnectorFormDraft,
+  buildUpdatedConnectorFormDraft,
   createFormDraftToolInputSchema,
   deterministicFormFieldId,
+  updateFormDraftToolInputSchema,
 } from "./form-tool";
 
 const input = {
@@ -60,5 +62,55 @@ describe("create form tool input", () => {
     const parsed = createFormDraftToolInputSchema.parse({ ...input, allowedOrigins: ["https://example.com/contact"] });
     expect(buildConnectorFormDraft(parsed).definition.settings).toEqual({ allowedOrigins: ["https://example.com"] });
     expect(createFormDraftToolInputSchema.safeParse({ ...input, redirectUrl: "http://example.com/thanks" }).success).toBe(false);
+  });
+});
+
+describe("update form tool input", () => {
+  it("preserves field IDs by stable key and assigns deterministic IDs to new fields", () => {
+    const current = buildConnectorFormDraft(createFormDraftToolInputSchema.parse(input));
+    const update = updateFormDraftToolInputSchema.parse({
+      formId: "4e279eaf-0a6e-48de-a66e-3c819f3fb756",
+      expectedRevision: 1,
+      name: "Contact",
+      title: "Contact our team",
+      fields: [
+        { key: "email", type: "email", label: "Work email", required: true },
+        { key: "company", type: "text", label: "Company" },
+      ],
+    });
+
+    const result = buildUpdatedConnectorFormDraft(update, current);
+    expect(result.definition.fields[0].id).toBe(current.definition.fields[0].id);
+    expect(result.definition.fields[1].id).toBe(
+      deterministicFormFieldId(`update:${update.formId}:${update.expectedRevision}`, 1, "company"),
+    );
+  });
+
+  it("supports clearing redirects and updating hosted-form styling", () => {
+    const current = buildConnectorFormDraft(createFormDraftToolInputSchema.parse({
+      ...input,
+      redirectUrl: "https://example.com/thanks",
+    }));
+    const update = updateFormDraftToolInputSchema.parse({
+      formId: "4e279eaf-0a6e-48de-a66e-3c819f3fb756",
+      expectedRevision: 1,
+      name: "Contact",
+      title: "Contact us",
+      fields: input.fields,
+      redirectUrl: null,
+      presentation: {
+        colorMode: "light",
+        accentColor: "#3366FF",
+        backgroundColor: "#FFFFFF",
+        textColor: "#111111",
+        fontFamily: "sans",
+        spacing: "comfortable",
+        buttonStyle: "solid",
+      },
+    });
+
+    const result = buildUpdatedConnectorFormDraft(update, current);
+    expect(result.definition.confirmation).not.toHaveProperty("redirectUrl");
+    expect(result.definition.presentation).toMatchObject({ colorMode: "light", accentColor: "#3366FF" });
   });
 });

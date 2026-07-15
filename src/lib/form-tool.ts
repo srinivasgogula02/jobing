@@ -10,7 +10,7 @@ export const formOperationIdSchema = z.string()
     "Use a stable ASCII operation ID containing letters, numbers, dots, underscores, tildes, colons, slashes, or hyphens.",
   );
 
-const formFieldInputSchema = z.object({
+export const formFieldInputSchema = z.object({
   key: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/).describe("Stable lowercase key, for example work_email."),
   type: z.enum(["text", "email", "textarea", "number", "tel", "url", "date", "select", "radio", "checkbox", "consent", "file"]),
   label: z.string().trim().min(1).max(200),
@@ -46,6 +46,16 @@ const formFieldInputSchema = z.object({
   }
 });
 
+const presentationInputSchema = z.object({
+  colorMode: z.enum(["dark", "light"]),
+  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  fontFamily: z.enum(["sans", "serif", "mono"]),
+  spacing: z.enum(["compact", "comfortable", "spacious"]),
+  buttonStyle: z.enum(["solid", "outline"]),
+});
+
 export const createFormDraftToolInputSchema = z.object({
   operationId: formOperationIdSchema.describe("Required stable idempotency key. Reuse it unchanged when retrying the same creation."),
   name: z.string().trim().min(1).max(200).describe("Dashboard name for the form."),
@@ -56,6 +66,7 @@ export const createFormDraftToolInputSchema = z.object({
   redirectUrl: z.string().url().refine((value) => new URL(value).protocol === "https:", "Use an HTTPS redirect URL.").optional(),
   allowedOrigins: z.array(z.string().url().transform((value) => new URL(value).origin)).max(20).optional()
     .describe("HTTPS website origins allowed to submit, for example https://example.com. Omit for hosted-form-only use."),
+  presentation: presentationInputSchema.optional().describe("Optional styling for the hosted form. Native HTML embedded in a custom page can be styled freely with page CSS."),
 }).superRefine((input, context) => {
   const keys = new Set<string>();
   input.fields.forEach((field, index) => {
@@ -67,6 +78,29 @@ export const createFormDraftToolInputSchema = z.object({
 });
 
 export type CreateFormDraftToolInput = z.output<typeof createFormDraftToolInputSchema>;
+
+export const updateFormDraftToolInputSchema = z.object({
+  formId: z.string().uuid(),
+  expectedRevision: z.number().int().positive().describe("Current revision returned by list_forms. The edit is rejected if the form changed after it was read."),
+  name: z.string().trim().min(1).max(200).describe("Dashboard name for the form."),
+  title: z.string().trim().min(1).max(200).describe("Heading respondents will see."),
+  description: z.string().trim().max(2_000).nullable().optional().describe("New description. Use null to remove it; omit to keep the current description."),
+  fields: z.array(formFieldInputSchema).min(1).max(100).describe("The complete desired field list. Existing field IDs are preserved by matching stable field keys."),
+  confirmationMessage: z.string().trim().min(1).max(1_000).optional().describe("Omit to keep the current confirmation message."),
+  redirectUrl: z.string().url().refine((value) => new URL(value).protocol === "https:", "Use an HTTPS redirect URL.").nullable().optional()
+    .describe("New redirect URL. Use null to remove it; omit to keep the current redirect."),
+  allowedOrigins: z.array(z.string().url().transform((value) => new URL(value).origin)).max(20).optional()
+    .describe("Complete allowed-origin list. Omit to keep the current list."),
+  presentation: presentationInputSchema.optional().describe("Complete hosted-form styling. Omit to keep the current styling."),
+}).superRefine((input, context) => {
+  const keys = new Set<string>();
+  input.fields.forEach((field, index) => {
+    if (keys.has(field.key)) context.addIssue({ code: "custom", path: ["fields", index, "key"], message: "Field keys must be unique." });
+    keys.add(field.key);
+  });
+});
+
+export type UpdateFormDraftToolInput = z.output<typeof updateFormDraftToolInputSchema>;
 
 function deterministicUuid(seed: string) {
   const bytes = Buffer.from(crypto.createHash("sha256").update(seed, "utf8").digest().subarray(0, 16));
@@ -117,6 +151,54 @@ export function buildConnectorFormDraft(input: CreateFormDraftToolInput): Create
         ...(input.redirectUrl ? { redirectUrl: input.redirectUrl } : {}),
       },
       ...(input.allowedOrigins ? { settings: { allowedOrigins: input.allowedOrigins } } : {}),
+      ...(input.presentation ? { presentation: input.presentation } : {}),
+    },
+  };
+}
+
+export function buildUpdatedConnectorFormDraft(
+  input: UpdateFormDraftToolInput,
+  current: CreateConnectorFormInput,
+): CreateConnectorFormInput {
+  const existingFieldIds = new Map(current.definition.fields.map((field) => [field.key, field.id]));
+  const description = input.description === undefined ? current.definition.description : input.description ?? undefined;
+  const redirectUrl = input.redirectUrl === undefined
+    ? current.definition.confirmation?.redirectUrl
+    : input.redirectUrl ?? undefined;
+
+  return {
+    name: input.name,
+    ...(description !== undefined ? { description } : {}),
+    definition: {
+      schemaVersion: 1,
+      title: input.title,
+      ...(description !== undefined ? { description } : {}),
+      fields: input.fields.map((field, index) => ({
+        id: existingFieldIds.get(field.key)
+          ?? deterministicFormFieldId(`update:${input.formId}:${input.expectedRevision}`, index, field.key),
+        key: field.key,
+        type: field.type,
+        label: field.label,
+        ...(field.description !== undefined ? { description: field.description } : {}),
+        ...(field.placeholder !== undefined ? { placeholder: field.placeholder } : {}),
+        required: field.required,
+        hidden: field.hidden,
+        ...(field.options !== undefined ? { options: field.options } : {}),
+        ...(field.validation !== undefined ? { validation: field.validation } : {}),
+      })),
+      confirmation: {
+        title: current.definition.confirmation?.title ?? "Response received",
+        message: input.confirmationMessage
+          ?? current.definition.confirmation?.message
+          ?? "Thanks, your response was received.",
+        ...(redirectUrl ? { redirectUrl } : {}),
+      },
+      settings: {
+        allowedOrigins: input.allowedOrigins ?? current.definition.settings?.allowedOrigins ?? [],
+      },
+      ...(input.presentation ?? current.definition.presentation
+        ? { presentation: input.presentation ?? current.definition.presentation! }
+        : {}),
     },
   };
 }

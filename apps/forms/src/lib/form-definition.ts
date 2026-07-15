@@ -117,6 +117,28 @@ export const createFormDraftRequestSchema = z.object({
 
 export const listFormsRequestSchema = z.object({ actor: internalActorSchema });
 
+export const updateFormDraftRequestSchema = z.object({
+  actor: internalActorSchema,
+  expectedRevision: z.number().int().positive(),
+  name: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2_000).optional(),
+  definition: formDefinitionSchema,
+});
+
+export const listFormResponsesRequestSchema = z.object({
+  actor: internalActorSchema,
+  query: z.string().trim().max(200).default(""),
+  state: z.enum(["inbox", "spam", "archived"]).default("inbox"),
+  sort: z.enum(["newest", "oldest"]).default("newest"),
+  page: z.number().int().min(1).max(100_000).default(1),
+  pageSize: z.number().int().min(1).max(50).default(20),
+});
+
+export const setFormResponseStateRequestSchema = z.object({
+  actor: internalActorSchema,
+  state: z.enum(["inbox", "spam", "archived"]),
+});
+
 export const publishFormRequestSchema = z.object({
   operationId: z.string().min(8).max(200),
   actor: internalActorSchema,

@@ -41,6 +41,43 @@ const publishedFormSchema = z.object({
   endpointId: z.string(),
 });
 
+const updatedFormSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  status: formStatusSchema,
+  revision: z.coerce.number().int().positive(),
+  endpointId: z.string(),
+  definition: z.unknown(),
+});
+
+const submissionFileSchema = z.object({
+  id: z.string().uuid(),
+  submissionId: z.string().uuid(),
+  fieldKey: z.string(),
+  fileName: z.string(),
+  contentType: z.string(),
+  byteSize: z.coerce.number().int().positive(),
+  scanStatus: z.enum(["unscanned", "clean", "blocked"]),
+});
+
+const formResponseSchema = z.object({
+  id: z.string().uuid(),
+  formId: z.string().uuid(),
+  receivedAt: z.string(),
+  values: z.record(z.string(), z.unknown()),
+  reviewState: z.enum(["inbox", "spam", "archived"]),
+  fileCount: z.coerce.number().int().nonnegative(),
+  files: z.array(submissionFileSchema),
+});
+
+const paginatedFormResponsesSchema = z.object({
+  items: z.array(formResponseSchema),
+  total: z.coerce.number().int().nonnegative(),
+  page: z.coerce.number().int().positive(),
+  pageSize: z.coerce.number().int().positive(),
+  pages: z.coerce.number().int().positive(),
+});
+
 const errorEnvelopeSchema = z.object({
   error: z.object({
     code: z.string().regex(SAFE_ERROR_CODE_PATTERN),
@@ -59,7 +96,8 @@ const publicUpstreamErrorMessages: Readonly<Record<string, string>> = {
   insufficient_scope: "This connector has not been granted the required Forms permission.",
   invalid_payload: "The Forms request is invalid.",
   form_not_found: "The requested form could not be found.",
-  stale_revision: "The form changed before it could be published. Refresh it and try again.",
+  stale_revision: "The form changed after it was read. Refresh it and try again.",
+  response_not_found: "The requested form response could not be found.",
 };
 
 export type FormsActor = {
@@ -137,6 +175,15 @@ export type ConnectorFormDefinition = {
   }>;
   confirmation?: { title?: string; message: string; redirectUrl?: string };
   settings?: { allowedOrigins: string[] };
+  presentation?: {
+    colorMode: "dark" | "light";
+    accentColor: string;
+    backgroundColor: string;
+    textColor: string;
+    fontFamily: "sans" | "serif" | "mono";
+    spacing: "compact" | "comfortable" | "spacious";
+    buttonStyle: "solid" | "outline";
+  };
 };
 
 export type CreateConnectorFormInput = {
@@ -492,4 +539,67 @@ export async function publishConnectorForm(
   const listed = (await listConnectorForms(actor)).find((form) => form.id === published.id);
   if (!listed?.definition) throw new FormsServiceError("invalid_response", "Forms returned an invalid response.", 502);
   return withPublicEndpoint({ ...published, definition: listed.definition });
+}
+
+export async function updateConnectorForm(
+  actor: FormsActor,
+  formId: string,
+  input: {
+    expectedRevision: number;
+    name: string;
+    description?: string;
+    definition: ConnectorFormDefinition;
+  },
+) {
+  const rawBody = serializeFormsPayload({ actor, ...input });
+  await ensureFormsWorkspace(actor);
+  const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/draft`, rawBody);
+  const updated = parseServiceResponse(z.object({ data: updatedFormSchema }), body).data;
+  return updated.status === "published"
+    ? withPublicEndpoint(updated, input.definition)
+    : withoutDraftEndpoint(updated, input.definition);
+}
+
+export async function duplicateConnectorForm(
+  actor: FormsActor,
+  sourceFormId: string,
+  name: string,
+  operationId: string,
+) {
+  const source = (await listConnectorForms(actor)).find((form) => form.id === sourceFormId);
+  if (!source?.definition) throw new FormsServiceError("form_not_found", "The requested form could not be found.", 404);
+  return createConnectorForm(actor, {
+    name,
+    definition: source.definition as ConnectorFormDefinition,
+  }, operationId);
+}
+
+export async function listConnectorFormResponses(
+  actor: FormsActor,
+  formId: string,
+  input: {
+    query?: string;
+    state?: "inbox" | "spam" | "archived";
+    sort?: "newest" | "oldest";
+    page?: number;
+    pageSize?: number;
+  },
+) {
+  const rawBody = serializeFormsPayload({ actor, ...input });
+  await ensureFormsWorkspace(actor);
+  const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/responses`, rawBody);
+  return parseServiceResponse(z.object({ data: paginatedFormResponsesSchema }), body).data;
+}
+
+export async function setConnectorFormResponseState(
+  actor: FormsActor,
+  submissionId: string,
+  state: "inbox" | "spam" | "archived",
+) {
+  const rawBody = serializeFormsPayload({ actor, state });
+  await ensureFormsWorkspace(actor);
+  const body = await postSerializedToForms(`/api/internal/v1/responses/${encodeURIComponent(submissionId)}/state`, rawBody);
+  return parseServiceResponse(z.object({
+    data: z.object({ submissionId: z.string().uuid(), state: z.enum(["inbox", "spam", "archived"]) }),
+  }), body).data;
 }

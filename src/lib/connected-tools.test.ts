@@ -11,7 +11,14 @@ vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: () => ({ from: db.from }),
 }));
 
-import { createConnectedNote, deployConnectedPage } from "./connected-tools";
+import {
+  createConnectedNote,
+  deleteConnectedPage,
+  deployConnectedPage,
+  getConnectedPage,
+  listConnectedPages,
+  updateConnectedPage,
+} from "./connected-tools";
 
 beforeEach(() => {
   vi.unstubAllEnvs();
@@ -109,5 +116,66 @@ describe("connected page deployment", () => {
     await expect(deployConnectedPage("user_456", "launch", "<p>Page</p>"))
       .resolves.toEqual({ id: "launch", url: "https://launch.jobing.online" });
     expect(db.insert).not.toHaveBeenCalled();
+  });
+});
+
+describe("connected page management", () => {
+  it("lists only the connected user's pages without returning HTML", async () => {
+    vi.stubEnv("NEXT_PUBLIC_PAGES_ROOT_DOMAIN", "jobing.online");
+    const limit = vi.fn().mockResolvedValue({
+      data: [{ id: "launch", created_at: "2026-07-01T00:00:00Z", updated_at: "2026-07-02T00:00:00Z" }],
+      error: null,
+    });
+    const order = vi.fn(() => ({ limit }));
+    const eq = vi.fn(() => ({ order }));
+    db.from.mockReturnValueOnce({ select: vi.fn(() => ({ eq })) });
+
+    await expect(listConnectedPages("user_456")).resolves.toEqual([{
+      id: "launch",
+      url: "https://launch.jobing.online",
+      createdAt: "2026-07-01T00:00:00Z",
+      updatedAt: "2026-07-02T00:00:00Z",
+    }]);
+    expect(eq).toHaveBeenCalledWith("user_id", "user_456");
+  });
+
+  it("reads page HTML only when the page belongs to the connected user", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: { id: "launch", html_content: "<main>Hi</main>", created_at: "created", updated_at: "updated" },
+      error: null,
+    });
+    const ownerEq = vi.fn(() => ({ maybeSingle }));
+    const idEq = vi.fn(() => ({ eq: ownerEq }));
+    db.from.mockReturnValueOnce({ select: vi.fn(() => ({ eq: idEq })) });
+
+    await expect(getConnectedPage("user_456", "Launch")).resolves.toMatchObject({ id: "launch", html: "<main>Hi</main>" });
+    expect(ownerEq).toHaveBeenCalledWith("user_id", "user_456");
+  });
+
+  it("updates an owned page and keeps its public address", async () => {
+    vi.stubEnv("NEXT_PUBLIC_PAGES_ROOT_DOMAIN", "jobing.online");
+    const maybeSingle = vi.fn().mockResolvedValue({ data: { id: "launch", updated_at: "updated" }, error: null });
+    const select = vi.fn(() => ({ maybeSingle }));
+    const updatedAtEq = vi.fn(() => ({ select }));
+    const ownerEq = vi.fn(() => ({ eq: updatedAtEq }));
+    const idEq = vi.fn(() => ({ eq: ownerEq }));
+    const update = vi.fn(() => ({ eq: idEq }));
+    db.from.mockReturnValueOnce({ update });
+
+    await expect(updateConnectedPage("user_456", "launch", "<main>New</main>", "2026-07-15T00:00:00Z"))
+      .resolves.toEqual({ id: "launch", url: "https://launch.jobing.online", updatedAt: "updated" });
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ html_content: "<main>New</main>" }));
+    expect(updatedAtEq).toHaveBeenCalledWith("updated_at", "2026-07-15T00:00:00Z");
+  });
+
+  it("deletes only an owned page and reports missing pages safely", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const select = vi.fn(() => ({ maybeSingle }));
+    const ownerEq = vi.fn(() => ({ select }));
+    const idEq = vi.fn(() => ({ eq: ownerEq }));
+    db.from.mockReturnValueOnce({ delete: vi.fn(() => ({ eq: idEq })) });
+
+    await expect(deleteConnectedPage("user_456", "missing"))
+      .rejects.toThrow("not found in your Jobing account");
   });
 });

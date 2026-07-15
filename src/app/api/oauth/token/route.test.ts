@@ -166,7 +166,7 @@ describe("OAuth token exchange", () => {
       grant_type: "refresh_token",
       refresh_token: "jbrt_old",
       client_id: "client-1",
-      scope: "forms.responses:read",
+      scope: "forms.responses:delete",
     }));
     expect(await response.json()).toMatchObject({ error: "invalid_scope" });
     expect(mocks.rotateRefreshToken).not.toHaveBeenCalled();

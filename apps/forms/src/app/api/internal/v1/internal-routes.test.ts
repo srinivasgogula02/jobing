@@ -6,6 +6,9 @@ const store = vi.hoisted(() => ({
   createFormDraft: vi.fn(),
   listFormsForActor: vi.fn(),
   publishForm: vi.fn(),
+  updateDashboardForm: vi.fn(),
+  listSubmissionsPage: vi.fn(),
+  setSubmissionReviewState: vi.fn(),
   applyWorkspaceProjection: vi.fn(),
 }));
 
@@ -14,12 +17,16 @@ vi.mock("@/lib/forms-store", () => store);
 import { POST as createForm } from "./forms/route";
 import { POST as listForms } from "./forms/list/route";
 import { POST as publishForm } from "./forms/[formId]/publish/route";
+import { POST as updateFormDraft } from "./forms/[formId]/draft/route";
+import { POST as listFormResponses } from "./forms/[formId]/responses/route";
+import { POST as setFormResponseState } from "./responses/[submissionId]/state/route";
 import { POST as syncWorkspace } from "./workspaces/sync/route";
 
 const SECRET = "phase-one-test-secret-with-enough-entropy";
 const FORM_ID = "11111111-1111-4111-8111-111111111111";
 const FIELD_ID = "22222222-2222-4222-8222-222222222222";
 const WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
+const SUBMISSION_ID = "55555555-5555-4555-8555-555555555555";
 
 function actor(scopes: string[]) {
   return {
@@ -75,6 +82,9 @@ beforeEach(() => {
   store.createFormDraft.mockReset().mockResolvedValue({ id: FORM_ID, status: "draft" });
   store.listFormsForActor.mockReset().mockResolvedValue([{ id: FORM_ID, name: "Contact", status: "draft" }]);
   store.publishForm.mockReset().mockResolvedValue({ id: FORM_ID, status: "published", version: 1 });
+  store.updateDashboardForm.mockReset().mockResolvedValue({ id: FORM_ID, name: "Contact", status: "published", revision: 2, definition: createPayload().form.definition });
+  store.listSubmissionsPage.mockReset().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20, pages: 1 });
+  store.setSubmissionReviewState.mockReset().mockResolvedValue(true);
   store.applyWorkspaceProjection.mockReset().mockResolvedValue({ workspaceId: WORKSPACE_ID, applied: true });
 });
 
@@ -140,6 +150,49 @@ describe("Forms internal routes", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ data: { id: FORM_ID, status: "published", version: 1 } });
     expect(store.publishForm).toHaveBeenCalledWith(FORM_ID, expect.objectContaining({ expectedRevision: 1 }));
+  });
+
+  it("updates a revisioned form draft through the write scope", async () => {
+    const path = `/api/internal/v1/forms/${FORM_ID}/draft`;
+    const payload = {
+      actor: actor(["forms:write"]),
+      expectedRevision: 1,
+      name: "Contact",
+      definition: createPayload().form.definition,
+    };
+    const { request } = signedRequest(path, payload);
+    const response = await updateFormDraft(request, { params: Promise.resolve({ formId: FORM_ID }) });
+
+    expect(response.status).toBe(200);
+    expect(store.updateDashboardForm).toHaveBeenCalledWith(expect.objectContaining({
+      actorId: "user_123",
+      formId: FORM_ID,
+      expectedRevision: 1,
+    }));
+  });
+
+  it("reads searchable responses only with the dedicated private-data scope", async () => {
+    const path = `/api/internal/v1/forms/${FORM_ID}/responses`;
+    const payload = { actor: actor(["forms.responses:read"]), query: "designer", state: "inbox", sort: "newest", page: 1, pageSize: 20 };
+    const { request } = signedRequest(path, payload);
+    const response = await listFormResponses(request, { params: Promise.resolve({ formId: FORM_ID }) });
+
+    expect(response.status).toBe(200);
+    expect(store.listSubmissionsPage).toHaveBeenCalledWith(expect.objectContaining({ actorId: "user_123", formId: FORM_ID, query: "designer" }));
+
+    const denied = signedRequest(path, { ...payload, actor: actor(["forms:read"]) });
+    const deniedResponse = await listFormResponses(denied.request, { params: Promise.resolve({ formId: FORM_ID }) });
+    expect(deniedResponse.status).toBe(403);
+  });
+
+  it("moves a response between inbox states with its own write permission", async () => {
+    const path = `/api/internal/v1/responses/${SUBMISSION_ID}/state`;
+    const { request } = signedRequest(path, { actor: actor(["forms.responses:write"]), state: "archived" });
+    const response = await setFormResponseState(request, { params: Promise.resolve({ submissionId: SUBMISSION_ID }) });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: { submissionId: SUBMISSION_ID, state: "archived" } });
+    expect(store.setSubmissionReviewState).toHaveBeenCalledWith("user_123", SUBMISSION_ID, "archived");
   });
 
   it("applies a signed workspace projection", async () => {

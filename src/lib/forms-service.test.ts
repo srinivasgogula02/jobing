@@ -5,6 +5,9 @@ vi.mock("server-only", () => ({}));
 
 import {
   createConnectorForm,
+  listConnectorFormResponses,
+  setConnectorFormResponseState,
+  updateConnectorForm,
   FormsServiceError,
   formsSignaturePayload,
   MAX_FORMS_INTERNAL_REQUEST_BYTES,
@@ -350,5 +353,86 @@ describe("Forms internal request signing", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][1]?.body).toBe(JSON.stringify(projection));
+  });
+
+  it("updates a form through the revision-guarded draft endpoint", async () => {
+    const updated = {
+      data: {
+        id: createdResponse.data.id,
+        name: "Contact leads",
+        status: "draft",
+        revision: 2,
+        endpointId: "frm_public",
+        definition: form.definition,
+      },
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(workspaceResponse), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(updated), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await updateConnectorForm(actor, createdResponse.data.id, {
+      expectedRevision: 1,
+      name: "Contact leads",
+      definition: form.definition,
+    });
+
+    expect(result).toMatchObject({ name: "Contact leads", revision: 2, publishRequired: true });
+    expect(fetchMock.mock.calls[1][0]).toBe(`https://forms.jobing.site/forms/api/internal/v1/forms/${createdResponse.data.id}/draft`);
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toMatchObject({ expectedRevision: 1, actor });
+  });
+
+  it("reads paginated response values without fetching uploaded file contents", async () => {
+    const responseId = "9cc5b748-a4f6-4ccb-b737-29f05e6c6f62";
+    const responses = {
+      data: {
+        items: [{
+          id: responseId,
+          formId: createdResponse.data.id,
+          receivedAt: "2026-07-15T00:00:00Z",
+          values: { email: "person@example.com" },
+          reviewState: "inbox",
+          fileCount: 1,
+          files: [{
+            id: "4fa5720d-26da-4bb8-9458-b6119d25b4de",
+            submissionId: responseId,
+            fieldKey: "resume",
+            fileName: "resume.pdf",
+            contentType: "application/pdf",
+            byteSize: 1024,
+            scanStatus: "unscanned",
+          }],
+        }],
+        total: 1,
+        page: 1,
+        pageSize: 20,
+        pages: 1,
+      },
+    };
+    const responseActor = { ...actor, scopes: ["forms.responses:read"] };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(workspaceResponse), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(responses), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await listConnectorFormResponses(responseActor, createdResponse.data.id, { query: "person", page: 1, pageSize: 20 });
+
+    expect(result.items[0]).not.toHaveProperty("contentBase64");
+    expect(result.items[0].files[0]).toMatchObject({ fileName: "resume.pdf", byteSize: 1024 });
+    expect(fetchMock.mock.calls[1][0]).toContain(`/forms/${createdResponse.data.id}/responses`);
+  });
+
+  it("moves a response to an inbox state through a dedicated endpoint", async () => {
+    const submissionId = "9cc5b748-a4f6-4ccb-b737-29f05e6c6f62";
+    const stateResponse = { data: { submissionId, state: "archived" } };
+    const responseActor = { ...actor, scopes: ["forms.responses:write"] };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(workspaceResponse), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(stateResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(setConnectorFormResponseState(responseActor, submissionId, "archived"))
+      .resolves.toEqual(stateResponse.data);
+    expect(fetchMock.mock.calls[1][0]).toContain(`/responses/${submissionId}/state`);
   });
 });

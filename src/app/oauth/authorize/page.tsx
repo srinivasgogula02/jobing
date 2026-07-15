@@ -127,7 +127,10 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
         </div>
 
         <p className="mt-5 text-sm leading-6 text-[#8B93A1]">
-          Form responses and integration credentials are not included. You can disconnect this client at any time.
+          {scopes.includes("forms.responses:read")
+            ? "Uploaded file contents and integration credentials are not included."
+            : "Form responses, uploaded file contents, and integration credentials are not included."}{" "}
+          You can disconnect this client at any time.
         </p>
 
         <form className="mt-6 grid gap-3 sm:grid-cols-2">

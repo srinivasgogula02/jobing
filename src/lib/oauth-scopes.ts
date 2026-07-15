@@ -9,10 +9,14 @@
  */
 export const OAUTH_SCOPES = [
   "notes:write",
+  "pages:read",
   "pages:write",
+  "pages:manage",
   "forms:read",
   "forms:write",
   "forms:publish",
+  "forms.responses:read",
+  "forms.responses:write",
   "feedback:write",
 ] as const;
 
@@ -27,9 +31,17 @@ export const OAUTH_SCOPE_DETAILS: Record<OAuthScope, { title: string; descriptio
     title: "Create notes",
     description: "Create new shareable notes in your Jobing account.",
   },
+  "pages:read": {
+    title: "View pages",
+    description: "View your deployed page names, HTML, public links, and update times.",
+  },
   "pages:write": {
     title: "Deploy pages",
     description: "Deploy new public HTML pages owned by your Jobing account.",
+  },
+  "pages:manage": {
+    title: "Manage pages",
+    description: "Edit or delete existing public pages after you ask for the change.",
   },
   "forms:read": {
     title: "View form definitions",
@@ -42,6 +54,14 @@ export const OAUTH_SCOPE_DETAILS: Record<OAuthScope, { title: string; descriptio
   "forms:publish": {
     title: "Publish forms",
     description: "Publish, pause, and test forms created for your account.",
+  },
+  "forms.responses:read": {
+    title: "View form responses",
+    description: "View and search submitted answers and private upload metadata. Uploaded file contents are not shared.",
+  },
+  "forms.responses:write": {
+    title: "Organize form responses",
+    description: "Move responses between the inbox, spam, and archive after you ask.",
   },
   "feedback:write": {
     title: "Send product feedback",

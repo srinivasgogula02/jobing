@@ -46,6 +46,11 @@ describe("connector tool runtime", () => {
         outcome: "error",
         error_code: "internal_error",
         error_class: "dependency",
+        mcp_tool_name: "deploy_page",
+        mcp_product_area: "pages",
+        mcp_outcome: "error",
+        mcp_error_code: "internal_error",
+        mcp_use_case: "unspecified",
       }),
     }));
     expect(JSON.stringify(telemetry.event.mock.calls)).not.toContain("private");
@@ -58,7 +63,7 @@ describe("connector tool runtime", () => {
       authInfo: { clientId: "client", scopes: ["forms.responses:read"], extra: { userId: "user", grantId: "5df42931-5953-42a0-bd90-7581a79326db", clientType: "claude" } },
       requiredScope: "forms.responses:read",
       fallback: "Could not read responses.",
-      properties: { query_used: true, response_state: "inbox" },
+      properties: { query_used: true, response_state: "inbox", use_case: "job_application" },
       execute: async () => ({ items: 3, hidden: true }),
       resultProperties: (value) => ({ result_count_bucket: value.items === 3 ? "2_5" : "0", has_hidden_results: value.hidden }),
     });
@@ -75,6 +80,15 @@ describe("connector tool runtime", () => {
         result_count_bucket: "2_5",
         has_hidden_results: true,
         outcome: "success",
+        mcp_tool_name: "list_form_responses",
+        mcp_product_area: "responses",
+        mcp_tool_action: "read",
+        mcp_client_type: "claude",
+        mcp_query_used: true,
+        mcp_result_count_bucket: "2_5",
+        mcp_has_hidden_results: true,
+        mcp_outcome: "success",
+        mcp_use_case: "job_application",
       }),
     }));
   });

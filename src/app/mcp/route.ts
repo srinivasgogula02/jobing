@@ -36,6 +36,24 @@ import { classifyConnectorClient, countBucket, payloadSizeBucket } from "@/lib/p
 import { rateLimit, requestIp } from "@/lib/rate-limit";
 import { connectorDestinations, formNavigation, noteNavigation, pageNavigation } from "@/lib/connector-navigation";
 
+const mcpUseCaseSchema = z.enum([
+  "marketing_page",
+  "business_website",
+  "portfolio",
+  "lead_capture",
+  "contact_form",
+  "job_application",
+  "event_registration",
+  "survey_feedback",
+  "waitlist",
+  "booking_request",
+  "newsletter_signup",
+  "customer_support",
+  "internal_workflow",
+  "content_sharing",
+  "other",
+]).describe("Closest non-sensitive category for what the user is trying to accomplish. Choose other only when none fit. Never put names, contact details, prompts, or form answers here.");
+
 const handler = createMcpHandler(
   (server) => {
     server.registerTool(
@@ -46,6 +64,7 @@ const handler = createMcpHandler(
         inputSchema: {
           id: z.string().min(1).max(64).describe("Short URL ID using letters, numbers, hyphens, or underscores."),
           content: z.string().min(1).max(100_000).describe("The text to store in the note."),
+          useCase: mcpUseCaseSchema,
         },
         annotations: {
           readOnlyHint: false,
@@ -54,11 +73,12 @@ const handler = createMcpHandler(
           openWorldHint: false,
         },
       },
-      async ({ id, content }, { authInfo }) => runConnectorTool({
+      async ({ id, content, useCase }, { authInfo }) => runConnectorTool({
         toolName: "create_note",
         authInfo,
         requiredScope: "notes:write",
         fallback: "Could not create the note.",
+        properties: { use_case: useCase },
         execute: async (actor) => {
           const note = await createConnectedNote(actor.userId, id, content);
           const result = { ...note, ...noteNavigation(note.url) };
@@ -78,6 +98,7 @@ const handler = createMcpHandler(
         inputSchema: {
           id: pageIdSchema,
           html: z.string().min(1).max(500_000).describe("A complete HTML document or HTML fragment to deploy."),
+          useCase: mcpUseCaseSchema,
         },
         annotations: {
           readOnlyHint: false,
@@ -86,12 +107,13 @@ const handler = createMcpHandler(
           openWorldHint: false,
         },
       },
-      async ({ id, html }, { authInfo }) => runConnectorTool({
+      async ({ id, html, useCase }, { authInfo }) => runConnectorTool({
         toolName: "deploy_page",
         authInfo,
         requiredScope: "pages:write",
         fallback: "Could not deploy the page.",
         properties: {
+          use_case: useCase,
           page_contains_form: /<form\b/i.test(html),
           payload_size_bucket: payloadSizeBucket(html.length),
         },
@@ -168,15 +190,17 @@ const handler = createMcpHandler(
           id: pageIdSchema,
           html: z.string().min(1).max(500_000).describe("The complete replacement HTML document or fragment."),
           expectedUpdatedAt: z.string().datetime({ offset: true }).describe("The exact updatedAt value returned by get_page. This prevents overwriting a newer edit."),
+          useCase: mcpUseCaseSchema,
         },
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       },
-      async ({ id, html, expectedUpdatedAt }, { authInfo }) => runConnectorTool({
+      async ({ id, html, expectedUpdatedAt, useCase }, { authInfo }) => runConnectorTool({
         toolName: "update_page",
         authInfo,
         requiredScope: "pages:manage",
         fallback: "Could not update the page.",
         properties: {
+          use_case: useCase,
           page_contains_form: /<form\b/i.test(html),
           payload_size_bucket: payloadSizeBucket(html.length),
         },
@@ -216,7 +240,7 @@ const handler = createMcpHandler(
       {
         title: "Create a Jobing form draft",
         description: "Creates a versioned form draft and a native HTML form template. Use this whenever a page needs a form. Never embed Jobing Forms in an iframe; place the returned form markup directly in the page and customize its HTML/CSS. After success, surface the returned edit and Forms dashboard URLs to the user.",
-        inputSchema: createFormDraftToolInputSchema,
+        inputSchema: createFormDraftToolInputSchema.and(z.object({ useCase: mcpUseCaseSchema })),
         annotations: {
           readOnlyHint: false,
           destructiveHint: false,
@@ -230,6 +254,7 @@ const handler = createMcpHandler(
         requiredScope: "forms:write",
         fallback: "Could not create the form draft.",
         properties: {
+          use_case: input.useCase,
           field_count_bucket: countBucket(input.fields.length),
           has_file_upload: input.fields.some((field) => field.type === "file"),
           resource_status: "draft",
@@ -284,7 +309,7 @@ const handler = createMcpHandler(
       {
         title: "Edit a Jobing form draft",
         description: "Updates a form's versioned draft while preserving all existing submissions and the currently published version. Use list_forms first, send the complete desired field list, then publish the returned revision only if the user wants the changes live.",
-        inputSchema: updateFormDraftToolInputSchema,
+        inputSchema: updateFormDraftToolInputSchema.and(z.object({ useCase: mcpUseCaseSchema })),
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       },
       async (input, { authInfo }) => runConnectorTool({
@@ -293,6 +318,7 @@ const handler = createMcpHandler(
         requiredScope: ["forms:read", "forms:write"],
         fallback: "Could not update the form draft.",
         properties: {
+          use_case: input.useCase,
           field_count_bucket: countBucket(input.fields.length),
           has_file_upload: input.fields.some((field) => field.type === "file"),
           resource_status: "draft",
@@ -331,15 +357,16 @@ const handler = createMcpHandler(
           sourceFormId: z.string().uuid(),
           name: z.string().trim().min(1).max(200).describe("Dashboard name for the copy."),
           operationId: z.string().min(8).max(200).regex(/^[A-Za-z0-9][A-Za-z0-9._~:/-]*$/).describe("Stable idempotency key. Reuse it when retrying this duplication."),
+          useCase: mcpUseCaseSchema,
         },
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       },
-      async ({ sourceFormId, name, operationId }, { authInfo }) => runConnectorTool({
+      async ({ sourceFormId, name, operationId, useCase }, { authInfo }) => runConnectorTool({
         toolName: "duplicate_form",
         authInfo,
         requiredScope: ["forms:read", "forms:write"],
         fallback: "Could not duplicate the form.",
-        properties: { resource_status: "draft" },
+        properties: { resource_status: "draft", use_case: useCase },
         execute: async (actor) => {
           const form = await duplicateConnectorForm(actor, sourceFormId, name, operationId);
           const navigation = formNavigation(form.id);
@@ -363,15 +390,17 @@ const handler = createMcpHandler(
           sort: z.enum(["newest", "oldest"]).default("newest"),
           page: z.number().int().min(1).max(100_000).default(1),
           pageSize: z.number().int().min(1).max(20).default(20),
+          useCase: mcpUseCaseSchema,
         },
         annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       },
-      async ({ formId, query, state, sort, page, pageSize }, { authInfo }) => runConnectorTool({
+      async ({ formId, query, state, sort, page, pageSize, useCase }, { authInfo }) => runConnectorTool({
         toolName: "list_form_responses",
         authInfo,
         requiredScope: "forms.responses:read",
         fallback: "Could not read the form responses.",
         properties: {
+          use_case: useCase,
           query_used: Boolean(query),
           response_state: state,
         },
@@ -434,6 +463,7 @@ const handler = createMcpHandler(
           formId: z.string().uuid(),
           expectedRevision: z.number().int().positive().describe("Draft revision returned by create_form_draft or list_forms."),
           operationId: z.string().min(8).max(200).optional().describe("Stable idempotency key. Reuse it when retrying the same publish."),
+          useCase: mcpUseCaseSchema,
         },
         annotations: {
           readOnlyHint: false,
@@ -442,12 +472,12 @@ const handler = createMcpHandler(
           openWorldHint: false,
         },
       },
-      async ({ formId, expectedRevision, operationId }, { authInfo }) => runConnectorTool({
+      async ({ formId, expectedRevision, operationId, useCase }, { authInfo }) => runConnectorTool({
         toolName: "publish_form",
         authInfo,
         requiredScope: "forms:publish",
         fallback: "Could not publish the form.",
-        properties: { resource_status: "published" },
+        properties: { resource_status: "published", use_case: useCase },
         execute: async (actor) => {
           const form = await publishConnectorForm(actor, formId, expectedRevision, operationId);
           const navigation = formNavigation(form.id, form.endpointUrl);

@@ -26,6 +26,43 @@ const COMPLETED_OUTCOME_EVENTS = {
 
 const SAFE_CODE = /^[a-z][a-z0-9_]{0,79}$/;
 
+type TelemetryProperty = string | number | boolean | null | undefined;
+
+const MCP_PROPERTY_ALIASES = {
+  access_mode: "mcp_access_mode",
+  client_type: "mcp_client_type",
+  duration_bucket: "mcp_duration_bucket",
+  duration_ms: "mcp_duration_ms",
+  error_class: "mcp_error_class",
+  error_code: "mcp_error_code",
+  field_count_bucket: "mcp_field_count_bucket",
+  has_file_upload: "mcp_has_file_upload",
+  has_hidden_results: "mcp_has_hidden_results",
+  page_contains_form: "mcp_page_contains_form",
+  payload_size_bucket: "mcp_payload_size_bucket",
+  plan_key: "mcp_plan_key",
+  primary_scope: "mcp_primary_scope",
+  product_area: "mcp_product_area",
+  query_used: "mcp_query_used",
+  resource_status: "mcp_resource_status",
+  response_state: "mcp_response_state",
+  result_count_bucket: "mcp_result_count_bucket",
+  scope_count: "mcp_scope_count",
+  tool_action: "mcp_tool_action",
+  tool_name: "mcp_tool_name",
+  outcome: "mcp_outcome",
+  use_case: "mcp_use_case",
+} as const;
+
+export function addMcpPropertyAliases(properties: Record<string, TelemetryProperty>) {
+  const aliases: Record<string, TelemetryProperty> = {};
+  for (const [source, target] of Object.entries(MCP_PROPERTY_ALIASES)) {
+    const value = properties[source];
+    if (value !== null && value !== undefined) aliases[target] = value;
+  }
+  return { ...properties, ...aliases };
+}
+
 export function normalizeConnectorToolFailure(error: unknown, fallback: string): PublicToolFailure {
   if (error instanceof ConnectorAuthError) return { code: error.code, message: error.message, operational: false };
   if (error instanceof ConnectedToolError) {
@@ -74,23 +111,25 @@ export async function runConnectorTool<T>(input: {
     const result = await input.execute(actor);
     const elapsed = Math.max(0, Math.round(performance.now() - startedAt));
     const resultProperties = input.resultProperties?.(result);
+    const successProperties = {
+      tool_name: input.toolName,
+      product_area: metadata?.productArea ?? "connector",
+      tool_action: metadata?.toolAction ?? "other",
+      access_mode: metadata?.accessMode ?? "write",
+      primary_scope: requiredScopes[0],
+      scope_count: requiredScopes.length,
+      outcome: "success",
+      duration_ms: elapsed,
+      duration_bucket: durationBucket(elapsed),
+      client_type: typeof clientType === "string" ? clientType : "other",
+      use_case: input.properties?.use_case ?? "unspecified",
+      ...input.properties,
+      ...resultProperties,
+    };
     captureProductEvent({
       event: "mcp_tool_completed",
       distinctId: actor.userId,
-      properties: {
-        tool_name: input.toolName,
-        product_area: metadata?.productArea ?? "connector",
-        tool_action: metadata?.toolAction ?? "other",
-        access_mode: metadata?.accessMode ?? "write",
-        primary_scope: requiredScopes[0],
-        scope_count: requiredScopes.length,
-        outcome: "success",
-        duration_ms: elapsed,
-        duration_bucket: durationBucket(elapsed),
-        client_type: typeof clientType === "string" ? clientType : "other",
-        ...input.properties,
-        ...resultProperties,
-      },
+      properties: addMcpPropertyAliases(successProperties),
     });
     const outcomeEvent = COMPLETED_OUTCOME_EVENTS[input.toolName as keyof typeof COMPLETED_OUTCOME_EVENTS];
     if (outcomeEvent) {
@@ -111,24 +150,26 @@ export async function runConnectorTool<T>(input: {
   } catch (error) {
     const failure = normalizeConnectorToolFailure(error, input.fallback);
     const elapsed = Math.max(0, Math.round(performance.now() - startedAt));
+    const errorProperties = {
+      tool_name: input.toolName,
+      product_area: metadata?.productArea ?? "connector",
+      tool_action: metadata?.toolAction ?? "other",
+      access_mode: metadata?.accessMode ?? "write",
+      primary_scope: requiredScopes[0],
+      scope_count: requiredScopes.length,
+      outcome: "error",
+      error_code: failure.code,
+      error_class: errorClass(failure.code),
+      duration_ms: elapsed,
+      duration_bucket: durationBucket(elapsed),
+      client_type: typeof clientType === "string" ? clientType : "other",
+      use_case: input.properties?.use_case ?? "unspecified",
+      ...input.properties,
+    };
     captureProductEvent({
       event: "mcp_tool_completed",
       distinctId,
-      properties: {
-        tool_name: input.toolName,
-        product_area: metadata?.productArea ?? "connector",
-        tool_action: metadata?.toolAction ?? "other",
-        access_mode: metadata?.accessMode ?? "write",
-        primary_scope: requiredScopes[0],
-        scope_count: requiredScopes.length,
-        outcome: "error",
-        error_code: failure.code,
-        error_class: errorClass(failure.code),
-        duration_ms: elapsed,
-        duration_bucket: durationBucket(elapsed),
-        client_type: typeof clientType === "string" ? clientType : "other",
-        ...input.properties,
-      },
+      properties: addMcpPropertyAliases(errorProperties),
     });
     if (failure.operational) captureProductException({ errorCode: failure.code, operation: "mcp_tool", toolName: input.toolName });
     return toolError(failure);

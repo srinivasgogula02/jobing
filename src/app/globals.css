@@ -32,6 +32,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Keep link CTAs readable when route-level styles load during client navigation. */
+.dark-surface-link,
+.dark-surface-link:visited,
+.dark-surface-link:hover,
+.dark-surface-link:focus,
+.dark-surface-link:active {
+  color: #ffffff !important;
+}
+
 /* — Card — */
 .card {
   background: #ffffff;

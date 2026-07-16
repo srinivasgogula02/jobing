@@ -32,7 +32,7 @@ export function DashboardConnectorStrip() {
           {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? "Copied" : "Copy"}
         </button>
-        <Link href="/#connect" className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#151914] px-4 text-sm font-semibold text-white hover:bg-[#293025] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#719500] sm:flex-none">
+        <Link href="/#connect" className="dark-surface-link inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#151914] px-4 text-sm font-semibold hover:bg-[#293025] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#719500] sm:flex-none">
           How to connect <ArrowRight size={15} />
         </Link>
       </div>

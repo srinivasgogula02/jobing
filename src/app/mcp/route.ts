@@ -34,6 +34,7 @@ import { effectiveOAuthScopes } from "@/lib/oauth-scopes";
 import { captureProductEvent } from "@/lib/product-telemetry";
 import { classifyConnectorClient, countBucket, payloadSizeBucket } from "@/lib/product-analytics-contract";
 import { rateLimit, requestIp } from "@/lib/rate-limit";
+import { connectorDestinations, formNavigation, noteNavigation, pageNavigation } from "@/lib/connector-navigation";
 
 const handler = createMcpHandler(
   (server) => {
@@ -41,7 +42,7 @@ const handler = createMcpHandler(
       "create_note",
       {
         title: "Create a Jobing note",
-        description: "Creates a new shareable text note in the connected user's Jobing account.",
+        description: "Creates a new shareable text note in the connected user's Jobing account. Surface the returned note URL to the user.",
         inputSchema: {
           id: z.string().min(1).max(64).describe("Short URL ID using letters, numbers, hyphens, or underscores."),
           content: z.string().min(1).max(100_000).describe("The text to store in the note."),
@@ -60,9 +61,10 @@ const handler = createMcpHandler(
         fallback: "Could not create the note.",
         execute: async (actor) => {
           const note = await createConnectedNote(actor.userId, id, content);
+          const result = { ...note, ...noteNavigation(note.url) };
           return {
-            content: [{ type: "text", text: `Created note "${note.id}": ${note.url}` }],
-            structuredContent: note,
+            content: [{ type: "text", text: `Created note "${note.id}". Open it: ${note.url}` }],
+            structuredContent: result,
           };
         },
       }),
@@ -72,7 +74,7 @@ const handler = createMcpHandler(
       "deploy_page",
       {
         title: "Deploy a Jobing page",
-        description: "Deploys a new public HTML page owned by the connected user's Jobing account.",
+        description: "Deploys a new public HTML page owned by the connected user's Jobing account. After success, surface the returned live, edit, and Pages dashboard URLs to the user.",
         inputSchema: {
           id: pageIdSchema,
           html: z.string().min(1).max(500_000).describe("A complete HTML document or HTML fragment to deploy."),
@@ -95,9 +97,10 @@ const handler = createMcpHandler(
         },
         execute: async (actor) => {
           const page = await deployConnectedPage(actor.userId, id, html);
+          const result = { ...page, ...pageNavigation(page.id, page.url) };
           return {
-            content: [{ type: "text", text: `Deployed page "${page.id}": ${page.url}` }],
-            structuredContent: page,
+            content: [{ type: "text", text: `Deployed page "${page.id}".\nLive page: ${page.url}\nEdit page: ${result.editUrl}\nAll pages: ${result.pagesDashboardUrl}` }],
+            structuredContent: result,
           };
         },
       }),
@@ -107,7 +110,7 @@ const handler = createMcpHandler(
       "list_pages",
       {
         title: "List Jobing pages",
-        description: "Lists up to 200 of the connected user's most recently updated public pages. Use this before reading or changing an existing page.",
+        description: "Lists up to 200 of the connected user's most recently updated public pages. Use this before reading or changing an existing page. Surface the Pages dashboard URL when useful.",
         inputSchema: {},
         annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       },
@@ -118,16 +121,17 @@ const handler = createMcpHandler(
         fallback: "Could not list the pages.",
         execute: async (actor) => {
           const pages = await listConnectedPages(actor.userId);
+          const linkedPages = pages.map((page) => ({ ...page, ...pageNavigation(page.id, page.url, false) }));
           return {
             content: [{
               type: "text",
               text: pages.length === 200
-                ? "Found the 200 most recently updated pages."
+                ? `Found the 200 most recently updated pages. Open all pages: ${connectorDestinations.pagesDashboardUrl}`
                 : pages.length
-                  ? `Found ${pages.length} page${pages.length === 1 ? "" : "s"}.`
-                  : "No pages yet.",
+                  ? `Found ${pages.length} page${pages.length === 1 ? "" : "s"}. Open all pages: ${connectorDestinations.pagesDashboardUrl}`
+                  : `No pages yet. Open the Pages dashboard: ${connectorDestinations.pagesDashboardUrl}`,
             }],
-            structuredContent: { pages },
+            structuredContent: { pages: linkedPages, pagesDashboardUrl: connectorDestinations.pagesDashboardUrl },
           };
         },
         resultProperties: (result) => ({ result_count_bucket: countBucket(result.structuredContent.pages.length) }),
@@ -138,7 +142,7 @@ const handler = createMcpHandler(
       "get_page",
       {
         title: "Read a Jobing page",
-        description: "Returns the current HTML and public URL for one page owned by the connected user. Read the page before editing it.",
+        description: "Returns the current HTML, public URL, editor URL, and Pages dashboard URL for one page owned by the connected user. Read the page before editing it.",
         inputSchema: { id: pageIdSchema },
         annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       },
@@ -149,7 +153,8 @@ const handler = createMcpHandler(
         fallback: "Could not read the page.",
         execute: async (actor) => {
           const page = await getConnectedPage(actor.userId, id);
-          return { content: [{ type: "text", text: `Loaded page "${page.id}".` }], structuredContent: page };
+          const result = { ...page, ...pageNavigation(page.id, page.url) };
+          return { content: [{ type: "text", text: `Loaded page "${page.id}".\nLive page: ${page.url}\nEdit page: ${result.editUrl}\nAll pages: ${result.pagesDashboardUrl}` }], structuredContent: result };
         },
       }),
     );
@@ -158,7 +163,7 @@ const handler = createMcpHandler(
       "update_page",
       {
         title: "Update a Jobing page",
-        description: "Replaces the HTML of an existing page owned by the connected user while keeping the same public URL. Use get_page first and preserve anything the user did not ask to change.",
+        description: "Replaces the HTML of an existing page owned by the connected user while keeping the same public URL. Use get_page first and preserve anything the user did not ask to change. Surface the returned live, edit, and Pages dashboard URLs.",
         inputSchema: {
           id: pageIdSchema,
           html: z.string().min(1).max(500_000).describe("The complete replacement HTML document or fragment."),
@@ -177,7 +182,8 @@ const handler = createMcpHandler(
         },
         execute: async (actor) => {
           const page = await updateConnectedPage(actor.userId, id, html, expectedUpdatedAt);
-          return { content: [{ type: "text", text: `Updated page "${page.id}": ${page.url}` }], structuredContent: page };
+          const result = { ...page, ...pageNavigation(page.id, page.url) };
+          return { content: [{ type: "text", text: `Updated page "${page.id}".\nLive page: ${page.url}\nEdit page: ${result.editUrl}\nAll pages: ${result.pagesDashboardUrl}` }], structuredContent: result };
         },
       }),
     );
@@ -200,7 +206,7 @@ const handler = createMcpHandler(
         fallback: "Could not delete the page.",
         execute: async (actor) => {
           const result = await deleteConnectedPage(actor.userId, id);
-          return { content: [{ type: "text", text: `Deleted page "${result.id}".` }], structuredContent: result };
+          return { content: [{ type: "text", text: `Deleted page "${result.id}". Open your remaining pages: ${connectorDestinations.pagesDashboardUrl}` }], structuredContent: { ...result, pagesDashboardUrl: connectorDestinations.pagesDashboardUrl, nextActions: [{ label: "Open all pages", url: connectorDestinations.pagesDashboardUrl }] } };
         },
       }),
     );
@@ -209,7 +215,7 @@ const handler = createMcpHandler(
       "create_form_draft",
       {
         title: "Create a Jobing form draft",
-        description: "Creates a versioned form draft and a native HTML form template. Use this whenever a page needs a form. Never embed Jobing Forms in an iframe; place the returned form markup directly in the page and customize its HTML/CSS.",
+        description: "Creates a versioned form draft and a native HTML form template. Use this whenever a page needs a form. Never embed Jobing Forms in an iframe; place the returned form markup directly in the page and customize its HTML/CSS. After success, surface the returned edit and Forms dashboard URLs to the user.",
         inputSchema: createFormDraftToolInputSchema,
         annotations: {
           readOnlyHint: false,
@@ -230,9 +236,11 @@ const handler = createMcpHandler(
         },
         execute: async (actor) => {
           const form = await createConnectorForm(actor, buildConnectorFormDraft(input), input.operationId);
+          const navigation = formNavigation(form.id);
+          const result = { ...form, ...navigation };
           return {
-            content: [{ type: "text", text: `Created form draft "${form.name}" (${form.id}), revision ${form.revision}. It has no public URL until it is published.` }],
-            structuredContent: form,
+            content: [{ type: "text", text: `Created form draft "${form.name}" (${form.id}), revision ${form.revision}. It has no public URL until it is published.\nEdit form: ${navigation.editUrl}\nAll forms: ${navigation.formsDashboardUrl}` }],
+            structuredContent: result,
           };
         },
       }),
@@ -242,7 +250,7 @@ const handler = createMcpHandler(
       "list_forms",
       {
         title: "List Jobing forms",
-        description: "Lists form definitions and publishing status. It never reads form responses.",
+        description: "Lists form definitions, publishing status, and dashboard destinations. It never reads form responses. Surface the Forms dashboard URL when useful.",
         inputSchema: {},
         annotations: {
           readOnlyHint: true,
@@ -258,9 +266,13 @@ const handler = createMcpHandler(
         fallback: "Could not list forms.",
         execute: async (actor) => {
           const forms = await listConnectorForms(actor);
+          const linkedForms = forms.map((form) => ({
+            ...form,
+            ...formNavigation(form.id, "endpointUrl" in form ? form.endpointUrl : undefined, false),
+          }));
           return {
-            content: [{ type: "text", text: forms.length ? `Found ${forms.length} form${forms.length === 1 ? "" : "s"}.` : "No forms yet." }],
-            structuredContent: { forms },
+            content: [{ type: "text", text: `${forms.length ? `Found ${forms.length} form${forms.length === 1 ? "" : "s"}.` : "No forms yet."} Open all forms: ${connectorDestinations.formsDashboardUrl}` }],
+            structuredContent: { forms: linkedForms, formsDashboardUrl: connectorDestinations.formsDashboardUrl },
           };
         },
         resultProperties: (result) => ({ result_count_bucket: countBucket(result.structuredContent.forms.length) }),
@@ -301,9 +313,10 @@ const handler = createMcpHandler(
             description: desired.description,
             definition: desired.definition,
           });
+          const navigation = formNavigation(form.id, "endpointUrl" in form ? form.endpointUrl : undefined);
           return {
-            content: [{ type: "text", text: `Saved draft revision ${form.revision} for "${form.name}". Existing responses and the current live version are unchanged. Publish revision ${form.revision} to make these edits live.` }],
-            structuredContent: form,
+            content: [{ type: "text", text: `Saved draft revision ${form.revision} for "${form.name}". Existing responses and the current live version are unchanged. Publish revision ${form.revision} to make these edits live.\nEdit form: ${navigation.editUrl}\nView responses: ${navigation.responsesUrl}\nAll forms: ${navigation.formsDashboardUrl}` }],
+            structuredContent: { ...form, ...navigation },
           };
         },
       }),
@@ -329,9 +342,10 @@ const handler = createMcpHandler(
         properties: { resource_status: "draft" },
         execute: async (actor) => {
           const form = await duplicateConnectorForm(actor, sourceFormId, name, operationId);
+          const navigation = formNavigation(form.id);
           return {
-            content: [{ type: "text", text: `Created unpublished form copy "${form.name}" (${form.id}), revision ${form.revision}.` }],
-            structuredContent: form,
+            content: [{ type: "text", text: `Created unpublished form copy "${form.name}" (${form.id}), revision ${form.revision}.\nEdit form: ${navigation.editUrl}\nAll forms: ${navigation.formsDashboardUrl}` }],
+            structuredContent: { ...form, ...navigation },
           };
         },
       }),
@@ -363,13 +377,15 @@ const handler = createMcpHandler(
         },
         execute: async (actor) => {
           const responses = await listConnectorFormResponses(actor, formId, { query, state, sort, page, pageSize });
+          const navigation = formNavigation(formId);
           const lockedNotice = responses.hiddenTotal > 0
             ? ` ${responses.hiddenTotal} additional response${responses.hiddenTotal === 1 ? " is" : "s are"} saved securely but outside this plan's viewing allowance. Upgrade at https://jobing.site/pricing?reason=response_limit to unlock them.`
             : "";
           return {
-            content: [{ type: "text", text: `Found ${responses.total} visible ${state} response${responses.total === 1 ? "" : "s"}. Showing page ${responses.page} of ${responses.pages}.${lockedNotice}` }],
+            content: [{ type: "text", text: `Found ${responses.total} visible ${state} response${responses.total === 1 ? "" : "s"}. Showing page ${responses.page} of ${responses.pages}. Responses dashboard: ${navigation.responsesUrl}${lockedNotice}` }],
             structuredContent: {
               ...responses,
+              ...navigation,
               ...(responses.hiddenTotal > 0 ? { upgradeUrl: "https://jobing.site/pricing?reason=response_limit" } : {}),
             },
           };
@@ -402,8 +418,8 @@ const handler = createMcpHandler(
         execute: async (actor) => {
           const result = await setConnectorFormResponseState(actor, submissionId, state);
           return {
-            content: [{ type: "text", text: `Moved response ${result.submissionId} to ${result.state}.` }],
-            structuredContent: result,
+            content: [{ type: "text", text: `Moved response ${result.submissionId} to ${result.state}. Open your forms inbox: ${connectorDestinations.formsDashboardUrl}` }],
+            structuredContent: { ...result, formsDashboardUrl: connectorDestinations.formsDashboardUrl, nextActions: [{ label: "Open forms inbox", url: connectorDestinations.formsDashboardUrl }] },
           };
         },
       }),
@@ -413,7 +429,7 @@ const handler = createMcpHandler(
       "publish_form",
       {
         title: "Publish a Jobing form",
-        description: "Publishes an immutable form and returns its API action plus complete native HTML. Put that HTML directly in the custom page. Never use an iframe for a Jobing form.",
+        description: "Publishes an immutable form and returns its API action, complete native HTML, live form URL, responses URL, editor URL, share URL, and Forms dashboard URL. Put that HTML directly in the custom page. Never use an iframe for a Jobing form. Surface the useful URLs to the user.",
         inputSchema: {
           formId: z.string().uuid(),
           expectedRevision: z.number().int().positive().describe("Draft revision returned by create_form_draft or list_forms."),
@@ -434,9 +450,10 @@ const handler = createMcpHandler(
         properties: { resource_status: "published" },
         execute: async (actor) => {
           const form = await publishConnectorForm(actor, formId, expectedRevision, operationId);
+          const navigation = formNavigation(form.id, form.endpointUrl);
           return {
-            content: [{ type: "text", text: `Published form version ${form.version}. Submission endpoint: ${form.endpointUrl}. Use the returned native HTML directly in the page and customize it there. Do not use an iframe.` }],
-            structuredContent: form,
+            content: [{ type: "text", text: `Published form version ${form.version}. Use the returned native HTML directly in the page and customize it there. Do not use an iframe.\nLive form: ${form.endpointUrl}\nView responses: ${navigation.responsesUrl}\nEdit form: ${navigation.editUrl}\nAll forms: ${navigation.formsDashboardUrl}` }],
+            structuredContent: { ...form, ...navigation },
           };
         },
       }),

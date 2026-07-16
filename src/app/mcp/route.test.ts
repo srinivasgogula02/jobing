@@ -9,6 +9,9 @@ const state = vi.hoisted(() => ({
   tools: new Map<string, RegisteredTool>(),
   reportFeedback: vi.fn(),
   listFormResponses: vi.fn(),
+  deployPage: vi.fn(),
+  createForm: vi.fn(),
+  publishForm: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -26,19 +29,19 @@ vi.mock("mcp-handler", () => ({
 vi.mock("@/lib/connected-tools", () => ({
   createConnectedNote: vi.fn(),
   deleteConnectedPage: vi.fn(),
-  deployConnectedPage: vi.fn(),
+  deployConnectedPage: state.deployPage,
   getConnectedPage: vi.fn(),
   listConnectedPages: vi.fn(),
   updateConnectedPage: vi.fn(),
 }));
 vi.mock("@/lib/forms-service", () => ({
   FormsServiceError: class FormsServiceError extends Error {},
-  createConnectorForm: vi.fn(),
+  createConnectorForm: state.createForm,
   duplicateConnectorForm: vi.fn(),
   getFormFromService: vi.fn(),
   listConnectorForms: vi.fn(),
   listConnectorFormResponses: state.listFormResponses,
-  publishConnectorForm: vi.fn(),
+  publishConnectorForm: state.publishForm,
   setConnectorFormResponseState: vi.fn(),
   updateConnectorForm: vi.fn(),
 }));
@@ -63,6 +66,9 @@ const authInfo = {
 beforeEach(() => {
   state.reportFeedback.mockReset();
   state.listFormResponses.mockReset();
+  state.deployPage.mockReset();
+  state.createForm.mockReset();
+  state.publishForm.mockReset();
 });
 
 describe("Jobing MCP management tools", () => {
@@ -79,6 +85,47 @@ describe("Jobing MCP management tools", () => {
     ]));
     expect(state.tools.get("delete_page")?.config.annotations).toMatchObject({ destructiveHint: true, readOnlyHint: false });
     expect(state.tools.get("list_form_responses")?.config.annotations).toMatchObject({ readOnlyHint: true });
+  });
+
+  it("returns the live page, editor, and Pages dashboard after deployment", async () => {
+    state.deployPage.mockResolvedValue({ id: "launch-page", url: "https://launch-page.jobing.online" });
+    const tool = state.tools.get("deploy_page");
+    const result = await tool?.handler({ id: "launch-page", html: "<main>Launch</main>" }, {
+      authInfo: { ...authInfo, scopes: ["pages:write"] },
+    });
+
+    expect(result).toMatchObject({
+      structuredContent: {
+        liveUrl: "https://launch-page.jobing.online",
+        editUrl: "https://jobing.site/pages/launch-page/edit",
+        pagesDashboardUrl: "https://jobing.site/dashboard/pages",
+        nextActions: expect.arrayContaining([
+          { label: "View live page", url: "https://launch-page.jobing.online" },
+          { label: "Open all pages", url: "https://jobing.site/dashboard/pages" },
+        ]),
+      },
+    });
+    expect(JSON.stringify(result)).toContain("https://jobing.site/dashboard/pages");
+  });
+
+  it("returns the form editor and Forms dashboard as soon as a draft is created", async () => {
+    const formId = "4e279eaf-0a6e-48de-a66e-3c819f3fb756";
+    state.createForm.mockResolvedValue({ id: formId, name: "Contact", status: "draft", revision: 1 });
+    const tool = state.tools.get("create_form_draft");
+    const result = await tool?.handler({
+      operationId: "contact-form:v1",
+      name: "Contact",
+      fields: [{ key: "email", type: "email", label: "Email", required: true }],
+    }, { authInfo: { ...authInfo, scopes: ["forms:write"] } });
+
+    expect(result).toMatchObject({
+      structuredContent: {
+        editUrl: `https://jobing.site/dashboard/forms/${formId}/edit`,
+        responsesUrl: `https://jobing.site/dashboard/forms/${formId}`,
+        formsDashboardUrl: "https://jobing.site/dashboard/forms",
+      },
+    });
+    expect(JSON.stringify(result)).toContain("https://jobing.site/dashboard/forms");
   });
 
   it("reads response data only with the dedicated permission", async () => {
@@ -161,8 +208,15 @@ describe("Jobing MCP feedback tool", () => {
       isError: true,
       content: [{
         type: "text",
-        text: "This connector has not been granted feedback:write. Reconnect Jobing and approve that permission.",
+        text: "This connector has not been granted feedback:write. Reconnect Jobing and approve that permission. Continue here: https://jobing.site/connector/manage",
       }],
+      structuredContent: {
+        error: {
+          code: "insufficient_scope",
+          message: "This connector has not been granted feedback:write. Reconnect Jobing and approve that permission. Continue here: https://jobing.site/connector/manage",
+          recoveryUrl: "https://jobing.site/connector/manage",
+        },
+      },
     });
   });
 });

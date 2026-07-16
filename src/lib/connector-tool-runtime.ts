@@ -8,6 +8,7 @@ import { FormsServiceError, type FormsActor } from "@/lib/forms-service";
 import type { OAuthScope } from "@/lib/oauth-scopes";
 import { captureProductEvent, captureProductException } from "@/lib/product-telemetry";
 import { durationBucket, errorClass, MCP_TOOL_METADATA } from "@/lib/product-analytics-contract";
+import { recoveryUrlForConnectorError } from "@/lib/connector-navigation";
 
 export type PublicToolFailure = {
   code: string;
@@ -42,9 +43,14 @@ export function normalizeConnectorToolFailure(error: unknown, fallback: string):
 }
 
 function toolError(failure: PublicToolFailure) {
+  const recoveryUrl = recoveryUrlForConnectorError(failure.code);
+  const message = recoveryUrl && !failure.message.includes(recoveryUrl)
+    ? `${failure.message} Continue here: ${recoveryUrl}`
+    : failure.message;
   return {
     isError: true as const,
-    content: [{ type: "text" as const, text: failure.message }],
+    content: [{ type: "text" as const, text: message }],
+    ...(recoveryUrl ? { structuredContent: { error: { code: failure.code, message, recoveryUrl } } } : {}),
   };
 }
 

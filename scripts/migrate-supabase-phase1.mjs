@@ -24,6 +24,7 @@ const migrations = [
   "202607140002_forms_projection_outbox.sql",
   "202607140003_oauth_rate_limits.sql",
   "202607140004_connector_feedback.sql",
+  "202607160001_mcp_authorization_hot_path.sql",
 ].map((name) => fileURLToPath(new URL(`../supabase/migrations/${name}`, import.meta.url)));
 
 const result = spawnSync(

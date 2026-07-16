@@ -58,9 +58,10 @@ describe("connected note creation", () => {
   });
 
   it("does not overwrite an existing note", async () => {
-    db.maybeSingle.mockResolvedValue({ data: { id: "taken" } });
+    db.insert.mockResolvedValue({ error: { code: "23505" } });
     await expect(createConnectedNote("user_123", "taken", "content")).rejects.toThrow('ID "taken" is already taken');
-    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.insert).toHaveBeenCalledOnce();
+    expect(db.maybeSingle).not.toHaveBeenCalled();
   });
 
   it("returns a safe operation error when storage fails", async () => {
@@ -105,17 +106,19 @@ describe("connected page deployment", () => {
   });
 
   it("does not overwrite an existing page", async () => {
+    db.insert.mockResolvedValue({ error: { code: "23505" } });
     db.maybeSingle.mockResolvedValue({ data: { id: "launch", user_id: "someone_else", html_content: "<p>Other</p>" } });
     await expect(deployConnectedPage("user_456", "launch", "<p>Page</p>")).rejects.toThrow('ID "launch" is already taken');
-    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.insert).toHaveBeenCalledOnce();
   });
 
   it("treats an exact owner and HTML retry as a successful idempotent replay", async () => {
     vi.stubEnv("NEXT_PUBLIC_PAGES_ROOT_DOMAIN", "jobing.online");
+    db.insert.mockResolvedValue({ error: { code: "23505" } });
     db.maybeSingle.mockResolvedValue({ data: { id: "launch", user_id: "user_456", html_content: "<p>Page</p>" } });
     await expect(deployConnectedPage("user_456", "launch", "<p>Page</p>"))
       .resolves.toEqual({ id: "launch", url: "https://launch.jobing.online" });
-    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.insert).toHaveBeenCalledOnce();
   });
 });
 

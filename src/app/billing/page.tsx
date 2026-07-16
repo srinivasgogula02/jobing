@@ -1,6 +1,6 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getUserSubscription, getInvoices } from "@/app/actions/billing";
+import { getBillingOverviewForUser } from "@/lib/billing-data";
 import { BillingDashboard } from "@/components/billing/BillingDashboard";
 import { DashboardLayout } from "@/components/DashboardLayout";
 
@@ -9,19 +9,13 @@ export const metadata = {
 };
 
 export default async function BillingPage() {
-  const user = await currentUser();
+  const { userId } = await auth();
 
-  if (!user) {
+  if (!userId) {
     redirect("/sign-in");
   }
 
-  const [subRes, invoicesRes] = await Promise.all([
-    getUserSubscription(),
-    getInvoices(),
-  ]);
-
-  const subscription = subRes.success ? subRes.data?.subscription : null;
-  const invoices = invoicesRes.success ? invoicesRes.data : [];
+  const { subscription, invoices } = await getBillingOverviewForUser(userId);
 
   return (
     <DashboardLayout>

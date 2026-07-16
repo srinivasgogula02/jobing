@@ -19,7 +19,7 @@ describe("renderPublicForm", () => {
     expect(output).toContain('data-appearance="interaction-only"');
     expect(output).toContain('data-refresh-expired="auto"');
     expect(output).toContain('<button type="submit" disabled data-submit-button>');
-    expect(output).toContain('src="/forms/public-form.js"');
+    expect(output).toContain('src="/forms/public-form.js" defer');
   });
 
   it("preserves safe field values after validation or security retries", () => {

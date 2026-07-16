@@ -1,18 +1,18 @@
 "use client";
 
 import { SignInButton } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 interface LoginButtonProps {
   redirectUrl: string;
 }
 
 export default function LoginButton({ redirectUrl }: LoginButtonProps) {
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
 
   if (!mounted) return null;
 

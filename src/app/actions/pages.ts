@@ -99,7 +99,10 @@ export async function checkPageIdTaken(id: string) {
 export async function getUserPages() {
   const { userId } = await auth();
   if (!userId) return [];
+  return getUserPagesForUser(userId);
+}
 
+export async function getUserPagesForUser(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("pages")
     .select("id, created_at, updated_at")

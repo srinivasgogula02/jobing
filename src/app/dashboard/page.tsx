@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import {
   ArrowRight,
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardConnectorStrip } from "@/components/DashboardConnectorStrip";
-import { getUserSubscription } from "@/app/actions/billing";
+import { getUserSubscriptionForUser } from "@/lib/billing-data";
 import { FORMS_APP_PATH } from "@/lib/app-navigation";
 import { getBillingPlanByProductId } from "@/lib/billing-plans";
 
@@ -55,17 +55,15 @@ const destinations = [
 ] as const;
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const user = await currentUser();
-  if (!user) redirect("/sign-in?redirect_url=/dashboard");
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in?redirect_url=/dashboard");
 
   const [{ checkout }, subscriptionResult] = await Promise.all([
     searchParams,
-    getUserSubscription(),
+    getUserSubscriptionForUser(userId),
   ]);
 
-  const subscription = subscriptionResult.success
-    ? subscriptionResult.data?.subscription
-    : null;
+  const subscription = subscriptionResult;
   const plan = subscription?.product_id
     ? getBillingPlanByProductId(subscription.product_id)
     : null;

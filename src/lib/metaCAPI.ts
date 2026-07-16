@@ -4,14 +4,29 @@ import crypto from 'crypto';
 const META_PIXEL_ID = '932694869167270';
 const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
 
+interface MetaPurchaseData {
+  metadata?: {
+    client_ip?: string;
+    client_user_agent?: string;
+    fbp?: string;
+    fbc?: string;
+    clerk_user_id?: string;
+  };
+  customer?: { email?: string; name?: string };
+  currency?: string;
+  product_cart?: Array<{ product_id?: string }>;
+  total_amount?: number;
+  settlement_amount?: number;
+  payment_id?: string;
+}
+
 /**
  * Standardizes and hashes PII parameters according to Meta's strict rules:
  * 1. Trim leading/trailing whitespace
  * 2. Convert to lowercase
  * 3. SHA-256 hash
  */
-function hashMetaParam(value: string | undefined | null): string | undefined {
-  if (!value) return undefined;
+function hashMetaParam(value: string): string {
   const normalized = value.trim().toLowerCase();
   return crypto.createHash('sha256').update(normalized).digest('hex');
 }
@@ -20,7 +35,7 @@ function hashMetaParam(value: string | undefined | null): string | undefined {
  * Sends a Purchase event to the Meta Conversions API.
  * This is designed to be called securely from a server environment (e.g. your webhook).
  */
-export async function sendMetaPurchaseEvent(paymentData: any) {
+export async function sendMetaPurchaseEvent(paymentData: MetaPurchaseData) {
   try {
     const eventTime = Math.floor(Date.now() / 1000);
     
@@ -58,7 +73,7 @@ export async function sendMetaPurchaseEvent(paymentData: any) {
     }
 
     // Build the `user_data` dynamically handling existence checks
-    const userData: Record<string, any> = {
+    const userData: Record<string, string | string[] | undefined> = {
       // Direct pass-through identifiers (Strictly DO NOT HASH per Meta)
       client_ip_address: metadata.client_ip || undefined,
       client_user_agent: metadata.client_user_agent || undefined,
@@ -76,7 +91,7 @@ export async function sendMetaPurchaseEvent(paymentData: any) {
     
     // Clean out undefined keys from the payload payload
     const cleanUserData = Object.fromEntries(
-      Object.entries(userData).filter(([_, v]) => typeof v !== 'undefined')
+      Object.entries(userData).filter(([, value]) => typeof value !== 'undefined')
     );
 
     // Build the final CAPI payload

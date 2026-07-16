@@ -5,6 +5,8 @@ const store = vi.hoisted(() => ({
   claimRequestNonce: vi.fn(),
   createFormDraft: vi.fn(),
   listFormsForActor: vi.fn(),
+  listFormSummariesForActor: vi.fn(),
+  getFormForActor: vi.fn(),
   publishForm: vi.fn(),
   updateDashboardForm: vi.fn(),
   listSubmissionsPage: vi.fn(),
@@ -16,6 +18,7 @@ vi.mock("@/lib/forms-store", () => store);
 
 import { POST as createForm } from "./forms/route";
 import { POST as listForms } from "./forms/list/route";
+import { POST as getForm } from "./forms/[formId]/route";
 import { POST as publishForm } from "./forms/[formId]/publish/route";
 import { POST as updateFormDraft } from "./forms/[formId]/draft/route";
 import { POST as listFormResponses } from "./forms/[formId]/responses/route";
@@ -81,6 +84,8 @@ beforeEach(() => {
   store.claimRequestNonce.mockReset().mockResolvedValue(true);
   store.createFormDraft.mockReset().mockResolvedValue({ id: FORM_ID, status: "draft" });
   store.listFormsForActor.mockReset().mockResolvedValue([{ id: FORM_ID, name: "Contact", status: "draft" }]);
+  store.listFormSummariesForActor.mockReset().mockResolvedValue([{ id: FORM_ID, name: "Contact", status: "draft", fieldCount: 1 }]);
+  store.getFormForActor.mockReset().mockResolvedValue({ id: FORM_ID, name: "Contact", status: "published", revision: 2, publishedVersion: 1, endpointId: "frm_public", updatedAt: "2026-07-16T00:00:00Z", definition: createPayload().form.definition });
   store.publishForm.mockReset().mockResolvedValue({ id: FORM_ID, status: "published", version: 1 });
   store.updateDashboardForm.mockReset().mockResolvedValue({ id: FORM_ID, name: "Contact", status: "published", revision: 2, definition: createPayload().form.definition });
   store.listSubmissionsPage.mockReset().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20, pages: 1 });
@@ -137,6 +142,24 @@ describe("Forms internal routes", () => {
     expect(store.listFormsForActor).toHaveBeenCalledWith("user_123");
   });
 
+  it("returns lightweight form cards without serializing full definitions", async () => {
+    const { request } = signedRequest("/api/internal/v1/forms/list", { actor: actor(["forms:read"]), includeDefinition: false });
+    const response = await listForms(request);
+
+    expect(response.status).toBe(200);
+    expect(store.listFormSummariesForActor).toHaveBeenCalledWith("user_123");
+    expect(store.listFormsForActor).not.toHaveBeenCalled();
+  });
+
+  it("loads one requested form through the read scope", async () => {
+    const path = `/api/internal/v1/forms/${FORM_ID}`;
+    const { request } = signedRequest(path, { actor: actor(["forms:read"]) });
+    const response = await getForm(request, { params: Promise.resolve({ formId: FORM_ID }) });
+
+    expect(response.status).toBe(200);
+    expect(store.getFormForActor).toHaveBeenCalledWith("user_123", FORM_ID);
+  });
+
   it("requires publish scope and forwards the path form ID", async () => {
     const path = `/api/internal/v1/forms/${FORM_ID}/publish`;
     const payload = {
@@ -148,7 +171,7 @@ describe("Forms internal routes", () => {
     const response = await publishForm(request, { params: Promise.resolve({ formId: FORM_ID }) });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: { id: FORM_ID, status: "published", version: 1 } });
+    expect(await response.json()).toEqual({ data: { id: FORM_ID, status: "published", version: 1, definition: createPayload().form.definition } });
     expect(store.publishForm).toHaveBeenCalledWith(FORM_ID, expect.objectContaining({ expectedRevision: 1 }));
   });
 

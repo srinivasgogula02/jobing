@@ -16,6 +16,18 @@ const formSummarySchema = z.object({
   updatedAt: z.string(),
 });
 
+const formCardSummarySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  status: z.enum(["draft", "published", "paused", "archived", "trashed"]),
+  revision: z.coerce.number().int().positive(),
+  publishedVersion: z.coerce.number().int().nonnegative(),
+  endpointId: z.string(),
+  description: z.string(),
+  fieldCount: z.coerce.number().int().nonnegative(),
+  updatedAt: z.string(),
+});
+
 const createResultSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -34,6 +46,10 @@ const publishResultSchema = z.object({
 
 export type FormSummary = z.infer<typeof formSummarySchema>;
 export type EditableForm = Omit<FormSummary, "definition"> & { definition: FormDefinition };
+
+function isUndefinedDatabaseFunction(error: unknown) {
+  return Boolean(error && typeof error === "object" && "code" in error && error.code === "42883");
+}
 
 const publicFormSchema = z.object({
   formId: z.string().uuid(), endpointId: z.string(), versionId: z.string().uuid(),
@@ -92,6 +108,42 @@ export async function listFormsForActor(actorId: string): Promise<EditableForm[]
     const parsed = formSummarySchema.parse(row.value);
     return { ...parsed, definition: formDefinitionSchema.parse(parsed.definition) };
   });
+}
+
+export async function listFormSummariesForActor(actorId: string) {
+  if (!databaseConfigured()) return [];
+  try {
+    const result = await query<{ value: unknown }>("select value from forms_api.list_form_summaries($1) as value", [actorId]);
+    return result.rows.map((row) => formCardSummarySchema.parse(row.value));
+  } catch (error) {
+    if (!isUndefinedDatabaseFunction(error)) throw error;
+    const forms = await listFormsForActor(actorId);
+    return forms.map((form) => ({
+      id: form.id,
+      name: form.name,
+      status: form.status,
+      revision: form.revision,
+      publishedVersion: form.publishedVersion,
+      endpointId: form.endpointId,
+      description: form.definition.description ?? "",
+      fieldCount: form.definition.fields.length,
+      updatedAt: form.updatedAt,
+    }));
+  }
+}
+
+export async function getFormForActor(actorId: string, formId: string): Promise<EditableForm | null> {
+  if (!databaseConfigured()) return null;
+  try {
+    const result = await query<{ value: unknown }>("select forms_api.get_form($1,$2::uuid) as value", [actorId, formId]);
+    if (!result.rows[0]?.value) return null;
+    const parsed = formSummarySchema.parse(result.rows[0].value);
+    return { ...parsed, definition: formDefinitionSchema.parse(parsed.definition) };
+  } catch (error) {
+    if (!isUndefinedDatabaseFunction(error)) throw error;
+    const forms = await listFormsForActor(actorId);
+    return forms.find((form) => form.id === formId) ?? null;
+  }
 }
 
 export async function getPublicForm(endpointId: string) {

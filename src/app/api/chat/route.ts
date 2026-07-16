@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { streamText, type ModelMessage } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
         const result = await streamText({
             model: selectedModel,
             system: systemInstruction,
-            messages: messages as any,
+            messages: messages as ModelMessage[],
             maxOutputTokens: 2048,
         });
 

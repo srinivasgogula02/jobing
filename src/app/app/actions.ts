@@ -9,7 +9,6 @@ import { dashboardFormsActor, getDashboardForm } from "@/lib/dashboard-forms";
 import { formDefinitionSchema } from "@/lib/form-definition";
 import {
   createConnectorForm,
-  duplicateConnectorForm,
   FormsServiceError,
   publishConnectorForm,
   setConnectorFormResponseState,
@@ -71,12 +70,10 @@ export async function duplicateFormAction(formId: string) {
   try {
     const source = await getDashboardForm(currentActor.userId, formId);
     if (!source) redirect(FORMS_PATH);
-    duplicate = await duplicateConnectorForm(
-      currentActor,
-      source.id,
-      `${source.name} copy`.slice(0, 200),
-      `dashboard:duplicate:${randomUUID()}`,
-    );
+    duplicate = await createConnectorForm(currentActor, {
+      name: `${source.name} copy`.slice(0, 200),
+      definition: source.definition,
+    }, `dashboard:duplicate:${randomUUID()}`);
     captureProductEvent({ event: "form_draft_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "duplicate", outcome: "success", resource_status: "draft" } });
   } catch (error) {
     captureProductEvent({ event: "form_draft_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "duplicate", outcome: "error", error_code: error instanceof FormsServiceError ? error.code : "internal_error" } });

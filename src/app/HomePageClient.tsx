@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, Copy, FormInput, Globe2, Menu, Play, X } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { ToolchainShowcase } from "@/components/ToolchainShowcase";
@@ -49,7 +49,28 @@ export function HomePageClient() {
   const [platform, setPlatform] = useState<keyof typeof platforms>("claude");
   const [menuOpen, setMenuOpen] = useState(false);
   const [platformOpen, setPlatformOpen] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const videoShellRef = useRef<HTMLDivElement>(null);
   const current = platforms[platform];
+
+  useEffect(() => {
+    const element = videoShellRef.current;
+    if (!element || videoReady) return;
+    if (typeof globalThis.IntersectionObserver === "undefined") {
+      const timeout = setTimeout(() => setVideoReady(true), 0);
+      return () => clearTimeout(timeout);
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || entry.intersectionRatio < 0.3) return;
+        setVideoReady(true);
+        observer.disconnect();
+      },
+      { threshold: [0.3] },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [videoReady]);
 
   return (
     <main className={styles.page}>
@@ -80,9 +101,9 @@ export function HomePageClient() {
         <div className={styles.videoHeading}>
           <h2><span>Connect</span><span className={styles.inlineBrand}><Image src="/logo.png" alt="" width={32} height={32} />Jobing AI</span><span>to</span><span className={styles.platformPicker}><button type="button" onClick={() => setPlatformOpen(value => !value)} aria-expanded={platformOpen}><img src={platformLogos[platform]} alt="" />{current.label}<ChevronDown size={19} /></button>{platformOpen && <span className={styles.platformMenu}>{(Object.keys(platforms) as Array<keyof typeof platforms>).map(key => <button type="button" key={key} onClick={() => { setPlatform(key); setPlatformOpen(false); track("connector_platform_selected", { platform: key }); }}><img src={platformLogos[key]} alt="" />{platforms[key].label}{platform === key && <Check size={15} />}</button>)}</span>}</span><span>in 2 minutes.</span></h2>
         </div>
-        <div className={styles.videoShell}>
+        <div className={styles.videoShell} ref={videoShellRef}>
           <div className={styles.videoFrameFull}>
-            {current.playbackId ? <iframe key={current.playbackId} src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`} title={`How to connect Jobing AI to ${current.label}`} loading="eager" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen onLoad={() => track("setup_video_loaded", { platform })} /> : <div className={styles.videoPlaceholder}><span><Play fill="currentColor" /></span><strong>{current.label} connection video</strong><p>Add the Mux playback ID to show your screen recording here.</p></div>}
+            {current.playbackId && videoReady ? <iframe key={current.playbackId} src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`} title={`How to connect Jobing AI to ${current.label}`} loading="lazy" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen onLoad={() => track("setup_video_loaded", { platform })} /> : current.playbackId ? <img className={styles.videoPoster} src={`https://image.mux.com/${current.playbackId}/thumbnail.webp?time=0&width=1200`} alt={`${current.label} connection video preview`} loading="lazy" /> : <div className={styles.videoPlaceholder}><span><Play fill="currentColor" /></span><strong>{current.label} connection video</strong><p>Add the Mux playback ID to show your screen recording here.</p></div>}
           </div>
           <ol className={styles.setupSteps}>{current.steps.map((step, index) => <li key={step}><span>{index + 1}</span>{step}</li>)}</ol>
         </div>

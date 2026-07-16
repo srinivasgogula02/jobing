@@ -24,8 +24,8 @@ export default async function FormsDashboardPage() {
     </div> : <div className="form-cards">
       {forms.map((form) => <article className="form-card" key={form.id}>
         <div className="form-card__top"><span className={`status-chip status-chip--${form.status}`}>{form.status}</span><time dateTime={form.updatedAt}>{new Date(form.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</time></div>
-        <h2>{form.name}</h2><p>{form.definition.description || "No description yet."}</p>
-        <div className="form-card__meta"><span>{form.definition.fields.filter((field) => !field.hidden).length} questions</span><span>{form.status === "published" ? `Live version ${form.publishedVersion}` : "Private draft"}</span></div>
+        <h2>{form.name}</h2><p>{form.description || "No description yet."}</p>
+        <div className="form-card__meta"><span>{form.fieldCount} questions</span><span>{form.status === "published" ? `Live version ${form.publishedVersion}` : "Private draft"}</span></div>
         <div className="form-card__actions"><Link className="button button--primary" href={`/dashboard/forms/${form.id}`}>View responses</Link><Link className="button" href={`/dashboard/forms/${form.id}/edit`}>Edit form</Link><form action={duplicateFormAction.bind(null, form.id)}><button className="icon-button" type="submit" aria-label={`Duplicate ${form.name}`}>Duplicate</button></form></div>
       </article>)}
     </div>}

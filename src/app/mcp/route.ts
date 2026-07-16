@@ -21,6 +21,7 @@ import {
   createConnectorForm,
   duplicateConnectorForm,
   FormsServiceError,
+  getFormFromService,
   listConnectorForms,
   listConnectorFormResponses,
   publishConnectorForm,
@@ -28,11 +29,10 @@ import {
   updateConnectorForm,
   type ConnectorFormDefinition,
 } from "@/lib/forms-service";
-import { consumeConnectorRateLimit, validateAccessTokenInfo } from "@/lib/oauth";
+import { authorizeMcpRequest } from "@/lib/oauth";
 import { effectiveOAuthScopes } from "@/lib/oauth-scopes";
 import { captureProductEvent } from "@/lib/product-telemetry";
-import { countBucket, payloadSizeBucket } from "@/lib/product-analytics-contract";
-import { getConnectorClientType } from "@/lib/oauth-client-telemetry";
+import { classifyConnectorClient, countBucket, payloadSizeBucket } from "@/lib/product-analytics-contract";
 import { rateLimit, requestIp } from "@/lib/rate-limit";
 
 const handler = createMcpHandler(
@@ -286,7 +286,10 @@ const handler = createMcpHandler(
           resource_status: "draft",
         },
         execute: async (actor) => {
-          const current = (await listConnectorForms(actor)).find((form) => form.id === input.formId);
+          const current = await getFormFromService(actor, input.formId).catch((error) => {
+            if (error instanceof FormsServiceError && error.code === "form_not_found") return null;
+            throw error;
+          });
           if (!current?.definition) throw new FormsServiceError("form_not_found", "The requested form could not be found.", 404);
           const desired = buildUpdatedConnectorFormDraft(input, {
             name: current.name,
@@ -487,7 +490,7 @@ async function grantRateLimitedHandler(req: Request) {
     });
   }
 
-  if (!(await consumeConnectorRateLimit(grantId))) {
+  if (req.auth?.extra?.rateLimitAllowed !== true) {
     const userId = req.auth?.extra?.userId;
     const clientType = req.auth?.extra?.clientType;
     captureProductEvent({
@@ -516,15 +519,15 @@ async function grantRateLimitedHandler(req: Request) {
 const authHandler = withMcpAuth(
   grantRateLimitedHandler,
   async (_, token) => {
-    const info = await validateAccessTokenInfo(token);
+    const info = await authorizeMcpRequest(token);
     if (!info || !token) return undefined;
-    const clientType = await getConnectorClientType(info.clientId);
+    const clientType = classifyConnectorClient(info.redirectUris);
     return {
       token,
       clientId: info.clientId,
       scopes: effectiveOAuthScopes(info.scope),
       expiresAt: info.expiresAt,
-      extra: { userId: info.userId, grantId: info.grantId, clientType },
+      extra: { userId: info.userId, grantId: info.grantId, clientType, rateLimitAllowed: info.rateLimitAllowed },
     };
   },
   {

@@ -1,5 +1,5 @@
 import { classifyProductPage } from "@/lib/product-analytics-contract";
-import { getPostHogBrowserClient } from "@/lib/posthog-browser";
+import { captureLightweightBrowserEvent } from "@/lib/posthog-browser";
 
 /**
  * Lightweight, typed analytics dispatcher.
@@ -71,7 +71,7 @@ export function track(event: AnalyticsEvent, params: EventParams = {}): void {
   };
 
   if (!isLocalhost()) try {
-    getPostHogBrowserClient()?.capture(event, contextualParams);
+    captureLightweightBrowserEvent(event, contextualParams);
   } catch {
     /* analytics must never break the product */
   }

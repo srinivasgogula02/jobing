@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser, SignInButton } from "@clerk/nextjs";
@@ -124,13 +124,23 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
   // Guest warning modal
   const [showGuestWarning, setShowGuestWarning] = useState(false);
 
+  const fetchUserPages = useCallback(async () => {
+    setLoadingPages(true);
+    const pages = await getUserPages();
+    setUserPages(pages);
+    setLoadingPages(false);
+  }, []);
+
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      fetchUserPages();
-    } else {
-      setUserPages([]);
-    }
-  }, [isLoaded, isSignedIn]);
+    const timeout = window.setTimeout(() => {
+      if (isLoaded && isSignedIn) {
+        void fetchUserPages();
+      } else {
+        setUserPages([]);
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchUserPages, isLoaded, isSignedIn]);
 
   // ─── LocalStorage Backup (Prevents data loss on login redirects) ───
   useEffect(() => {
@@ -140,28 +150,16 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
   }, [htmlInput, isNew]);
 
   useEffect(() => {
-    if (isNew) {
+    const timeout = window.setTimeout(() => {
+      if (!isNew) return;
       const backup = localStorage.getItem("jobing_pages_backup");
       if (backup && backup !== STARTER_HTML) {
         setHtmlInput(backup);
       }
-    }
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [isNew]);
   // ──────────────────────────────────────────────────────────────
-
-  // Close guest warning if they successfully log in via the modal
-  useEffect(() => {
-    if (isSignedIn && showGuestWarning) {
-      setShowGuestWarning(false);
-    }
-  }, [isSignedIn, showGuestWarning]);
-
-  const fetchUserPages = async () => {
-    setLoadingPages(true);
-    const pages = await getUserPages();
-    setUserPages(pages);
-    setLoadingPages(false);
-  };
 
   const handleDeletePage = async (e: React.MouseEvent, pageId: string) => {
     e.preventDefault();
@@ -653,7 +651,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
       </div>
 
       {/* ─── Guest Warning Modal ─── */}
-      {showGuestWarning && (
+      {showGuestWarning && !isSignedIn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-neutral-900 rounded-xl max-w-sm w-full p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 transform transition-all">
             <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">Deploying Anonymously</h3>

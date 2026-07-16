@@ -115,7 +115,12 @@ export const createFormDraftRequestSchema = z.object({
   }),
 });
 
-export const listFormsRequestSchema = z.object({ actor: internalActorSchema });
+export const listFormsRequestSchema = z.object({
+  actor: internalActorSchema,
+  includeDefinition: z.boolean().default(true),
+});
+
+export const getFormRequestSchema = z.object({ actor: internalActorSchema });
 
 export const updateFormDraftRequestSchema = z.object({
   actor: internalActorSchema,

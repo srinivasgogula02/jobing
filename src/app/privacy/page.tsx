@@ -39,7 +39,7 @@ export default function PrivacyPage() {
 
         <LegalSection title="4. AI Processing">
           <p>
-            Your professional data is processed by OpenAI's large language models to generate resume content. We do not use your data to train public AI models. All data sent to OpenAI is handled in accordance with their Enterprise Privacy policies, which prevent the use of customer data for model training.
+            Your professional data is processed by OpenAI&apos;s large language models to generate resume content. We do not use your data to train public AI models. All data sent to OpenAI is handled in accordance with their Enterprise Privacy policies, which prevent the use of customer data for model training.
           </p>
         </LegalSection>
 
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
 
         <LegalSection title="6. Your Rights">
           <p>
-            You have the right to access, correct, or delete your personal data at any time. You can view and edit your profile in the Profile section of the dashboard. You can also delete your entire profile and account data by using the "Clear Profile" feature or contacting our support.
+            You have the right to access, correct, or delete your personal data at any time. You can view and edit your profile in the Profile section of the dashboard. You can also delete your entire profile and account data by using the &quot;Clear Profile&quot; feature or contacting our support.
           </p>
         </LegalSection>
 

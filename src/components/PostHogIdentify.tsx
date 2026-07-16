@@ -5,10 +5,15 @@ import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
 import { classifyProductPage } from "@/lib/product-analytics-contract";
-import { getPostHogBrowserClient } from "@/lib/posthog-browser";
+import {
+  captureLightweightBrowserEvent,
+  getLoadedPostHogBrowserClient,
+  loadPostHogBrowserClient,
+} from "@/lib/posthog-browser";
 
 export function PostHogIdentify() {
   const { user, isLoaded } = useUser();
+  const userId = user?.id;
   const pathname = usePathname();
   const identifiedUserId = useRef<string | null>(null);
 
@@ -17,42 +22,41 @@ export function PostHogIdentify() {
 
     // A stable, non-PII user ID makes crash-free user and release adoption
     // metrics meaningful without sending names or email addresses to Sentry.
-    Sentry.setUser(user ? { id: user.id } : null);
+    Sentry.setUser(userId ? { id: userId } : null);
 
-    const posthog = getPostHogBrowserClient();
-    if (!posthog) return;
-    if (user) {
-      // Stable application ID only. Names, usernames, and email addresses are
-      // unnecessary for product analytics and are deliberately excluded.
-      posthog.identify(user.id);
-      identifiedUserId.current = user.id;
-    } else if (identifiedUserId.current) {
+    if (!userId && identifiedUserId.current) {
       // Reset only on a real sign-out. Resetting on the first anonymous load
       // would generate a new anonymous identity on every page refresh.
-      posthog.reset();
+      getLoadedPostHogBrowserClient()?.reset();
       identifiedUserId.current = null;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, user?.id]);
+  }, [isLoaded, userId]);
 
   useEffect(() => {
     if (!isLoaded || !pathname) return;
-    const posthog = getPostHogBrowserClient();
-    if (!posthog) return;
-
     const page = classifyProductPage(pathname);
-    posthog.capture("product_page_viewed", {
+    const properties = {
       page_name: page.pageName,
       product_area: page.productArea,
-      authenticated: Boolean(user),
+      authenticated: Boolean(userId),
       $process_person_profile: false,
-    });
+    };
 
     // Keep the free replay allowance focused on authenticated product screens.
     // PostHog's project-side sampling and billing cap are still respected.
-    if (user && page.replayEligible) posthog.startSessionRecording();
-    else posthog.stopSessionRecording();
-  }, [isLoaded, pathname, user]);
+    if (userId && page.replayEligible) {
+      void loadPostHogBrowserClient().then((posthog) => {
+        if (!posthog) return;
+        posthog.identify(userId);
+        identifiedUserId.current = userId;
+        posthog.capture("product_page_viewed", properties);
+        posthog.startSessionRecording();
+      });
+    } else {
+      getLoadedPostHogBrowserClient()?.stopSessionRecording();
+      captureLightweightBrowserEvent("product_page_viewed", properties, userId);
+    }
+  }, [isLoaded, pathname, userId]);
 
   return null;
 }

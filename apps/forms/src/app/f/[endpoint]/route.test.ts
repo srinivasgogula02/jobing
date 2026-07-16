@@ -203,6 +203,27 @@ describe("public form submission telemetry", () => {
     await expect(response.text()).resolves.not.toContain("1x00000000000000000000AA");
   });
 
+  it("serves the normal hosted form through the CDN without embedding a shared submission ID", async () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    mocks.getPublicForm.mockResolvedValue(form);
+
+    const response = await GET(new Request("https://forms.jobing.site/forms/f/frm_test"), context);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toContain("s-maxage=15");
+    expect(body).toContain('name="_submission_id" value=""');
+  });
+
+  it("never caches the post-submit confirmation document", async () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+    mocks.getPublicForm.mockResolvedValue(form);
+
+    const response = await GET(new Request("https://forms.jobing.site/forms/f/frm_test?submitted=1"), context);
+
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
   it("allows browser fetch submissions when a form intentionally has no origin allowlist", async () => {
     mocks.getPublicForm.mockResolvedValue(form);
     const response = await OPTIONS(new Request("https://forms.jobing.site/forms/f/frm_test", {

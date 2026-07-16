@@ -31,14 +31,12 @@ describe("billing plan catalog", () => {
       key: "pro",
       name: "Starter",
       price: 9,
-      credits: 50,
       limits: { "forms.total": 25, "forms.published": 25, "submissions.accepted": 5000 },
     });
     expect(getBillingPlanByProductId("pdt_elite")).toMatchObject({
       key: "elite",
       name: "Business",
       price: 29,
-      credits: 150,
       limits: { "forms.total": 100, "forms.published": 100, "submissions.accepted": 25000 },
     });
   });

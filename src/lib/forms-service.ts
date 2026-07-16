@@ -21,7 +21,9 @@ const formSummarySchema = z.object({
   revision: z.coerce.number().int().positive(),
   publishedVersion: z.coerce.number().int().nonnegative(),
   endpointId: z.string(),
-  definition: z.unknown(),
+  definition: z.unknown().optional(),
+  description: z.string().optional(),
+  fieldCount: z.coerce.number().int().nonnegative().optional(),
   updatedAt: z.string(),
 });
 
@@ -39,6 +41,7 @@ const publishedFormSchema = z.object({
   revision: z.coerce.number().int().positive(),
   version: z.coerce.number().int().positive(),
   endpointId: z.string(),
+  definition: z.unknown(),
 });
 
 const updatedFormSchema = z.object({
@@ -502,6 +505,29 @@ export async function ensureFormsWorkspace(actor: FormsActor) {
   });
 }
 
+const WORKSPACE_CACHE_TTL_MS = 10 * 60 * 1_000;
+const MAX_WORKSPACE_CACHE_ENTRIES = 1_000;
+const readyWorkspaces = new Map<string, number>();
+const pendingWorkspaces = new Map<string, Promise<unknown>>();
+
+async function ensureFormsWorkspaceOnce(actor: FormsActor) {
+  const cachedUntil = readyWorkspaces.get(actor.userId) ?? 0;
+  if (cachedUntil > Date.now()) return;
+  const pending = pendingWorkspaces.get(actor.userId);
+  if (pending) return pending;
+
+  const operation = ensureFormsWorkspace(actor).then((result) => {
+    if (readyWorkspaces.size >= MAX_WORKSPACE_CACHE_ENTRIES) {
+      const oldest = readyWorkspaces.keys().next().value;
+      if (oldest) readyWorkspaces.delete(oldest);
+    }
+    readyWorkspaces.set(actor.userId, Date.now() + WORKSPACE_CACHE_TTL_MS);
+    return result;
+  }).finally(() => pendingWorkspaces.delete(actor.userId));
+  pendingWorkspaces.set(actor.userId, operation);
+  return operation;
+}
+
 export async function syncFormsWorkspaceProjection(payload: FormsWorkspaceProjection) {
   requireOperationId(payload.operationId);
   const body = await postToForms("/api/internal/v1/workspaces/sync", payload);
@@ -515,24 +541,35 @@ export async function createConnectorForm(
 ) {
   requireOperationId(operationId);
   const rawBody = serializeFormsPayload({ operationId, actor, form });
-  await ensureFormsWorkspace(actor);
-  const body = await postSerializedToForms("/api/internal/v1/forms", rawBody);
+  let body: unknown;
+  try {
+    body = await postSerializedToForms("/api/internal/v1/forms", rawBody);
+  } catch (error) {
+    if (!(error instanceof FormsServiceError) || error.code !== "forbidden") throw error;
+    await ensureFormsWorkspaceOnce(actor);
+    body = await postSerializedToForms("/api/internal/v1/forms", rawBody);
+  }
   return withoutDraftEndpoint(parseServiceResponse(z.object({ data: createdFormSchema }), body).data, form.definition);
 }
 
-async function listFormsFromService(actor: FormsActor) {
-  const rawBody = serializeFormsPayload({ actor });
-  await ensureFormsWorkspace(actor);
+async function listFormsFromService(actor: FormsActor, includeDefinition: boolean) {
+  const rawBody = serializeFormsPayload({ actor, includeDefinition });
   const body = await postSerializedToForms("/api/internal/v1/forms/list", rawBody);
   return parseServiceResponse(z.object({ data: z.object({ forms: z.array(formSummarySchema) }) }), body).data.forms;
 }
 
 export async function listDashboardFormsFromService(actor: FormsActor) {
-  return listFormsFromService(actor);
+  return listFormsFromService(actor, false);
 }
 
 export async function listConnectorForms(actor: FormsActor) {
-  return (await listFormsFromService(actor)).map((form) => form.status === "published" ? withPublicEndpoint(form) : withoutDraftEndpoint(form));
+  return (await listFormsFromService(actor, true)).map((form) => form.status === "published" ? withPublicEndpoint(form) : withoutDraftEndpoint(form));
+}
+
+export async function getFormFromService(actor: FormsActor, formId: string) {
+  const rawBody = serializeFormsPayload({ actor });
+  const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}`, rawBody);
+  return parseServiceResponse(z.object({ data: formSummarySchema.extend({ definition: z.unknown() }) }), body).data;
 }
 
 export async function publishConnectorForm(
@@ -547,12 +584,9 @@ export async function publishConnectorForm(
     actor,
     expectedRevision,
   });
-  await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/publish`, rawBody);
   const published = parseServiceResponse(z.object({ data: publishedFormSchema }), body).data;
-  const listed = (await listConnectorForms(actor)).find((form) => form.id === published.id);
-  if (!listed?.definition) throw new FormsServiceError("invalid_response", "Forms returned an invalid response.", 502);
-  return withPublicEndpoint({ ...published, definition: listed.definition });
+  return withPublicEndpoint(published);
 }
 
 export async function updateConnectorForm(
@@ -566,7 +600,6 @@ export async function updateConnectorForm(
   },
 ) {
   const rawBody = serializeFormsPayload({ actor, ...input });
-  await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/draft`, rawBody);
   const updated = parseServiceResponse(z.object({ data: updatedFormSchema }), body).data;
   return updated.status === "published"
@@ -580,7 +613,10 @@ export async function duplicateConnectorForm(
   name: string,
   operationId: string,
 ) {
-  const source = (await listConnectorForms(actor)).find((form) => form.id === sourceFormId);
+  const source = await getFormFromService(actor, sourceFormId).catch((error) => {
+    if (error instanceof FormsServiceError && error.code === "form_not_found") return null;
+    throw error;
+  });
   if (!source?.definition) throw new FormsServiceError("form_not_found", "The requested form could not be found.", 404);
   return createConnectorForm(actor, {
     name,
@@ -600,7 +636,6 @@ export async function listConnectorFormResponses(
   },
 ) {
   const rawBody = serializeFormsPayload({ actor, ...input });
-  await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/responses`, rawBody);
   return parseServiceResponse(z.object({ data: paginatedFormResponsesSchema }), body).data;
 }
@@ -611,7 +646,6 @@ export async function setConnectorFormResponseState(
   state: "inbox" | "spam" | "archived",
 ) {
   const rawBody = serializeFormsPayload({ actor, state });
-  await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms(`/api/internal/v1/responses/${encodeURIComponent(submissionId)}/state`, rawBody);
   return parseServiceResponse(z.object({
     data: z.object({ submissionId: z.string().uuid(), state: z.enum(["inbox", "spam", "archived"]) }),

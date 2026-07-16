@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { currentUser, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { Pricing } from "@/components/Pricing";
 import { PublicSiteHeader } from "@/components/PublicSiteHeader";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getUserSubscriptionForUser } from "@/lib/billing-data";
 
 export const dynamic = "force-dynamic";
 
@@ -20,41 +20,14 @@ export default async function PricingPage({
   searchParams: Promise<{ from?: string }>;
 }) {
   const { from } = await searchParams;
-  const user = await currentUser();
+  const { userId } = await auth();
   let currentProductId: string | null = null;
-  let isActuallyPaid = false;
 
-  if (user) {
+  if (userId) {
     try {
-      const supabase = getSupabaseAdmin();
-      const { data: userRow } = await supabase
-        .from("users")
-        .select("current_subscription_id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (userRow?.current_subscription_id) {
-        const { data: subscription } = await supabase
-          .from("subscriptions")
-          .select("status, product_id")
-          .eq("subscription_id", userRow.current_subscription_id)
-          .maybeSingle();
-        if (subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
-          isActuallyPaid = true;
-          currentProductId = subscription.product_id;
-        }
-      }
-
-      const jwtIsPaid = user.publicMetadata?.is_paid === true;
-      if (jwtIsPaid !== isActuallyPaid) {
-        const client = await clerkClient();
-        await client.users.updateUserMetadata(user.id, {
-          publicMetadata: {
-            ...user.publicMetadata,
-            is_paid: isActuallyPaid,
-            has_credits: isActuallyPaid || user.publicMetadata?.has_credits === true,
-          },
-        });
+      const subscription = await getUserSubscriptionForUser(userId);
+      if (subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
+        currentProductId = subscription.product_id;
       }
     } catch (error) {
       console.error("[pricing] Could not reconcile subscription state", error instanceof Error ? { name: error.name } : { type: typeof error });

@@ -83,8 +83,13 @@ function getPostHog() {
   if (!posthog) {
     posthog = new PostHog(token, {
       host: process.env.POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
-      flushAt: 1,
-      flushInterval: 0,
+      flushAt: 20,
+      flushInterval: 250,
+      waitUntilDebounceMs: 25,
+      waitUntilMaxWaitMs: 100,
+      waitUntil: (promise) => {
+        try { waitUntil(promise); } catch { void promise.catch(() => undefined); }
+      },
       personProfiles: "never",
     });
   }
@@ -112,12 +117,6 @@ export function recordFormSubmissionCompletion(metadata: FormSubmissionTelemetry
       properties,
       disableGeoip: true,
     });
-    const flush = client.flush().catch(() => undefined);
-    try {
-      waitUntil(flush);
-    } catch {
-      // Analytics must not affect a form response outside Vercel either.
-    }
   } catch {
     // Analytics must never break or delay form submission.
   }

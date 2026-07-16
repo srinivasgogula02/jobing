@@ -104,14 +104,14 @@ export default function RootLayout({
       <head>
         {analyticsEnabled && (
         <Script
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           src="https://www.googletagmanager.com/gtag/js?id=G-XKEFJF05QL"
         />
         )}
         {analyticsEnabled && (
         <Script
           id="google-analytics"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -125,7 +125,7 @@ export default function RootLayout({
         {analyticsEnabled && (
         <Script
           id="meta-pixel"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               !function(f,b,e,v,n,t,s)
@@ -144,7 +144,7 @@ export default function RootLayout({
         )}
         {analyticsEnabled && (
         <Script
-          defer
+          strategy="lazyOnload"
           data-website-id="dfid_YXyFB08ieOLrn3aJRAI0F"
           data-domain="jobing.site"
           src="https://datafa.st/js/script.js"

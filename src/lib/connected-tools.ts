@@ -50,15 +50,15 @@ export async function createConnectedNote(userId: string, requestedId: string, c
   }
 
   const supabase = getSupabaseAdmin();
-  const { data: existing } = await supabase.from("copies").select("id").eq("id", id).maybeSingle();
-  if (existing) throw new ConnectedToolError("note_id_taken", `The note ID "${id}" is already taken.`);
-
   const { error } = await supabase.from("copies").insert({
     id,
     content,
     user_id: userId,
     updated_at: new Date().toISOString(),
   });
+  if (error?.code === "23505") {
+    throw new ConnectedToolError("note_id_taken", `The note ID "${id}" is already taken.`);
+  }
   if (error) throw new ConnectedToolError("note_storage_failed", "The note could not be saved right now.");
 
   return { id, url: `${siteUrl()}/c/${id}` };
@@ -74,14 +74,6 @@ export async function deployConnectedPage(userId: string, requestedId: string, h
   }
 
   const supabase = getSupabaseAdmin();
-  const { data: existing } = await supabase.from("pages").select("id,user_id,html_content").eq("id", id).maybeSingle();
-  if (existing) {
-    // MCP clients retry when a successful response is lost. Treat an exact
-    // owner/content replay as success while protecting every real collision.
-    if (existing.user_id === userId && existing.html_content === html) return { id, url: publicPageUrl(id) };
-    throw new ConnectedToolError("page_id_taken", `The page ID "${id}" is already taken.`);
-  }
-
   const now = new Date().toISOString();
   const { error } = await supabase.from("pages").insert({
     id,
@@ -90,6 +82,20 @@ export async function deployConnectedPage(userId: string, requestedId: string, h
     created_at: now,
     updated_at: now,
   });
+  if (error?.code === "23505") {
+    // The common success path is one write. Only a collision pays for the read
+    // needed to distinguish a safe MCP retry from somebody else's page ID.
+    const { data: existing, error: readError } = await supabase
+      .from("pages")
+      .select("user_id,html_content")
+      .eq("id", id)
+      .maybeSingle();
+    if (!readError && existing?.user_id === userId && existing.html_content === html) {
+      return { id, url: publicPageUrl(id) };
+    }
+    if (readError) throw new ConnectedToolError("page_storage_failed", "The page could not be deployed right now.");
+    throw new ConnectedToolError("page_id_taken", `The page ID "${id}" is already taken.`);
+  }
   if (error) throw new ConnectedToolError("page_storage_failed", "The page could not be deployed right now.");
 
   return { id, url: publicPageUrl(id) };

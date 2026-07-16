@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/nextjs";
-import { waitUntil } from "@vercel/functions";
 import { getPostHogClient } from "@/lib/posthog-server";
 
 export type ProductServerEvent =
@@ -77,17 +76,6 @@ function environment() {
   return process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown";
 }
 
-function schedule(task: Promise<unknown>) {
-  const safeTask = task.catch(() => undefined);
-  try {
-    waitUntil(safeTask);
-  } catch {
-    // Local tests and non-Vercel runtimes do not provide a request lifecycle.
-    // The best-effort promise is already guarded and must never affect users.
-    void safeTask;
-  }
-}
-
 export function captureProductEvent(input: {
   event: ProductServerEvent;
   distinctId?: string;
@@ -96,7 +84,7 @@ export function captureProductEvent(input: {
   try {
     const client = getPostHogClient();
     if (!client) return;
-    schedule(client.captureImmediate({
+    client.capture({
       distinctId: input.distinctId || "jobing-system",
       event: input.event,
       properties: {
@@ -106,7 +94,7 @@ export function captureProductEvent(input: {
         release: process.env.VERCEL_GIT_COMMIT_SHA || "unknown",
         $process_person_profile: false,
       },
-    }));
+    });
   } catch {
     // Observability can never change a user-visible product outcome.
   }

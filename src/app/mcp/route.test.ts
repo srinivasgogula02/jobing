@@ -35,6 +35,7 @@ vi.mock("@/lib/forms-service", () => ({
   FormsServiceError: class FormsServiceError extends Error {},
   createConnectorForm: vi.fn(),
   duplicateConnectorForm: vi.fn(),
+  getFormFromService: vi.fn(),
   listConnectorForms: vi.fn(),
   listConnectorFormResponses: state.listFormResponses,
   publishConnectorForm: vi.fn(),
@@ -45,7 +46,7 @@ vi.mock("@/lib/connector-feedback", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/connector-feedback")>();
   return { ...original, reportConnectorFeedback: state.reportFeedback };
 });
-vi.mock("@/lib/oauth", () => ({ consumeConnectorRateLimit: vi.fn(), validateAccessTokenInfo: vi.fn() }));
+vi.mock("@/lib/oauth", () => ({ authorizeMcpRequest: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn(() => true), requestIp: vi.fn(() => "127.0.0.1") }));
 
 await import("./route");

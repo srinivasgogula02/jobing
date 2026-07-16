@@ -1,17 +1,11 @@
 "use server";
 
-import { currentUser } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { auth } from "@clerk/nextjs/server";
 import { dodo } from "@/lib/dodo";
 import { getBillingPlanByProductId } from "@/lib/billing-plans";
 import { captureProductEvent } from "@/lib/product-telemetry";
-
-function getSupabaseAdmin() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    if (!supabaseUrl || !supabaseServiceKey) throw new Error('Missing Supabase env vars');
-    return createClient(supabaseUrl, supabaseServiceKey);
-}
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getInvoicesForUser, getUserSubscriptionForUser } from "@/lib/billing-data";
 
 function providerErrorMessage(error: unknown, fallback: string) {
     return error instanceof Error && error.message ? error.message : fallback;
@@ -21,80 +15,31 @@ function providerErrorMessage(error: unknown, fallback: string) {
 // Get user subscription + profile
 // ---------------------
 export async function getUserSubscription() {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Not signed in" };
-
-    const supabase = getSupabaseAdmin();
-
-    const { data: userRow, error: userErr } = await supabase
-        .from('users')
-        .select('current_subscription_id')
-        .eq('id', user.id)
-        .single();
-
-    if (userErr || !userRow) {
-        return { success: true as const, data: { subscription: null } };
-    }
-
-    let subscription = null;
-    if (userRow.current_subscription_id) {
-        const { data: sub } = await supabase
-            .from('subscriptions')
-            .select('*')
-            .eq('subscription_id', userRow.current_subscription_id)
-            .single();
-        subscription = sub;
-    }
-
-    return {
-        success: true as const,
-        data: { subscription },
-    };
+    const { userId } = await auth();
+    if (!userId) return { success: false as const, error: "Not signed in" };
+    return { success: true as const, data: { subscription: await getUserSubscriptionForUser(userId) } };
 }
 
 // ---------------------
 // Get invoices (payments)
 // ---------------------
 export async function getInvoices() {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Not signed in" };
-
-    const supabase = getSupabaseAdmin();
-
-    const { data: userRow } = await supabase
-        .from('users')
-        .select('dodo_customer_id')
-        .eq('id', user.id)
-        .single();
-
-    if (!userRow?.dodo_customer_id) {
-        return { success: true as const, data: [] };
-    }
-
-    const { data: payments, error } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('customer_id', userRow.dodo_customer_id)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        return { success: false as const, error: "Failed to load invoices" };
-    }
-
-    return { success: true as const, data: payments || [] };
+    const { userId } = await auth();
+    if (!userId) return { success: false as const, error: "Not signed in" };
+    return { success: true as const, data: await getInvoicesForUser(userId) };
 }
 
 // ---------------------
 // Cancel subscription (set cancel at next billing date)
 // ---------------------
 export async function cancelSubscription(subscriptionId: string) {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Not signed in" };
+    const { userId } = await auth();
+    if (!userId) return { success: false as const, error: "Not signed in" };
 
     const supabase = getSupabaseAdmin();
     // Verify subscription ownership
     const { data: sub } = await supabase.from('subscriptions').select('user_id').eq('subscription_id', subscriptionId).single();
-    if (!sub || sub.user_id !== user.id) {
+    if (!sub || sub.user_id !== userId) {
         return { success: false as const, error: "Forbidden: You do not own this subscription." };
     }
 
@@ -109,7 +54,7 @@ export async function cancelSubscription(subscriptionId: string) {
             .update({ cancel_at_next_billing_date: true })
             .eq('subscription_id', subscriptionId);
 
-        captureProductEvent({ event: 'subscription_cancelled', distinctId: user.id, properties: { product_area: 'billing', source: 'dashboard', status: 'scheduled', outcome: 'success' } });
+        captureProductEvent({ event: 'subscription_cancelled', distinctId: userId, properties: { product_area: 'billing', source: 'dashboard', status: 'scheduled', outcome: 'success' } });
 
         return { success: true as const };
     } catch (error: unknown) {
@@ -124,13 +69,13 @@ export async function cancelSubscription(subscriptionId: string) {
 // Restore subscription (undo cancel)
 // ---------------------
 export async function restoreSubscription(subscriptionId: string) {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Not signed in" };
+    const { userId } = await auth();
+    if (!userId) return { success: false as const, error: "Not signed in" };
 
     const supabase = getSupabaseAdmin();
     // Verify subscription ownership
     const { data: sub } = await supabase.from('subscriptions').select('user_id').eq('subscription_id', subscriptionId).single();
-    if (!sub || sub.user_id !== user.id) {
+    if (!sub || sub.user_id !== userId) {
         return { success: false as const, error: "Forbidden: You do not own this subscription." };
     }
 
@@ -158,8 +103,8 @@ export async function restoreSubscription(subscriptionId: string) {
 // Change plan
 // ---------------------
 export async function changePlan(subscriptionId: string, newProductId: string) {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Not signed in" };
+    const { userId } = await auth();
+    if (!userId) return { success: false as const, error: "Not signed in" };
 
     const newPlan = getBillingPlanByProductId(newProductId);
     if (!newPlan) return { success: false as const, error: "That plan is not available." };
@@ -167,7 +112,7 @@ export async function changePlan(subscriptionId: string, newProductId: string) {
     const supabase = getSupabaseAdmin();
     // Verify subscription ownership
     const { data: sub } = await supabase.from('subscriptions').select('user_id').eq('subscription_id', subscriptionId).single();
-    if (!sub || sub.user_id !== user.id) {
+    if (!sub || sub.user_id !== userId) {
         return { success: false as const, error: "Forbidden: You do not own this subscription." };
     }
 

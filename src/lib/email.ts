@@ -234,7 +234,7 @@ export async function sendBroadcastBatch(
   }
 
   // Resend returns { data: [{ id }, ...] } aligned to payload order.
-  const ids: Array<{ id?: string }> = (data as any)?.data || [];
+  const ids: Array<{ id?: string }> = data?.data || [];
   const nowIso = new Date().toISOString();
 
   // Log all sends in a single batch insert. The UNIQUE(broadcast_id,

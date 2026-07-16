@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Edit3, Globe2, Plus } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { getUserPages } from "@/app/actions/pages";
+import { getUserPagesForUser } from "@/app/actions/pages";
 import { publicPageAddress, publicPageUrl } from "@/lib/pages-runtime-url";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ function updatedLabel(value: string) {
 export default async function DashboardPagesPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in?redirect_url=/dashboard/pages");
-  const pages = await getUserPages();
+  const pages = await getUserPagesForUser(userId);
 
   return (
     <DashboardLayout breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Pages" }]}>

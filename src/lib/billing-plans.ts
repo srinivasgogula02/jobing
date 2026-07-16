@@ -8,7 +8,6 @@ export type BillingPlan = {
   price: number;
   currency: "USD";
   cadence: "month";
-  credits: number;
   limits: {
     "forms.total": number;
     "forms.published": number;
@@ -26,7 +25,6 @@ const PLAN_DEFINITIONS = [
     price: 9,
     currency: "USD" as const,
     cadence: "month" as const,
-    credits: 50,
     limits: {
       "forms.total": 25,
       "forms.published": 25,
@@ -50,7 +48,6 @@ const PLAN_DEFINITIONS = [
     price: 29,
     currency: "USD" as const,
     cadence: "month" as const,
-    credits: 150,
     limits: {
       "forms.total": 100,
       "forms.published": 100,

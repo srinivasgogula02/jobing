@@ -6,6 +6,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase-admin", () => ({ getSupabaseAdmin: () => db }));
 
 import {
+  authorizeMcpRequest,
   consumeConnectorRateLimit,
   exchangeAuthorizationCode,
   rotateRefreshToken,
@@ -90,6 +91,34 @@ describe("atomic OAuth storage calls", () => {
       p_resource: "https://jobing.site/mcp",
       p_issuer: "https://jobing.site",
     });
+  });
+
+  it("validates and rate-limits an MCP request in one database call", async () => {
+    vi.stubEnv("OAUTH_ISSUER", "https://jobing.site");
+    db.rpc.mockResolvedValue({
+      data: {
+        user_id: "user_live",
+        client_id: "client-1",
+        scope: "forms:read",
+        grant_id: "d415cfb9-f55f-4e9d-99f0-11c0a796282b",
+        access_expires_at: new Date(Date.now() + 60_000).toISOString(),
+        rate_limit_allowed: true,
+        redirect_uris: ["https://chatgpt.com/connector/callback"],
+      },
+      error: null,
+    });
+
+    await expect(authorizeMcpRequest("jbat_secret")).resolves.toMatchObject({
+      userId: "user_live",
+      rateLimitAllowed: true,
+      redirectUris: ["https://chatgpt.com/connector/callback"],
+    });
+    expect(db.rpc).toHaveBeenCalledOnce();
+    expect(db.rpc).toHaveBeenCalledWith("oauth_authorize_mcp_request", expect.objectContaining({
+      p_access_token_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      p_limit: 120,
+      p_window_seconds: 60,
+    }));
   });
 
   it("fails access-token validation closed on missing users or database errors", async () => {

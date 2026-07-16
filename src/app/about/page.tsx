@@ -1,7 +1,7 @@
 import React from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { LegalContent, LegalSection } from "@/components/LegalContent";
-import { Rocket, Target, Heart, Mail } from "lucide-react";
+import { Rocket, Target, Mail } from "lucide-react";
 
 export const metadata = {
   title: "About Us | Jobing AI",
@@ -21,7 +21,7 @@ export default function AboutPage() {
             </p>
           </div>
           <p>
-            In today's competitive job market, your resume needs to do more than just list your experience—it needs to tell a compelling story that resonates with both AI filters and human recruiters. Jobing AI leverages the latest advancements in artificial intelligence to help you bridge that gap.
+            In today&apos;s competitive job market, your resume needs to do more than just list your experience—it needs to tell a compelling story that resonates with both AI filters and human recruiters. Jobing AI leverages the latest advancements in artificial intelligence to help you bridge that gap.
           </p>
         </LegalSection>
 
@@ -57,7 +57,7 @@ export default function AboutPage() {
                   <div className="w-2 h-2 rounded-full bg-[#C1FF00]" />
                   Modern Aesthetics
                 </h4>
-                <p className="text-[13px] leading-relaxed">Generate premium, ATS-friendly designs that stand out in any recruiter's inbox.</p>
+                <p className="text-[13px] leading-relaxed">Generate premium, ATS-friendly designs that stand out in any recruiter&apos;s inbox.</p>
              </li>
              <li className="bg-[#fafafa] p-6 rounded-2xl border border-[#e5e5e5]">
                 <h4 className="font-black text-[#1a1a1a] mb-2 flex items-center gap-2">
@@ -73,7 +73,7 @@ export default function AboutPage() {
            <div className="bg-[#1a1a1a] text-white p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
              <div>
                <h3 className="text-xl font-black mb-2">Have questions?</h3>
-               <p className="text-white/60 text-sm">We're here to help you build your dream career.</p>
+               <p className="text-white/60 text-sm">We&apos;re here to help you build your dream career.</p>
              </div>
              <a href="mailto:support@jobing.ai" className="flex items-center gap-2.5 px-6 py-3 bg-[#C1FF00] text-[#1a1a1a] rounded-xl font-bold hover:scale-[1.05] transition-transform">
                <Mail size={18} />

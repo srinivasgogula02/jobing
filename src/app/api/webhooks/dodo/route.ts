@@ -53,12 +53,11 @@ export async function POST(req: Request) {
             case "subscription.plan_changed":
             case "subscription.renewed": {
                 await manageSubscription(event);
-                const userId = await updateSubscriptionTierAndCredits({
+                const userId = await updateSubscriptionAccess({
                     dodoCustomerId: event.data.customer.customer_id,
                     subscriptionId: event.data.subscription_id,
                     accessState: "active",
                     clerkUserId: event.data.metadata?.clerk_user_id || null,
-                    productId: event.data.product_id,
                 });
                 await syncSubscriptionFormsEntitlement(event, eventKey, userId, "active");
                 const activatedDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
@@ -69,12 +68,11 @@ export async function POST(req: Request) {
 
             case "subscription.on_hold": {
                 await manageSubscription(event);
-                const userId = await updateSubscriptionTierAndCredits({
+                const userId = await updateSubscriptionAccess({
                     dodoCustomerId: event.data.customer.customer_id,
                     subscriptionId: event.data.subscription_id,
                     accessState: "grace",
                     clerkUserId: event.data.metadata?.clerk_user_id || null,
-                    productId: event.data.product_id,
                 });
                 await syncSubscriptionFormsEntitlement(event, eventKey, userId, "grace");
                 break;
@@ -84,7 +82,7 @@ export async function POST(req: Request) {
             case "subscription.expired":
             case "subscription.failed": {
                 await manageSubscription(event);
-                const userId = await updateSubscriptionTierAndCredits({
+                const userId = await updateSubscriptionAccess({
                     dodoCustomerId: event.data.customer.customer_id,
                     subscriptionId: null,
                     accessState: "inactive",
@@ -241,16 +239,15 @@ async function managePayment(event: any) {
 
 
 /**
- * Updates the user's active subscription ID and allocates credits.
+ * Updates the user's active subscription ID and Clerk access marker.
  * Uses clerk_user_id from webhook metadata to find the user.
  * Falls back to dodo_customer_id lookup if metadata is missing.
  */
-async function updateSubscriptionTierAndCredits(props: {
+async function updateSubscriptionAccess(props: {
     dodoCustomerId: string;
     subscriptionId: string | null;
     accessState: SubscriptionAccessState;
     clerkUserId?: string | null;
-    productId?: string;
 }) {
     const supabase = getSupabaseAdmin();
 
@@ -259,7 +256,7 @@ async function updateSubscriptionTierAndCredits(props: {
     if (props.clerkUserId) {
         const result = await supabase
             .from("users")
-            .select("id, credits, current_subscription_id, dodo_customer_id")
+            .select("id, current_subscription_id, dodo_customer_id")
             .eq("id", props.clerkUserId)
             .single();
         user = result.data;
@@ -269,14 +266,14 @@ async function updateSubscriptionTierAndCredits(props: {
     if (!user && props.dodoCustomerId) {
         const result = await supabase
             .from("users")
-            .select("id, credits, current_subscription_id, dodo_customer_id")
+            .select("id, current_subscription_id, dodo_customer_id")
             .eq("dodo_customer_id", props.dodoCustomerId)
             .single();
         user = result.data;
     }
 
     if (!user) {
-        console.warn(`[updateSubscriptionTier] User not found for Clerk ID ${props.clerkUserId} or Dodo Customer ${props.dodoCustomerId}.`);
+        console.warn(`[updateSubscriptionAccess] User not found for Clerk ID ${props.clerkUserId} or Dodo Customer ${props.dodoCustomerId}.`);
         throw new Error('Subscription user could not be resolved.');
     }
 
@@ -290,32 +287,13 @@ async function updateSubscriptionTierAndCredits(props: {
         updates.dodo_customer_id = props.dodoCustomerId;
     }
 
-    // Allocate credits when subscription becomes active or renews
-    if (props.accessState === 'active') {
-        let addedCredits = 0;
-        if (props.productId === process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_PRO) {
-            addedCredits = 50;
-        } else if (props.productId === process.env.NEXT_PUBLIC_DODO_PRODUCT_ID_ELITE) {
-            addedCredits = 150;
-        }
-
-        if (addedCredits > 0) {
-            // This is a period allowance, not a balance increment. Assigning the
-            // allowance makes webhook retries and duplicate deliveries idempotent.
-            updates.credits = addedCredits;
-            console.log(`[updateSubscriptionTier] Set ${addedCredits} credits for user ${user.id}.`);
-        } else {
-            console.warn(`[updateSubscriptionTier] Unknown product ID ${props.productId}, allocating 0 credits.`);
-        }
-    }
-
     const { error: updateError } = await supabase
         .from("users")
         .update(updates)
         .eq("id", user.id);
 
     if (updateError) {
-        console.error("[updateSubscriptionTier] Error updating user:", updateError);
+        console.error("[updateSubscriptionAccess] Error updating user:", updateError);
         throw updateError;
     }
 
@@ -324,21 +302,18 @@ async function updateSubscriptionTierAndCredits(props: {
     if (clerkUserId) {
         try {
             const client = await clerkClient();
-            const clerkUser = await client.users.getUser(clerkUserId);
             await client.users.updateUserMetadata(clerkUserId, {
                 publicMetadata: {
-                    ...clerkUser.publicMetadata,
                     is_paid: retainsAccess,
-                    has_credits: retainsAccess,
                 }
             });
-            console.log(`[updateSubscriptionTier] Synced subscription access to Clerk for ${clerkUserId}.`);
+            console.log(`[updateSubscriptionAccess] Synced subscription access to Clerk for ${clerkUserId}.`);
         } catch (clerkErr) {
-            console.error(`[updateSubscriptionTier] Error syncing to Clerk:`, clerkErr);
+            console.error(`[updateSubscriptionAccess] Error syncing to Clerk:`, clerkErr);
         }
     }
 
-    console.log(`[updateSubscriptionTier] User tier updated successfully for ${user.id}.`);
+    console.log(`[updateSubscriptionAccess] User access updated successfully for ${user.id}.`);
     return user.id as string;
 }
 

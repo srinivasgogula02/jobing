@@ -1,6 +1,6 @@
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
-import { WebhookEvent, clerkClient } from '@clerk/nextjs/server'
+import { WebhookEvent } from '@clerk/nextjs/server'
 import { getPostHogClient } from '@/lib/posthog-server'
 import { enqueueAndDeliverUserDeletion } from '@/lib/forms-projection-outbox'
 import { captureProductEvent } from '@/lib/product-telemetry'
@@ -73,17 +73,12 @@ export async function POST(req: Request) {
             username: string | null;
             name: string;
             image_url: string;
-            credits?: number;
         } = {
             id,
             username,
             name,
             image_url,
         };
-
-        if (eventType === 'user.created') {
-            userData.credits = 2; // Every user gets 2 free credits
-        }
 
         const { error } = await supabaseAdmin
             .from('users')
@@ -114,29 +109,13 @@ export async function POST(req: Request) {
             }
         }
 
-        // Always sync has_credits to Clerk on new user creation
         if (eventType === 'user.created' && id) {
-            try {
-                const client = await clerkClient();
-                await client.users.updateUserMetadata(id, {
-                    publicMetadata: { has_credits: true }
-                });
-                console.log(`[Clerk Webhook] Synced has_credits=true for new user ${id}`);
-            } catch (clerkErr) {
-                console.error('[Clerk Webhook] Error syncing has_credits to Clerk:', clerkErr);
-            }
-
             const posthog = getPostHogClient();
             if (posthog) {
-                const results = await Promise.allSettled([
-                    posthog.identifyImmediate({
-                        distinctId: id,
-                        properties: { plan_key: 'free', signup_source: 'clerk' },
-                    }),
-                ]);
-                for (const result of results) {
-                    if (result.status === 'rejected') console.error('PostHog delivery failed:', result.reason);
-                }
+                posthog.identify({
+                    distinctId: id,
+                    properties: { plan_key: 'free', signup_source: 'clerk' },
+                });
             }
             captureProductEvent({ event: 'user_signed_up', distinctId: id, properties: { source: 'clerk', plan_key: 'free', product_area: 'account' } });
         }

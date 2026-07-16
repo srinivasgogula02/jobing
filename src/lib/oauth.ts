@@ -236,6 +236,11 @@ interface AccessTokenRpcResult {
     access_expires_at: string;
 }
 
+interface McpAuthorizationRpcResult extends AccessTokenRpcResult {
+    rate_limit_allowed: boolean;
+    redirect_uris: string[];
+}
+
 function tokenRpcResult(value: unknown): TokenRpcResult | null {
     if (!value || typeof value !== "object") return null;
     const row = value as Record<string, unknown>;
@@ -254,6 +259,13 @@ function accessTokenRpcResult(value: unknown): AccessTokenRpcResult | null {
         || typeof row.access_expires_at !== "string"
     ) return null;
     return row as unknown as AccessTokenRpcResult;
+}
+
+function mcpAuthorizationRpcResult(value: unknown): McpAuthorizationRpcResult | null {
+    const token = accessTokenRpcResult(value);
+    const row = value as Record<string, unknown>;
+    if (!token || typeof row.rate_limit_allowed !== "boolean" || !Array.isArray(row.redirect_uris) || !row.redirect_uris.every((uri) => typeof uri === "string")) return null;
+    return value as McpAuthorizationRpcResult;
 }
 
 /**
@@ -367,6 +379,54 @@ export async function validateAccessTokenInfo(token: string | null | undefined) 
         scope,
         rawScope: result.scope,
         expiresAt: new Date(result.access_expires_at).getTime() / 1000,
+    };
+}
+
+/** Validate an MCP token and consume its distributed grant bucket atomically. */
+export async function authorizeMcpRequest(token: string | null | undefined) {
+    if (!token || !token.startsWith("jbat_")) return null;
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb.rpc("oauth_authorize_mcp_request", {
+        p_access_token_hash: sha256(token),
+        p_resource: getMcpResourceUrl(),
+        p_issuer: configuredIssuer(),
+        p_limit: 120,
+        p_window_seconds: 60,
+    });
+    if (error) {
+        // Keep rolling deploys safe when application instances update before
+        // the database migration. Only the missing-function case falls back;
+        // genuine database failures still fail closed.
+        if (error.code === "PGRST202" || error.code === "42883") {
+            const legacyInfo = await validateAccessTokenInfo(token);
+            if (!legacyInfo) return null;
+            const [rateLimitAllowed, client] = await Promise.all([
+                consumeConnectorRateLimit(legacyInfo.grantId),
+                getClient(legacyInfo.clientId),
+            ]);
+            return {
+                ...legacyInfo,
+                rateLimitAllowed,
+                redirectUris: client?.redirect_uris ?? [],
+            };
+        }
+        console.error("[oauth/mcp-authorization] database check failed", { code: error.code });
+        return null;
+    }
+
+    const result = mcpAuthorizationRpcResult(data);
+    if (!result || new Date(result.access_expires_at).getTime() < Date.now()) return null;
+    const scope = serializeOAuthScopes(effectiveOAuthScopes(result.scope));
+    if (!scope) return null;
+    return {
+        userId: result.user_id,
+        clientId: result.client_id,
+        grantId: result.grant_id,
+        scope,
+        rawScope: result.scope,
+        expiresAt: new Date(result.access_expires_at).getTime() / 1000,
+        rateLimitAllowed: result.rate_limit_allowed,
+        redirectUris: result.redirect_uris,
     };
 }
 

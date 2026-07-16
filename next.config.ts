@@ -153,8 +153,9 @@ export default withSentryConfig(dualmarkConfig, {
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
+  // Keep free-tier uploads and build artifacts small. Default source maps still
+  // cover application frames without widening every client chunk upload.
+  widenClientFileUpload: false,
 
   webpack: {
     // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)

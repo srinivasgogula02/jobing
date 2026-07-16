@@ -17,6 +17,16 @@
     if (current.form) current.form.dataset.securityReady = ready ? "true" : "false";
   }
 
+  function ensureSubmissionId(form) {
+    var input = form && form.querySelector('input[name="_submission_id"]');
+    if (!input || input.value) return;
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      input.value = window.crypto.randomUUID();
+      return;
+    }
+    input.value = "web-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+  }
+
   window.jobingTurnstileReady = function () {
     update("Security check complete.", true);
   };
@@ -32,8 +42,10 @@
   document.addEventListener("DOMContentLoaded", function () {
     var current = elements();
     if (!current.form) return;
+    ensureSubmissionId(current.form);
 
     current.form.addEventListener("submit", function (event) {
+      ensureSubmissionId(current.form);
       var token = current.form.querySelector('input[name="cf-turnstile-response"]');
       if (!token || !token.value) {
         event.preventDefault();

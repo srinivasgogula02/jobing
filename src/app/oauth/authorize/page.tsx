@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import {
   getClient,
@@ -98,42 +99,43 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
   const account = user?.primaryEmailAddress?.emailAddress || "your Jobing account";
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#0E1219] p-4 text-[#F2F4F7] sm:p-6">
-      <section className="w-full max-w-lg rounded-[20px] border border-[#262D3A] bg-[#161B25] p-6 shadow-2xl shadow-black/20 sm:p-8">
-        <p className="font-mono text-[11px] uppercase tracking-[.16em] text-[#C6F24E]">Jobing connector</p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-[-.03em]">Approve this connection</h1>
-        <p className="mt-3 leading-7 text-[#8B93A1]">
-          <span className="font-medium text-[#F2F4F7]">{clientIdentity.redirectOrigin}</span> wants to use {account}.
-        </p>
-        {clientIdentity.unverifiedName ? (
-          <p className="mt-2 text-sm leading-6 text-[#8B93A1]">
-            Client-reported name (unverified): <bdi className="text-[#F2F4F7]">{clientIdentity.unverifiedName}</bdi>
+    <main className="flex min-h-[100svh] items-center bg-[#f7f8f4] p-3 text-[#151914] sm:p-6">
+      <section className="mx-auto flex max-h-[calc(100svh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-[8px] border border-[#dfe3da] bg-white shadow-[0_24px_80px_rgba(31,40,25,.12)] sm:max-h-[calc(100svh-3rem)]">
+        <header className="shrink-0 border-b border-[#e8ebe5] px-5 py-5 sm:px-7">
+          <div className="flex items-center gap-2.5">
+            <Image src="/logo.png" alt="" width={30} height={30} className="rounded-[6px]" priority />
+            <span className="font-bold tracking-[-.025em]">Jobing AI</span>
+          </div>
+          <p className="mt-5 font-mono text-[10px] uppercase tracking-[.16em] text-[#719500]">Approve connection</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-[-.035em] sm:text-3xl">Let this AI app work with Jobing?</h1>
+          <p className="mt-2 text-sm leading-6 text-[#6e756b]">
+            <span className="font-semibold text-[#151914]">{clientIdentity.redirectOrigin}</span> wants to connect to {account}.
           </p>
-        ) : null}
+          {clientIdentity.unverifiedName ? <p className="mt-1 text-xs leading-5 text-[#8a9186]">The app identifies itself as <bdi className="font-semibold text-[#4d554b]">{clientIdentity.unverifiedName}</bdi>.</p> : null}
+        </header>
 
-        <div className="mt-6 rounded-xl border border-[#262D3A] bg-[#1F2531] p-4">
-          <p className="font-mono text-[11px] uppercase tracking-[.12em] text-[#8B93A1]">This connection can</p>
-          <ul className="mt-4 space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 slim-scrollbar sm:px-7">
+          <p className="font-mono text-[10px] uppercase tracking-[.12em] text-[#7b8277]">This app can</p>
+          <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
             {scopes.map((item) => (
-              <li key={item} className="grid grid-cols-[8px_1fr] gap-3">
-                <span className="mt-2 h-2 w-2 rounded-full bg-[#C6F24E]" aria-hidden />
+              <li key={item} className="grid grid-cols-[18px_1fr] gap-2.5 border-t border-[#edf0ea] pt-2.5">
+                <span className="mt-0.5 text-sm font-bold text-[#719500]" aria-hidden>✓</span>
                 <span>
-                  <span className="block text-sm font-semibold">{OAUTH_SCOPE_DETAILS[item].title}</span>
-                  <span className="mt-1 block text-sm leading-6 text-[#8B93A1]">{OAUTH_SCOPE_DETAILS[item].description}</span>
+                  <span className="block text-sm font-semibold text-[#252b23]">{OAUTH_SCOPE_DETAILS[item].title}</span>
+                  <span className="mt-0.5 block text-xs leading-5 text-[#747c71]">{OAUTH_SCOPE_DETAILS[item].description}</span>
                 </span>
               </li>
             ))}
           </ul>
+          <p className="mt-5 border-t border-[#e8ebe5] pt-4 text-xs leading-5 text-[#747c71]">
+            {scopes.includes("forms.responses:read")
+              ? "Uploaded file contents and integration credentials are not included."
+              : "Form responses, uploaded file contents, and integration credentials are not included."}{" "}
+            Disconnect this app at any time from your Dashboard.
+          </p>
         </div>
 
-        <p className="mt-5 text-sm leading-6 text-[#8B93A1]">
-          {scopes.includes("forms.responses:read")
-            ? "Uploaded file contents and integration credentials are not included."
-            : "Form responses, uploaded file contents, and integration credentials are not included."}{" "}
-          You can disconnect this client at any time.
-        </p>
-
-        <form className="mt-6 grid gap-3 sm:grid-cols-2">
+        <form className="grid shrink-0 grid-cols-[.8fr_1.2fr] gap-2 border-t border-[#dfe3da] bg-white p-4 sm:gap-3 sm:px-7 sm:py-5">
           {Object.entries({
             client_id: clientId,
             redirect_uri: redirectUri,

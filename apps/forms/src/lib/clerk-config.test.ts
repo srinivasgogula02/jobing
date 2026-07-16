@@ -9,6 +9,13 @@ describe("Forms Clerk configuration", () => {
     )).toEqual(["https://jobing.site"]);
   });
 
+  it("allows both the main app and forms host in production", () => {
+    expect(resolveClerkAuthorizedParties(undefined, "production")).toEqual([
+      "https://jobing.site",
+      "https://forms.jobing.site",
+    ]);
+  });
+
   it("uses only local origins by default outside production", () => {
     expect(resolveClerkAuthorizedParties("", "test")).toEqual([
       "http://localhost:3000",

@@ -24,7 +24,7 @@ textarea{resize:vertical}
 .choice{display:flex;gap:10px;align-items:center;min-height:44px;font-weight:400}
 .choice input{width:20px;min-height:20px;margin:0}
 button{width:100%;min-height:52px;margin-top:28px;border:1px solid var(--lime);border-radius:8px;background:var(--lime);color:#0b0e14;font:700 15px inherit;cursor:pointer}
-button:disabled{cursor:wait;opacity:.58}
+button:disabled{cursor:wait;opacity:.72}
 html[data-button=outline] button{background:transparent;color:var(--lime)}
 :focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 .privacy{color:color-mix(in srgb,var(--text) 58%,transparent);font-size:12px;line-height:1.5;text-align:center}
@@ -33,7 +33,4 @@ html[data-button=outline] button{background:transparent;color:var(--lime)}
 .success{border-left:3px solid var(--success)}
 .form-error{border-left:3px solid var(--error)}
 .success p,.form-error p{color:color-mix(in srgb,var(--text) 68%,transparent);margin-bottom:0;line-height:1.5}
-.security-check{margin-top:28px;border:1px solid color-mix(in srgb,var(--text) 16%,transparent);border-radius:8px;padding:18px;background:color-mix(in srgb,var(--text) 4%,var(--canvas))}
-.security-check>p{margin:6px 0 14px;color:color-mix(in srgb,var(--text) 68%,transparent);font-size:13px;line-height:1.45}
-.security-check noscript{display:block;color:var(--error);font-size:13px;line-height:1.45}
 @media(max-width:520px){main{padding-top:18px}.field{grid-template-columns:34px 1fr}header{padding-bottom:32px}.eyebrow{margin-top:36px}}

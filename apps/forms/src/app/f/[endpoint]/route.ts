@@ -2,7 +2,6 @@ import { createHmac, randomUUID } from "node:crypto";
 import { waitUntil } from "@vercel/functions";
 import { NextResponse } from "next/server";
 import { acceptSubmission, getPublicForm, recordBlockedSubmission } from "@/lib/forms-store";
-import type { FormDefinition } from "@/lib/form-definition";
 import { renderPublicForm } from "@/lib/public-form-html";
 import { isHoneypotRejection, validateSubmission } from "@/lib/submission-validation";
 import { isPagesRuntimeOrigin } from "@/lib/platform-origin";
@@ -23,7 +22,7 @@ const TURNSTILE_ACTION = "turnstile-spin-v1";
 
 const securityHeaders = {
   "content-type": "text/html; charset=utf-8", "x-content-type-options": "nosniff",
-  "content-security-policy": "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com; form-action 'self' https://jobing.site https://forms.jobing.site; base-uri 'none'; frame-ancestors 'none'",
+  "content-security-policy": "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'none'; connect-src 'self'; form-action 'self' https://jobing.site https://forms.jobing.site; base-uri 'none'; frame-ancestors 'none'",
 };
 
 function html(body: string, status = 200, cacheControl = "no-store") {
@@ -34,27 +33,14 @@ function corsHeaders(origin: string | null) { return origin ? { "access-control-
 function jsonError(code: string, message: string, status: number, origin: string | null) {
   return NextResponse.json({ error: { code, message } }, { status, headers: corsHeaders(origin) });
 }
-function turnstileSiteKey() { return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? ""; }
-
-function retryableValues(definition: FormDefinition, data: FormData) {
-  const values: Record<string, unknown> = {};
-  for (const field of definition.fields) {
-    if (field.type === "file") continue;
-    const entries = data.getAll(field.key).filter((value): value is string => typeof value === "string");
-    values[field.key] = entries.length > 1 ? entries : entries[0] ?? "";
-  }
-  return values;
-}
 
 export async function GET(request: Request, context: { params: Promise<{ endpoint: string }> }) {
   const { endpoint } = await context.params;
   const form = await getPublicForm(endpoint);
   if (!form) return html("<!doctype html><title>Form unavailable</title><p>This form is unavailable.</p>", 404);
-  const siteKey = turnstileSiteKey();
-  if (!siteKey) return html("<!doctype html><title>Form temporarily unavailable</title><p>This form is temporarily unavailable. Please try again shortly.</p>", 503);
   const submitted = new URL(request.url).searchParams.get("submitted") === "1";
   return html(
-    renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey, ...(submitted ? { message: form.definition.confirmation.message } : {}) }),
+    renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), ...(submitted ? { message: form.definition.confirmation.message } : {}) }),
     200,
     submitted ? "no-store" : "public, max-age=0, s-maxage=15, stale-while-revalidate=45",
   );
@@ -201,23 +187,20 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
     return complete(NextResponse.redirect(`${canonical(endpoint)}?submitted=1`, 303), { outcome: "rejected", reason: "honeypot", status_code: 303 });
   }
   const turnstileToken = String(data.get("cf-turnstile-response") || "");
-  const isHostedForm = data.get("_jobing_form_context") === "hosted";
-  const preservedValues = retryableValues(form.definition, data);
-  if (isHostedForm || turnstileToken) {
+  const formsOrigin = new URL(canonical(endpoint)).origin;
+  const isHostedForm = data.get("_jobing_form_context") === "hosted"
+    && (!originHeader || originHeader === formsOrigin);
+  if (turnstileToken && !isHostedForm) {
     const verification = await verifyTurnstile(turnstileToken, ip);
     if (verification.status === "rejected") {
       rememberBlocked("challenge_failed");
       const message = "The security check refreshed. Your answers are still here. Wait for the Send response button, then try again.";
-      const response = isHostedForm && !wantsJson
-        ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: randomUUID(), formError: message, values: preservedValues }), 400)
-        : jsonError("challenge_failed", message, 400, responseOrigin);
+      const response = jsonError("challenge_failed", message, 400, responseOrigin);
       return complete(response, { outcome: "rejected", reason: "challenge_failed", status_code: 400 });
     }
     if (verification.status === "unavailable") {
       const message = "The security check is temporarily unavailable. Wait a moment, then send your response again.";
-      const response = isHostedForm && !wantsJson
-        ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: randomUUID(), formError: message, values: preservedValues }), 503)
-        : jsonError("security_check_unavailable", message, 503, responseOrigin);
+      const response = jsonError("security_check_unavailable", message, 503, responseOrigin);
       return complete(response, { outcome: "unavailable", reason: "security_check_unavailable", status_code: 503 }, verification.error);
     }
   }
@@ -236,7 +219,7 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
   if (!validated.success || Object.keys(uploads.errors).length > 0) {
     rememberBlocked("validation_failed");
     if (wantsJson) return complete(NextResponse.json({ error: { code: "validation_failed", message: "Check the highlighted fields and try again.", fields: validationErrors } }, { status: 422, headers: corsHeaders(responseOrigin) }), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
-    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors, values: raw }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
+    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors, values: raw }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
   }
   if (!secret || Buffer.byteLength(secret) < 32) return complete(jsonError("unavailable", "Forms is temporarily unavailable.", 503, responseOrigin), { outcome: "unavailable", reason: "configuration_missing", status_code: 503 }, new Error("Forms submission configuration is unavailable"));
   const origin = originHeader === hostedOrigin || platformOrigin ? null : originHeader;

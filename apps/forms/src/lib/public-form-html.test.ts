@@ -11,24 +11,24 @@ const definition = {
 };
 
 describe("renderPublicForm", () => {
-  it("keeps submission disabled until Turnstile calls the success callback", () => {
-    const output = renderPublicForm({ definition, endpointId: "frm_test", action: "https://forms.jobing.site/forms/f/frm_test", siteKey: "site-key", submissionId: "submission-test" });
+  it("keeps submission immediately available without a third-party challenge", () => {
+    const output = renderPublicForm({ definition, endpointId: "frm_test", action: "https://forms.jobing.site/forms/f/frm_test", submissionId: "submission-test" });
 
-    expect(output).toContain('data-callback="jobingTurnstileReady"');
-    expect(output).toContain('data-expired-callback="jobingTurnstileExpired"');
-    expect(output).toContain('data-appearance="interaction-only"');
-    expect(output).toContain('data-refresh-expired="auto"');
-    expect(output).toContain('<button type="submit" disabled data-submit-button>');
+    expect(output).not.toContain("challenges.cloudflare.com");
+    expect(output).not.toContain("cf-turnstile");
+    expect(output).toContain('<button type="submit" data-submit-button>');
+    expect(output).toContain('name="_gotcha"');
+    expect(output).toContain('tabindex="-1"');
     expect(output).toContain('src="/forms/public-form.js" defer');
   });
 
-  it("preserves safe field values after validation or security retries", () => {
-    const output = renderPublicForm({ definition, endpointId: "frm_test", action: "https://forms.jobing.site/forms/f/frm_test", siteKey: "site-key", submissionId: "submission-test", values: { email: 'person+retry@example.com' } });
+  it("preserves safe field values after validation retries", () => {
+    const output = renderPublicForm({ definition, endpointId: "frm_test", action: "https://forms.jobing.site/forms/f/frm_test", submissionId: "submission-test", values: { email: 'person+retry@example.com' } });
     expect(output).toContain('value="person+retry@example.com"');
   });
 
-  it("escapes a form-level security error", () => {
-    const output = renderPublicForm({ definition, endpointId: "frm_test", action: "https://forms.jobing.site/forms/f/frm_test", siteKey: "site-key", submissionId: "submission-test", formError: "Retry <now>" });
+  it("escapes a form-level error", () => {
+    const output = renderPublicForm({ definition, endpointId: "frm_test", action: "https://forms.jobing.site/forms/f/frm_test", submissionId: "submission-test", formError: "Retry <now>" });
 
     expect(output).toContain("Retry &lt;now&gt;");
     expect(output).not.toContain("Retry <now>");

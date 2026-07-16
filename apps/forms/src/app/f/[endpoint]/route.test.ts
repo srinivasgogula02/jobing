@@ -33,13 +33,30 @@ const form = {
   },
 };
 
-function hostedRequest() {
+function hostedRequest(token?: string) {
   const body = new FormData();
   body.set("_jobing_form_context", "hosted");
   body.set("_submission_id", "submission-test");
+  if (token) body.set("cf-turnstile-response", token);
+  body.set("email", "person@example.com");
+  return new Request("https://forms.jobing.site/forms/f/frm_test", {
+    method: "POST",
+    headers: { origin: "https://forms.jobing.site" },
+    body,
+  });
+}
+
+function customRequestWithChallenge() {
+  const body = new FormData();
+  body.set("_submission_id", "submission-test");
+  body.set("_jobing_form_context", "hosted");
   body.set("cf-turnstile-response", "browser-token");
   body.set("email", "person@example.com");
-  return new Request("https://forms.jobing.site/forms/f/frm_test", { method: "POST", body });
+  return new Request("https://forms.jobing.site/forms/f/frm_test", {
+    method: "POST",
+    headers: { accept: "application/json", origin: "https://customer.example" },
+    body,
+  });
 }
 
 describe("public form submission telemetry", () => {
@@ -99,41 +116,33 @@ describe("public form submission telemetry", () => {
     }));
   });
 
-  it("re-renders a hosted form when the browser challenge is rejected", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+  it("does not make the hosted form depend on a browser challenge", async () => {
     vi.stubEnv("TURNSTILE_VERIFY_URL", "https://verify.example.test");
+    vi.stubEnv("SUBMISSION_IP_HASH_SECRET", "0123456789abcdef0123456789abcdef");
     mocks.getPublicForm.mockResolvedValue(form);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ success: false, "error-codes": ["timeout-or-duplicate"] }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    }));
+    mocks.acceptSubmission.mockResolvedValue({ responseId: "response-test" });
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     const response = await POST(hostedRequest(), context);
 
-    expect(response.status).toBe(400);
-    expect(response.headers.get("content-type")).toContain("text/html");
-    await expect(response.text()).resolves.toContain("Your answers are still here");
-    expect(mocks.acceptSubmission).not.toHaveBeenCalled();
+    expect(response.status).toBe(303);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(mocks.acceptSubmission).toHaveBeenCalledTimes(1);
   });
 
-  it("reports an unavailable verifier as a temporary service problem", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
+  it("reports an unavailable verifier for custom sites that opt into Turnstile", async () => {
     vi.stubEnv("TURNSTILE_VERIFY_URL", "");
     mocks.getPublicForm.mockResolvedValue(form);
 
-    const response = await POST(hostedRequest(), context);
+    const response = await POST(customRequestWithChallenge(), context);
 
     expect(response.status).toBe(503);
-    expect(response.headers.get("content-type")).toContain("text/html");
-    await expect(response.text()).resolves.toContain("security check is temporarily unavailable");
+    await expect(response.json()).resolves.toMatchObject({ error: { code: "security_check_unavailable" } });
     expect(mocks.captureError).toHaveBeenCalledTimes(1);
     expect(mocks.acceptSubmission).not.toHaveBeenCalled();
   });
 
   it("accepts a hosted form exactly once after a successful challenge", async () => {
-    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
     vi.stubEnv("TURNSTILE_VERIFY_URL", "https://verify.example.test");
     vi.stubEnv("SUBMISSION_IP_HASH_SECRET", "0123456789abcdef0123456789abcdef");
     mocks.getPublicForm.mockResolvedValue(form);
@@ -147,15 +156,14 @@ describe("public form submission telemetry", () => {
       headers: { "content-type": "application/json" },
     }));
 
-    const response = await POST(hostedRequest(), context);
+    const response = await POST(customRequestWithChallenge(), context);
 
-    expect(response.status).toBe(303);
+    expect(response.status).toBe(201);
     expect(mocks.acceptSubmission).toHaveBeenCalledTimes(1);
     expect(mocks.recordCompletion).toHaveBeenCalledWith(expect.objectContaining({ outcome: "accepted", reason: "success" }));
   });
 
   it("treats a verifier hostname mismatch as an operational failure", async () => {
-    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
     vi.stubEnv("NEXT_PUBLIC_FORMS_API_URL", "https://forms.jobing.site/forms");
     vi.stubEnv("TURNSTILE_VERIFY_URL", "https://verify.example.test");
     vi.stubEnv("SUBMISSION_IP_HASH_SECRET", "0123456789abcdef0123456789abcdef");
@@ -167,7 +175,7 @@ describe("public form submission telemetry", () => {
       action: "turnstile-spin-v1",
     }), { status: 200, headers: { "content-type": "application/json" } }));
 
-    const response = await POST(hostedRequest(), context);
+    const response = await POST(customRequestWithChallenge(), context);
 
     expect(response.status).toBe(503);
     expect(mocks.acceptSubmission).not.toHaveBeenCalled();
@@ -178,7 +186,6 @@ describe("public form submission telemetry", () => {
   });
 
   it("treats a verifier secret mismatch as an operational failure", async () => {
-    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
     vi.stubEnv("TURNSTILE_VERIFY_URL", "https://verify.example.test");
     mocks.getPublicForm.mockResolvedValue(form);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
@@ -186,25 +193,25 @@ describe("public form submission telemetry", () => {
       "error-codes": ["invalid-input-secret"],
     }), { status: 200, headers: { "content-type": "application/json" } }));
 
-    const response = await POST(hostedRequest(), context);
+    const response = await POST(customRequestWithChallenge(), context);
 
     expect(response.status).toBe(503);
     expect(mocks.captureError).toHaveBeenCalledTimes(1);
     expect(mocks.acceptSubmission).not.toHaveBeenCalled();
   });
 
-  it("does not silently serve a test challenge when the site key is missing", async () => {
-    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
+  it("serves a hosted form even when third-party security services are unavailable", async () => {
     mocks.getPublicForm.mockResolvedValue(form);
 
     const response = await GET(new Request("https://forms.jobing.site/forms/f/frm_test"), context);
 
-    expect(response.status).toBe(503);
-    await expect(response.text()).resolves.not.toContain("1x00000000000000000000AA");
+    expect(response.status).toBe(200);
+    const body = await response.text();
+    expect(body).not.toContain("challenges.cloudflare.com");
+    expect(body).toContain('<button type="submit" data-submit-button>');
   });
 
   it("serves the normal hosted form through the CDN without embedding a shared submission ID", async () => {
-    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
     mocks.getPublicForm.mockResolvedValue(form);
 
     const response = await GET(new Request("https://forms.jobing.site/forms/f/frm_test"), context);
@@ -216,7 +223,6 @@ describe("public form submission telemetry", () => {
   });
 
   it("never caches the post-submit confirmation document", async () => {
-    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site-key");
     mocks.getPublicForm.mockResolvedValue(form);
 
     const response = await GET(new Request("https://forms.jobing.site/forms/f/frm_test?submitted=1"), context);

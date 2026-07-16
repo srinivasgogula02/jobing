@@ -333,9 +333,15 @@ const handler = createMcpHandler(
         fallback: "Could not read the form responses.",
         execute: async (actor) => {
           const responses = await listConnectorFormResponses(actor, formId, { query, state, sort, page, pageSize });
+          const lockedNotice = responses.hiddenTotal > 0
+            ? ` ${responses.hiddenTotal} additional response${responses.hiddenTotal === 1 ? " is" : "s are"} saved securely but outside this plan's viewing allowance. Upgrade at https://jobing.site/pricing?reason=response_limit to unlock them.`
+            : "";
           return {
-            content: [{ type: "text", text: `Found ${responses.total} ${state} response${responses.total === 1 ? "" : "s"}. Showing page ${responses.page} of ${responses.pages}.` }],
-            structuredContent: responses,
+            content: [{ type: "text", text: `Found ${responses.total} visible ${state} response${responses.total === 1 ? "" : "s"}. Showing page ${responses.page} of ${responses.pages}.${lockedNotice}` }],
+            structuredContent: {
+              ...responses,
+              ...(responses.hiddenTotal > 0 ? { upgradeUrl: "https://jobing.site/pricing?reason=response_limit" } : {}),
+            },
           };
         },
       }),

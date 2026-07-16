@@ -32,10 +32,14 @@ describe("validateSubmission", () => {
 
 describe("isHoneypotRejection", () => {
   it("does not reject the Turnstile-protected hosted form when autofill touches the trap", () => {
-    expect(isHoneypotRejection({ value: "autofilled", origin: "https://jobing.site", hostedOrigin: "https://jobing.site" })).toBe(false);
+    expect(isHoneypotRejection({ value: "autofilled", origin: "https://jobing.site" })).toBe(false);
   });
 
-  it("rejects a filled trap on an approved external form", () => {
-    expect(isHoneypotRejection({ value: "spam", origin: "https://example.com", hostedOrigin: "https://jobing.site" })).toBe(true);
+  it("does not discard a real external browser submission when autofill touches the trap", () => {
+    expect(isHoneypotRejection({ value: "autofilled", origin: "https://example.com" })).toBe(false);
+  });
+
+  it("rejects an originless scripted request that fills the trap", () => {
+    expect(isHoneypotRejection({ value: "spam", origin: null })).toBe(true);
   });
 });

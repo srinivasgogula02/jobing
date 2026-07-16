@@ -16,8 +16,15 @@ describe("renderPublicForm", () => {
 
     expect(output).toContain('data-callback="jobingTurnstileReady"');
     expect(output).toContain('data-expired-callback="jobingTurnstileExpired"');
+    expect(output).toContain('data-appearance="interaction-only"');
+    expect(output).toContain('data-refresh-expired="auto"');
     expect(output).toContain('<button type="submit" disabled data-submit-button>');
     expect(output).toContain('src="/forms/public-form.js"');
+  });
+
+  it("preserves safe field values after validation or security retries", () => {
+    const output = renderPublicForm({ definition, endpointId: "frm_test", action: "https://forms.jobing.site/forms/f/frm_test", siteKey: "site-key", submissionId: "submission-test", values: { email: 'person+retry@example.com' } });
+    expect(output).toContain('value="person+retry@example.com"');
   });
 
   it("escapes a form-level security error", () => {

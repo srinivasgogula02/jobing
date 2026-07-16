@@ -118,7 +118,6 @@ const isAuthOnlyRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/billing(.*)',
   '/connector/manage(.*)',
-  '/forms/app(.*)',
 ])
 
 // TIER 3 — Protected: Auth + payment/credit check applied to everything else.

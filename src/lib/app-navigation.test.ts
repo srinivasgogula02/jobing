@@ -16,7 +16,7 @@ describe("application navigation policy", () => {
   });
 
   it("uses the authenticated Forms application as the only Forms destination", () => {
-    expect(FORMS_APP_PATH).toBe("/forms/app");
+    expect(FORMS_APP_PATH).toBe("/dashboard/forms");
     expect(isAuthOnlyProductPath(FORMS_APP_PATH)).toBe(true);
   });
 

@@ -75,7 +75,7 @@ export function Pricing({ currentProductId, limitReached = false }: PricingProps
         <div className={styles.heroCopy}>
           <p>Simple pricing</p>
           <h1>{limitReached ? "Unlock your next form." : "Pay when Jobing AI becomes useful."}</h1>
-          <span>Start free with 5 published forms. Upgrade for more forms and responses without rebuilding anything.</span>
+          <span>Start free with 5 published forms and 50 visible responses each month. Extra responses stay saved, so upgrading never loses a lead.</span>
         </div>
         <div className={styles.trustLine} aria-label="Purchase information">
           <span><ShieldCheck size={16} /> Secure checkout</span>
@@ -92,7 +92,7 @@ export function Pricing({ currentProductId, limitReached = false }: PricingProps
             const isCurrent = currentProductId === plan.productId && Boolean(plan.productId);
             const isLoading = loadingPlan === plan.productId && Boolean(plan.productId);
             const primaryLimit = plan.key === "pro" ? "25 published forms" : "100 published forms";
-            const responseLimit = plan.key === "pro" ? "5,000 responses / month" : "25,000 responses / month";
+            const responseLimit = plan.key === "pro" ? "View 5,000 responses / month" : "View 25,000 responses / month";
             return (
               <article key={plan.key} className={`${styles.planCard} ${plan.highlighted ? styles.featuredPlan : ""}`}>
                 <div className={styles.planTopline}>

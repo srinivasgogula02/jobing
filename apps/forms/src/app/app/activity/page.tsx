@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function ActivityPage() {
-  redirect("/app");
+  redirect("https://jobing.site/dashboard/forms");
 }

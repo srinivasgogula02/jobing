@@ -25,7 +25,7 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
     { name: "Pages", href: "/dashboard/pages", icon: Globe2 },
-    { name: "Forms", href: "/forms/app", icon: FormInput },
+    { name: "Forms", href: "/dashboard/forms", icon: FormInput },
     { name: "AI connector", href: "/connector/manage", icon: PlugZap },
     { name: "Billing", href: "/billing", icon: CreditCard },
   ];

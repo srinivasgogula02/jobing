@@ -10,7 +10,7 @@ export default function FormsNotFound() {
           <Image src="/forms/logo.png" alt="" width={38} height={38} priority />
           <strong>Jobing Forms</strong>
         </Link>
-        <a className={styles.dashboard} href="https://jobing.site/forms/app">Forms dashboard</a>
+        <a className={styles.dashboard} href="https://jobing.site/dashboard/forms">Forms dashboard</a>
       </header>
 
       <section className={styles.stage}>
@@ -20,7 +20,7 @@ export default function FormsNotFound() {
           <p>The link may be incomplete, the form may still be a draft, or its owner may have removed it.</p>
           <div className={styles.actions}>
             <Link href="/">Explore Jobing Forms <span aria-hidden="true">→</span></Link>
-            <a href="https://jobing.site/forms/app">Open my forms</a>
+            <a href="https://jobing.site/dashboard/forms">Open my forms</a>
           </div>
         </div>
 

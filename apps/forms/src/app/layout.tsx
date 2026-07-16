@@ -39,7 +39,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider signInFallbackRedirectUrl="https://jobing.site/dashboard/forms" signUpFallbackRedirectUrl="https://jobing.site/dashboard/forms">
       <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} ${instrumentSans.variable}`}>
         <body>{children}</body>
       </html>

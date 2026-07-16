@@ -41,7 +41,7 @@ try {
   const history = await migrationClient.query(
     "select name from public.jobing_forms_schema_migrations order by version",
   );
-  assert(history.rowCount === 12, `Expected 12 migrations, found ${history.rowCount}.`);
+  assert(history.rowCount === 13, `Expected 13 migrations, found ${history.rowCount}.`);
 
   const privileges = await migrationClient.query(`
     select

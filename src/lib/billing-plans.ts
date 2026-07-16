@@ -35,7 +35,8 @@ const PLAN_DEFINITIONS = [
     features: [
       "Unlimited published web pages",
       "25 published custom forms",
-      "5,000 form responses each month",
+      "View 5,000 form responses each month",
+      "Extra responses stay saved until you upgrade",
       "Create and edit from your AI app",
       "One dashboard for every response",
       "Standard support",
@@ -58,7 +59,8 @@ const PLAN_DEFINITIONS = [
     features: [
       "Everything in Starter",
       "100 published custom forms",
-      "25,000 form responses each month",
+      "View 25,000 form responses each month",
+      "Extra responses stay saved until you upgrade",
       "Create and edit from your AI app",
       "One dashboard for every response",
       "Priority support",

@@ -19,7 +19,7 @@ vi.mock("@/lib/server-telemetry", () => ({
   recordFormSubmissionCompletion: mocks.recordCompletion,
 }));
 
-import { GET, POST } from "./route";
+import { GET, OPTIONS, POST } from "./route";
 
 const context = { params: Promise.resolve({ endpoint: "frm_test" }) };
 const form = {
@@ -113,7 +113,7 @@ describe("public form submission telemetry", () => {
 
     expect(response.status).toBe(400);
     expect(response.headers.get("content-type")).toContain("text/html");
-    await expect(response.text()).resolves.toContain("Security check expired or could not be completed");
+    await expect(response.text()).resolves.toContain("Your answers are still here");
     expect(mocks.acceptSubmission).not.toHaveBeenCalled();
   });
 
@@ -201,5 +201,28 @@ describe("public form submission telemetry", () => {
 
     expect(response.status).toBe(503);
     await expect(response.text()).resolves.not.toContain("1x00000000000000000000AA");
+  });
+
+  it("allows browser fetch submissions when a form intentionally has no origin allowlist", async () => {
+    mocks.getPublicForm.mockResolvedValue(form);
+    const response = await OPTIONS(new Request("https://forms.jobing.site/forms/f/frm_test", {
+      method: "OPTIONS",
+      headers: { origin: "https://customer.example" },
+    }), context);
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("https://customer.example");
+  });
+
+  it("keeps an explicit origin allowlist strict", async () => {
+    mocks.getPublicForm.mockResolvedValue({
+      ...form,
+      definition: { ...form.definition, settings: { allowedOrigins: ["https://approved.example"] } },
+    });
+    const response = await OPTIONS(new Request("https://forms.jobing.site/forms/f/frm_test", {
+      method: "OPTIONS",
+      headers: { origin: "https://unapproved.example" },
+    }), context);
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });
 });

@@ -362,7 +362,7 @@ export function ConnectorPageClient() {
         <nav>
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/dashboard/pages">Pages</Link>
-          <Link href="/forms/app">Forms</Link>
+          <Link href="/dashboard/forms">Forms</Link>
           <Link href="/pricing">Pricing</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>

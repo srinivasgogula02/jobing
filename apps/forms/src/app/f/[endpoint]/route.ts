@@ -1,6 +1,7 @@
 import { createHmac, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { acceptSubmission, getPublicForm, recordBlockedSubmission } from "@/lib/forms-store";
+import type { FormDefinition } from "@/lib/form-definition";
 import { renderPublicForm } from "@/lib/public-form-html";
 import { isHoneypotRejection, validateSubmission } from "@/lib/submission-validation";
 import { isPagesRuntimeOrigin } from "@/lib/platform-origin";
@@ -31,6 +32,16 @@ function jsonError(code: string, message: string, status: number, origin: string
   return NextResponse.json({ error: { code, message } }, { status, headers: corsHeaders(origin) });
 }
 function turnstileSiteKey() { return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? ""; }
+
+function retryableValues(definition: FormDefinition, data: FormData) {
+  const values: Record<string, unknown> = {};
+  for (const field of definition.fields) {
+    if (field.type === "file") continue;
+    const entries = data.getAll(field.key).filter((value): value is string => typeof value === "string");
+    values[field.key] = entries.length > 1 ? entries : entries[0] ?? "";
+  }
+  return values;
+}
 
 export async function GET(request: Request, context: { params: Promise<{ endpoint: string }> }) {
   const { endpoint } = await context.params;
@@ -145,7 +156,8 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
   }
   const form = await getPublicForm(endpoint);
   if (!form) return complete(jsonError("form_not_found", "This form is unavailable.", 404, responseOrigin), { outcome: "rejected", reason: "form_not_found", status_code: 404 });
-  if (originHeader && (form.definition.settings?.allowedOrigins ?? []).includes(originHeader)) responseOrigin = originHeader;
+  const allowedOrigins = form.definition.settings?.allowedOrigins ?? [];
+  if (originHeader && (platformOrigin || allowedOrigins.length === 0 || allowedOrigins.includes(originHeader))) responseOrigin = originHeader;
   let data: FormData;
   try {
     data = (await parseSubmissionRequest(request, contentType.includes("application/json") ? MAX_VALUE_BYTES : MAX_REQUEST_BYTES)).data;
@@ -168,26 +180,27 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
     return complete(jsonError("request_too_large", "The submission is too large.", 413, responseOrigin), { outcome: "rejected", reason: "request_too_large", status_code: 413 });
   }
   const hostedOrigin = new URL(process.env.NEXT_PUBLIC_JOBING_SITE_URL || "https://jobing.site").origin;
-  if (isHoneypotRejection({ value: String(data.get("_gotcha") || ""), origin: originHeader, hostedOrigin })) {
+  if (isHoneypotRejection({ value: String(data.get("_gotcha") || ""), origin: originHeader })) {
     await rememberBlocked("honeypot");
     return complete(NextResponse.redirect(`${canonical(endpoint)}?submitted=1`, 303), { outcome: "rejected", reason: "honeypot", status_code: 303 });
   }
   const turnstileToken = String(data.get("cf-turnstile-response") || "");
   const isHostedForm = data.get("_jobing_form_context") === "hosted";
+  const preservedValues = retryableValues(form.definition, data);
   if (isHostedForm || turnstileToken) {
     const verification = await verifyTurnstile(turnstileToken, ip);
     if (verification.status === "rejected") {
       await rememberBlocked("challenge_failed");
-      const message = "Security check expired or could not be completed. Complete the new check below, then send your response again.";
+      const message = "The security check refreshed. Your answers are still here. Wait for the Send response button, then try again.";
       const response = isHostedForm && !wantsJson
-        ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: randomUUID(), formError: message }), 400)
+        ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: randomUUID(), formError: message, values: preservedValues }), 400)
         : jsonError("challenge_failed", message, 400, responseOrigin);
       return complete(response, { outcome: "rejected", reason: "challenge_failed", status_code: 400 });
     }
     if (verification.status === "unavailable") {
       const message = "The security check is temporarily unavailable. Wait a moment, then send your response again.";
       const response = isHostedForm && !wantsJson
-        ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: randomUUID(), formError: message }), 503)
+        ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: randomUUID(), formError: message, values: preservedValues }), 503)
         : jsonError("security_check_unavailable", message, 503, responseOrigin);
       return complete(response, { outcome: "unavailable", reason: "security_check_unavailable", status_code: 503 }, verification.error);
     }
@@ -207,7 +220,7 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
   if (!validated.success || Object.keys(uploads.errors).length > 0) {
     await rememberBlocked("validation_failed");
     if (wantsJson) return complete(NextResponse.json({ error: { code: "validation_failed", message: "Check the highlighted fields and try again.", fields: validationErrors } }, { status: 422, headers: corsHeaders(responseOrigin) }), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
-    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
+    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), siteKey: turnstileSiteKey(), submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors, values: raw }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
   }
   if (!secret || Buffer.byteLength(secret) < 32) return complete(jsonError("unavailable", "Forms is temporarily unavailable.", 503, responseOrigin), { outcome: "unavailable", reason: "configuration_missing", status_code: 503 }, new Error("Forms submission configuration is unavailable"));
   const origin = originHeader === hostedOrigin || platformOrigin ? null : originHeader;
@@ -240,7 +253,8 @@ export async function OPTIONS(request: Request, context: { params: Promise<{ end
   // POST when an endpoint is stale or mistyped.
   if (!isPagesRuntimeOrigin(origin)) {
     const form = await getPublicForm((await context.params).endpoint);
-    if (!form || !(form.definition.settings?.allowedOrigins ?? []).includes(origin)) return new NextResponse(null, { status: 403 });
+    const allowedOrigins = form?.definition.settings?.allowedOrigins ?? [];
+    if (!form || (allowedOrigins.length > 0 && !allowedOrigins.includes(origin))) return new NextResponse(null, { status: 403 });
   }
   return new NextResponse(null, { status: 204, headers: { "access-control-allow-origin": origin, "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "Content-Type, Idempotency-Key", "access-control-max-age": "86400", vary: "Origin" } });
 }

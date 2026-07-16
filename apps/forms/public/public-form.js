@@ -22,11 +22,11 @@
   };
 
   window.jobingTurnstileError = function () {
-    update("The security check could not load. Disable content blockers for this page, then reload it.", false);
+    update("The security check is retrying…", false);
   };
 
   window.jobingTurnstileExpired = function () {
-    update("The security check expired. Complete it again to send your response.", false);
+    update("Refreshing the security check…", false);
   };
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -37,7 +37,7 @@
       var token = current.form.querySelector('input[name="cf-turnstile-response"]');
       if (!token || !token.value) {
         event.preventDefault();
-        update("Complete the security check before sending your response.", false);
+        update("Finishing the security check…", false);
         if (window.turnstile) window.turnstile.reset();
         return;
       }
@@ -50,7 +50,7 @@
 
     window.setTimeout(function () {
       if (current.form.dataset.securityReady !== "true") {
-        update("Still checking your browser. If this does not finish, disable content blockers for this page and reload it.", false);
+        update("Still checking your browser. If this does not finish, allow the security check for this page and reload it.", false);
       }
     }, 10000);
   });

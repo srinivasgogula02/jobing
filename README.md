@@ -23,7 +23,7 @@ CLERK_AUTHORIZED_PARTIES=https://jobing.site
 ```
 
 Forms uses redirect-mode Clerk CTAs and always returns completed sign-in or sign-up
-to the fixed `https://jobing.site/forms/app` destination. It does not accept a return
+to the fixed `https://jobing.site/dashboard/forms` destination. It does not accept a return
 URL from the visitor.
 
 ## Local development

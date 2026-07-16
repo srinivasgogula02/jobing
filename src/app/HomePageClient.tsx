@@ -107,13 +107,13 @@ export function HomePageClient() {
         <div className={styles.sectionIntro}><p>Where your work lives</p><h2>Everything stays easy to find.</h2><span>Your AI creates the work. Jobing AI gives you a dashboard to manage what happens next.</span></div>
         <div className={styles.destinationGrid}>
           <Link href="/dashboard/pages" onClick={() => track("dashboard_destination_clicked", { destination: "pages" })}><span><Globe2 /></span><div><small>JOBING AI PAGES</small><h3>Open my pages</h3><p>View, edit, and share every web page your AI has published.</p></div><ChevronRight /></Link>
-          <Link href="/forms/app" onClick={() => track("dashboard_destination_clicked", { destination: "forms" })}><span><FormInput /></span><div><small>JOBING AI FORMS</small><h3>Open my forms inbox</h3><p>See your forms and every customer response in one place.</p></div><ChevronRight /></Link>
+          <Link href="/dashboard/forms" onClick={() => track("dashboard_destination_clicked", { destination: "forms" })}><span><FormInput /></span><div><small>JOBING AI FORMS</small><h3>Open my forms inbox</h3><p>See your forms and every customer response in one place.</p></div><ChevronRight /></Link>
         </div>
       </section>
 
       <section className={styles.finalCta}><div><p>One connection. Real outcomes.</p><h2>Give your AI a way to act.</h2><span>Copy the MCP URL and connect Jobing AI to the AI app you already use.</span></div><CopyConnector placement="footer" /></section>
 
-      <footer className={styles.footer}><div><Image src="/logo.png" alt="" width={24} height={24} /><span>Jobing AI · The connector that finishes the work</span></div><nav><Link href="/dashboard">Dashboard</Link><Link href="/dashboard/pages">Pages</Link><Link href="/forms/app">Forms</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav></footer>
+      <footer className={styles.footer}><div><Image src="/logo.png" alt="" width={24} height={24} /><span>Jobing AI · The connector that finishes the work</span></div><nav><Link href="/dashboard">Dashboard</Link><Link href="/dashboard/pages">Pages</Link><Link href="/dashboard/forms">Forms</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav></footer>
     </main>
   );
 }

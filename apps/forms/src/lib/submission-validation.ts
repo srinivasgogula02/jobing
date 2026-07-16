@@ -6,8 +6,11 @@ type SubmissionResult =
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
-export function isHoneypotRejection(input: { value: string; origin: string | null; hostedOrigin: string }) {
-  return Boolean(input.value) && input.origin !== input.hostedOrigin;
+export function isHoneypotRejection(input: { value: string; origin: string | null }) {
+  // Browsers and password managers sometimes autofill visually-hidden fields.
+  // Treat a filled trap as decisive only for originless scripted requests. Real
+  // browser submissions still pass validation, origin policy, and rate limits.
+  return Boolean(input.value) && input.origin === null;
 }
 
 export function validateSubmission(definitionInput: FormDefinitionInput, input: Record<string, unknown>): SubmissionResult {

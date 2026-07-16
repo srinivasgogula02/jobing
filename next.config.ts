@@ -62,8 +62,23 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/forms",
-        destination: "/forms/app",
+        destination: "/dashboard/forms",
         permanent: false,
+      },
+      {
+        source: "/forms/app/forms/:path*",
+        destination: "/dashboard/forms/:path*",
+        permanent: true,
+      },
+      {
+        source: "/forms/app/:path*",
+        destination: "/dashboard/forms",
+        permanent: true,
+      },
+      {
+        source: "/forms/app",
+        destination: "/dashboard/forms",
+        permanent: true,
       },
     ];
   },

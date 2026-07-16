@@ -68,7 +68,7 @@ CLERK_AUTHORIZED_PARTIES=https://jobing.site
 ```
 
 Forms sign-in buttons use Clerk's redirect flow. Both sign-in and sign-up completion
-are forced back to `https://jobing.site/forms/app`; the return path is fixed in code
+are forced back to `https://jobing.site/dashboard/forms`; the return path is fixed in code
 and is never read from request input.
 
 Retain the exact authorized parties:

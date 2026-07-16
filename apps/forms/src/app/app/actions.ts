@@ -50,7 +50,7 @@ export async function createFormAction() {
   } catch {
     redirect(`${process.env.NEXT_PUBLIC_JOBING_SITE_URL || "https://jobing.site"}/pricing?reason=forms_limit`);
   }
-  redirect(`/app/forms/${created.id}/edit`);
+  redirect(`/dashboard/forms/${created.id}/edit`);
 }
 
 export async function duplicateFormAction(formId: string) {
@@ -61,8 +61,8 @@ export async function duplicateFormAction(formId: string) {
   } catch {
     redirect(`${process.env.NEXT_PUBLIC_JOBING_SITE_URL || "https://jobing.site"}/pricing?reason=forms_limit`);
   }
-  revalidatePath("/app");
-  redirect(`/app/forms/${duplicate.id}/edit`);
+  revalidatePath("/dashboard/forms");
+  redirect(`/dashboard/forms/${duplicate.id}/edit`);
 }
 
 export async function saveFormAction(input: unknown) {
@@ -76,8 +76,8 @@ export async function saveFormAction(input: unknown) {
   if (!parsed.success) return { ok: false as const, error: "Check the highlighted settings before saving." };
   try {
     const saved = await updateDashboardForm({ actorId: userId, ...parsed.data });
-    revalidatePath("/app");
-    revalidatePath(`/app/forms/${parsed.data.formId}`);
+    revalidatePath("/dashboard/forms");
+    revalidatePath(`/dashboard/forms/${parsed.data.formId}`);
     return { ok: true as const, revision: saved.revision, status: saved.status };
   } catch (error) {
     return { ok: false as const, error: messageFor(error) };
@@ -95,8 +95,8 @@ export async function publishFormAction(input: unknown) {
   if (!parsed.success) return { ok: false as const, error: "The publish request is invalid." };
   try {
     const published = await publishDashboardForm(userId, parsed.data.formId, parsed.data.expectedRevision);
-    revalidatePath("/app");
-    revalidatePath(`/app/forms/${parsed.data.formId}`);
+    revalidatePath("/dashboard/forms");
+    revalidatePath(`/dashboard/forms/${parsed.data.formId}`);
     return { ok: true as const, revision: published.revision, version: published.version, endpointId: published.endpointId };
   } catch (error) {
     const message = messageFor(error);
@@ -113,5 +113,5 @@ export async function reviewSubmissionAction(input: unknown) {
   const parsed = z.object({ formId: z.string().uuid(), submissionId: z.string().uuid(), state: z.enum(["inbox", "spam", "archived"]) }).safeParse(input);
   if (!parsed.success) return;
   await setSubmissionReviewState(userId, parsed.data.submissionId, parsed.data.state);
-  revalidatePath(`/app/forms/${parsed.data.formId}`);
+  revalidatePath(`/dashboard/forms/${parsed.data.formId}`);
 }

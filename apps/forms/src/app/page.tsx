@@ -7,7 +7,7 @@ import { FormsPositioning } from "./forms-positioning";
 import styles from "./forms-marketing.module.css";
 
 const connectorUrl = "https://jobing.site/mcp";
-const formsDashboardUrl = "https://jobing.site/forms/app";
+const formsDashboardUrl = "https://jobing.site/dashboard/forms";
 
 export const metadata: Metadata = {
   title: "Jobing Forms | Add any form to any website by asking your AI",

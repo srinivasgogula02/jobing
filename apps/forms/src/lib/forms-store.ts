@@ -54,6 +54,9 @@ const submissionSummarySchema = z.object({
 const paginatedSubmissionsSchema = z.object({
   items: z.array(submissionSummarySchema), total: z.coerce.number().int().nonnegative(), page: z.coerce.number().int().positive(),
   pageSize: z.coerce.number().int().positive(), pages: z.coerce.number().int().positive(),
+  storedTotal: z.coerce.number().int().nonnegative().default(0), visibleTotal: z.coerce.number().int().nonnegative().default(0),
+  hiddenTotal: z.coerce.number().int().nonnegative().default(0), visibilityLimit: z.coerce.number().int().nonnegative().nullable().default(50),
+  visibilityPeriod: z.literal("month").default("month"), planKey: z.string().default("free"),
 });
 
 const blockedSubmissionSchema = z.object({

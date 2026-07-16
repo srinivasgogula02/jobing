@@ -76,6 +76,12 @@ const paginatedFormResponsesSchema = z.object({
   page: z.coerce.number().int().positive(),
   pageSize: z.coerce.number().int().positive(),
   pages: z.coerce.number().int().positive(),
+  storedTotal: z.coerce.number().int().nonnegative().default(0),
+  visibleTotal: z.coerce.number().int().nonnegative().default(0),
+  hiddenTotal: z.coerce.number().int().nonnegative().default(0),
+  visibilityLimit: z.coerce.number().int().nonnegative().nullable().default(50),
+  visibilityPeriod: z.literal("month").default("month"),
+  planKey: z.string().default("free"),
 });
 
 const errorEnvelopeSchema = z.object({
@@ -514,11 +520,19 @@ export async function createConnectorForm(
   return withoutDraftEndpoint(parseServiceResponse(z.object({ data: createdFormSchema }), body).data, form.definition);
 }
 
-export async function listConnectorForms(actor: FormsActor) {
+async function listFormsFromService(actor: FormsActor) {
   const rawBody = serializeFormsPayload({ actor });
   await ensureFormsWorkspace(actor);
   const body = await postSerializedToForms("/api/internal/v1/forms/list", rawBody);
-  return parseServiceResponse(z.object({ data: z.object({ forms: z.array(formSummarySchema) }) }), body).data.forms.map((form) => form.status === "published" ? withPublicEndpoint(form) : withoutDraftEndpoint(form));
+  return parseServiceResponse(z.object({ data: z.object({ forms: z.array(formSummarySchema) }) }), body).data.forms;
+}
+
+export async function listDashboardFormsFromService(actor: FormsActor) {
+  return listFormsFromService(actor);
+}
+
+export async function listConnectorForms(actor: FormsActor) {
+  return (await listFormsFromService(actor)).map((form) => form.status === "published" ? withPublicEndpoint(form) : withoutDraftEndpoint(form));
 }
 
 export async function publishConnectorForm(

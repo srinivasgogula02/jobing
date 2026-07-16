@@ -3,7 +3,6 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
-import posthog from "posthog-js";
 import { filterMainClientSentryEvent, scrubMainSentryTransaction } from "@/lib/sentry-privacy";
 
 const observabilityEnabled = process.env.NEXT_PUBLIC_OBSERVABILITY_ENABLED === "true"
@@ -23,37 +22,3 @@ Sentry.init({
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
-
-const posthogToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-
-if (posthogToken && observabilityEnabled) {
-  posthog.init(posthogToken, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "/ingest",
-    ui_host: "https://us.posthog.com",
-    defaults: "2026-01-30",
-    person_profiles: "identified_only",
-    autocapture: false,
-    capture_pageview: false,
-    capture_pageleave: false,
-    disable_session_recording: true,
-    session_recording: {
-      // Replays are opt-in from the route controller and deliberately show
-      // interaction/layout only. Product text and every input value are masked.
-      maskAllInputs: true,
-      maskTextSelector: "*",
-      recordCrossOriginIframes: false,
-      recordHeaders: false,
-      recordBody: false,
-      maskCapturedNetworkRequestFn: (request) => {
-        try {
-          const url = new URL(request.name, window.location.origin);
-          url.search = "";
-          url.hash = "";
-          return { ...request, name: url.toString() };
-        } catch {
-          return null;
-        }
-      },
-    },
-  });
-}

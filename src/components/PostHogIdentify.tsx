@@ -4,8 +4,8 @@ import { useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
-import posthog from "posthog-js";
 import { classifyProductPage } from "@/lib/product-analytics-contract";
+import { getPostHogBrowserClient } from "@/lib/posthog-browser";
 
 export function PostHogIdentify() {
   const { user, isLoaded } = useUser();
@@ -19,8 +19,8 @@ export function PostHogIdentify() {
     // metrics meaningful without sending names or email addresses to Sentry.
     Sentry.setUser(user ? { id: user.id } : null);
 
-    const enabled = process.env.NEXT_PUBLIC_OBSERVABILITY_ENABLED === "true" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
-    if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || !enabled) return;
+    const posthog = getPostHogBrowserClient();
+    if (!posthog) return;
     if (user) {
       // Stable application ID only. Names, usernames, and email addresses are
       // unnecessary for product analytics and are deliberately excluded.
@@ -37,8 +37,8 @@ export function PostHogIdentify() {
 
   useEffect(() => {
     if (!isLoaded || !pathname) return;
-    const enabled = process.env.NEXT_PUBLIC_OBSERVABILITY_ENABLED === "true" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
-    if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || !enabled) return;
+    const posthog = getPostHogBrowserClient();
+    if (!posthog) return;
 
     const page = classifyProductPage(pathname);
     posthog.capture("product_page_viewed", {

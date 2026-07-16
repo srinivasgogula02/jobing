@@ -2,11 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
+import { classifyProductPage } from "@/lib/product-analytics-contract";
 
 export function PostHogIdentify() {
   const { user, isLoaded } = useUser();
+  const pathname = usePathname();
   const identifiedUserId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -31,6 +34,25 @@ export function PostHogIdentify() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user?.id]);
+
+  useEffect(() => {
+    if (!isLoaded || !pathname) return;
+    const enabled = process.env.NEXT_PUBLIC_OBSERVABILITY_ENABLED === "true" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
+    if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || !enabled) return;
+
+    const page = classifyProductPage(pathname);
+    posthog.capture("product_page_viewed", {
+      page_name: page.pageName,
+      product_area: page.productArea,
+      authenticated: Boolean(user),
+      $process_person_profile: false,
+    });
+
+    // Keep the free replay allowance focused on authenticated product screens.
+    // PostHog's project-side sampling and billing cap are still respected.
+    if (user && page.replayEligible) posthog.startSessionRecording();
+    else posthog.stopSessionRecording();
+  }, [isLoaded, pathname, user]);
 
   return null;
 }

@@ -1,10 +1,10 @@
+import { classifyProductPage } from "@/lib/product-analytics-contract";
+
 /**
  * Lightweight, typed analytics dispatcher.
  *
- * Why this exists: until now the only events GA4 received were the auto-captured
- * Enhanced Measurement ones (page_view, scroll, etc.) plus DodoPayments' ecommerce
- * hits. The core product loop — someone creating and sharing a note — was invisible.
- * That made the real funnel (the viral /c/ + /copy surface) impossible to measure.
+ * Explicit browser actions for the current Jobing product. Server-side outcomes
+ * such as MCP tools, publishing and payments use product-telemetry instead.
  *
  * `track()` fans a single semantic event out to GA4 (gtag) and the Meta pixel (fbq)
  * if they are present. It is a no-op on the server and on localhost, so local dev
@@ -39,7 +39,8 @@ export type AnalyticsEvent =
   | "homepage_role_selected"
   | "setup_video_loaded"
   | "dashboard_destination_clicked"
-  | "pricing_plan_selected";
+  | "pricing_plan_selected"
+  | "checkout_started";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";
@@ -61,10 +62,17 @@ declare global {
 export function track(event: AnalyticsEvent, params: EventParams = {}): void {
   if (!isBrowser()) return;
 
+  const page = classifyProductPage(window.location.pathname);
+  const contextualParams: EventParams = {
+    page_name: page.pageName,
+    product_area: page.productArea,
+    ...params,
+  };
+
   if (!isLocalhost() && process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN) try {
     void import("posthog-js")
       .then(({ default: posthog }) => {
-        posthog.capture(event, params);
+        posthog.capture(event, contextualParams);
       })
       .catch(() => {
         /* analytics must never break the product */
@@ -77,7 +85,7 @@ export function track(event: AnalyticsEvent, params: EventParams = {}): void {
 
   // Strip undefined values so GA4 doesn't record empty params.
   const clean: EventParams = {};
-  for (const [k, v] of Object.entries(params)) {
+  for (const [k, v] of Object.entries(contextualParams)) {
     if (v !== undefined) clean[k] = v;
   }
 

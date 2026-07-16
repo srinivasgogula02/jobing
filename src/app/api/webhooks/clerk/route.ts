@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { WebhookEvent, clerkClient } from '@clerk/nextjs/server'
 import { getPostHogClient } from '@/lib/posthog-server'
 import { enqueueAndDeliverUserDeletion } from '@/lib/forms-projection-outbox'
+import { captureProductEvent } from '@/lib/product-telemetry'
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -130,18 +131,14 @@ export async function POST(req: Request) {
                 const results = await Promise.allSettled([
                     posthog.identifyImmediate({
                         distinctId: id,
-                        properties: { username: username || undefined, name: name || undefined },
-                    }),
-                    posthog.captureImmediate({
-                        distinctId: id,
-                        event: 'user_signed_up',
-                        properties: { source: 'clerk' },
+                        properties: { plan_key: 'free', signup_source: 'clerk' },
                     }),
                 ]);
                 for (const result of results) {
                     if (result.status === 'rejected') console.error('PostHog delivery failed:', result.reason);
                 }
             }
+            captureProductEvent({ event: 'user_signed_up', distinctId: id, properties: { source: 'clerk', plan_key: 'free', product_area: 'account' } });
         }
     }
 

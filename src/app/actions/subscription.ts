@@ -5,6 +5,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { dodo } from "@/lib/dodo";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getBillingPlanByProductId } from "@/lib/billing-plans";
+import { captureProductEvent } from "@/lib/product-telemetry";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "pending", "on_hold"]);
@@ -68,10 +69,15 @@ export async function createSubscriptionCheckout(productId: string, attemptId: s
       },
     );
 
-    if (!session.checkout_url) return { url: null, error: "Checkout did not return a secure payment URL." };
+    if (!session.checkout_url) {
+      captureProductEvent({ event: "checkout_failed", distinctId: user.id, properties: { product_area: "billing", plan_key: plan.key, error_code: "missing_checkout_url", outcome: "error" } });
+      return { url: null, error: "Checkout did not return a secure payment URL." };
+    }
+    captureProductEvent({ event: "checkout_started", distinctId: user.id, properties: { product_area: "billing", plan_key: plan.key, outcome: "success" } });
     return { url: session.checkout_url, error: null };
   } catch (error) {
     console.error("[checkout] Dodo session creation failed", error instanceof Error ? { name: error.name } : { type: typeof error });
+    captureProductEvent({ event: "checkout_failed", distinctId: user.id, properties: { product_area: "billing", plan_key: plan.key, error_code: "provider_error", outcome: "error" } });
     return { url: null, error: "Checkout is temporarily unavailable. Try again in a moment." };
   }
 }

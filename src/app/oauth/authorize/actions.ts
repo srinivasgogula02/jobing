@@ -14,17 +14,7 @@ import {
   serializeOAuthScopes,
 } from "@/lib/oauth-scopes";
 import { captureProductEvent } from "@/lib/product-telemetry";
-
-function clientType(redirectUri: string) {
-  try {
-    const hostname = new URL(redirectUri).hostname;
-    if (hostname === "chatgpt.com" || hostname.endsWith(".chatgpt.com")) return "chatgpt";
-    if (hostname === "claude.ai" || hostname.endsWith(".claude.ai")) return "claude";
-  } catch {
-    // The URI is validated against registered metadata before this is called.
-  }
-  return "other";
-}
+import { classifyConnectorClient } from "@/lib/product-analytics-contract";
 
 function target(base: string, values: Record<string, string | undefined>) {
   const url = new URL(base);
@@ -84,7 +74,7 @@ export async function approveAuthorization(form: FormData) {
   captureProductEvent({
     event: "connector_oauth_completed",
     distinctId: userId,
-    properties: { outcome: "approved", client_type: clientType(redirectUri), scope_count: scope.split(" ").length },
+    properties: { outcome: "approved", client_type: classifyConnectorClient([redirectUri]), scope_count: scope.split(" ").length, product_area: "connector" },
   });
   redirect(target(redirectUri, { code, state }));
 }
@@ -95,6 +85,6 @@ export async function denyAuthorization(form: FormData) {
   const state = value(form, "state", 2048) || undefined;
   const client = await getClient(clientId);
   if (!client || !client.redirect_uris.includes(redirectUri)) redirect("/oauth/authorize/error");
-  captureProductEvent({ event: "connector_oauth_completed", properties: { outcome: "denied", client_type: clientType(redirectUri) } });
+  captureProductEvent({ event: "connector_oauth_completed", properties: { outcome: "denied", client_type: classifyConnectorClient([redirectUri]), product_area: "connector" } });
   redirect(target(redirectUri, { error: "access_denied", state }));
 }

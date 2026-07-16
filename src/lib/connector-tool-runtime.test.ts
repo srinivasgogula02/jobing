@@ -35,10 +35,48 @@ describe("connector tool runtime", () => {
     });
     expect(result).toMatchObject({ isError: true, content: [{ text: "The page could not be deployed." }] });
     expect(telemetry.event).toHaveBeenCalledWith(expect.objectContaining({
-      properties: expect.objectContaining({ tool_name: "deploy_page", outcome: "error", error_code: "internal_error" }),
+      distinctId: "user",
+      properties: expect.objectContaining({
+        tool_name: "deploy_page",
+        product_area: "pages",
+        tool_action: "create",
+        access_mode: "write",
+        primary_scope: "pages:write",
+        client_type: "other",
+        outcome: "error",
+        error_code: "internal_error",
+        error_class: "dependency",
+      }),
     }));
     expect(JSON.stringify(telemetry.event.mock.calls)).not.toContain("private");
     expect(telemetry.exception).toHaveBeenCalledWith({ errorCode: "internal_error", operation: "mcp_tool", toolName: "deploy_page" });
+  });
+
+  it("records classified success properties from the tool and result", async () => {
+    const result = await runConnectorTool({
+      toolName: "list_form_responses",
+      authInfo: { clientId: "client", scopes: ["forms.responses:read"], extra: { userId: "user", grantId: "5df42931-5953-42a0-bd90-7581a79326db", clientType: "claude" } },
+      requiredScope: "forms.responses:read",
+      fallback: "Could not read responses.",
+      properties: { query_used: true, response_state: "inbox" },
+      execute: async () => ({ items: 3, hidden: true }),
+      resultProperties: (value) => ({ result_count_bucket: value.items === 3 ? "2_5" : "0", has_hidden_results: value.hidden }),
+    });
+    expect(result).toEqual({ items: 3, hidden: true });
+    expect(telemetry.event).toHaveBeenCalledWith(expect.objectContaining({
+      distinctId: "user",
+      properties: expect.objectContaining({
+        tool_name: "list_form_responses",
+        product_area: "responses",
+        tool_action: "read",
+        access_mode: "read",
+        client_type: "claude",
+        query_used: true,
+        result_count_bucket: "2_5",
+        has_hidden_results: true,
+        outcome: "success",
+      }),
+    }));
   });
 
   it("returns a reconnect message for missing scope without creating an incident", () => {

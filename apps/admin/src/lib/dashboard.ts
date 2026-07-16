@@ -5,7 +5,11 @@ export type ProviderResult<T> =
   | { status: "unavailable"; reason: "not_configured" | "timeout" | "rate_limited" | "provider_error" };
 
 export type EventCount = { event: string; count: number };
-export type ToolCount = { tool: string; outcome: string; count: number };
+export type ActivationStep = { event: string; label: string; users: number };
+export type ToolHealth = { tool: string; area: string; client: string; success: number; errors: number; runs: number; avgDurationMs: number };
+export type FailureCount = { tool: string; code: string; count: number };
+export type ActiveUsers = { day: number; week: number; month: number };
+export type RuntimeSignal = { event: string; outcome: string; reason: string; count: number };
 export type FeedbackItem = {
   id: string;
   kind: string;
@@ -19,6 +23,15 @@ export type SentryIssue = { id: string; title: string; count: number; users: num
 
 function unavailable<T>(reason: Extract<ProviderResult<T>, { status: "unavailable" }>["reason"]): ProviderResult<T> {
   return { status: "unavailable", reason };
+}
+
+function number(value: unknown) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function text(value: unknown, fallback = "unknown") {
+  return typeof value === "string" && value.length > 0 ? value : fallback;
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 5_000) {
@@ -52,15 +65,69 @@ async function postHogQuery(query: string): Promise<ProviderResult<unknown[][]>>
 }
 
 async function loadProductEvents(): Promise<ProviderResult<EventCount[]>> {
-  const result = await postHogQuery("SELECT event, count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event IN ('connector_oauth_completed','mcp_request_completed','mcp_tool_completed','page_deploy_completed','form_draft_completed','form_publish_completed','form_submission_completed','generated_page_request_completed','connector_feedback_submitted') GROUP BY event ORDER BY count() DESC LIMIT 30");
+  const result = await postHogQuery("SELECT event, count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event IN ('user_signed_up','connector_oauth_completed','mcp_request_completed','mcp_tool_completed','page_deploy_completed','form_draft_completed','form_publish_completed','form_submission_completed','generated_page_request_completed','connector_feedback_submitted','checkout_started','checkout_failed','payment_succeeded','payment_failed','subscription_activated','subscription_cancelled') GROUP BY event ORDER BY count() DESC LIMIT 40");
   if (result.status !== "ok") return result;
-  return { status: "ok", data: result.data.flatMap((row) => typeof row[0] === "string" && typeof row[1] === "number" ? [{ event: row[0], count: row[1] }] : []) };
+  return { status: "ok", data: result.data.map((row) => ({ event: text(row[0]), count: number(row[1]) })) };
 }
 
-async function loadToolCounts(): Promise<ProviderResult<ToolCount[]>> {
-  const result = await postHogQuery("SELECT properties.tool_name, properties.outcome, count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event = 'mcp_tool_completed' GROUP BY properties.tool_name, properties.outcome ORDER BY count() DESC LIMIT 50");
+async function loadActivation(): Promise<ProviderResult<ActivationStep[]>> {
+  const result = await postHogQuery("SELECT event, uniq(distinct_id) FROM events WHERE timestamp > now() - INTERVAL 30 DAY AND ((event = 'user_signed_up') OR (event = 'connector_oauth_completed' AND properties.outcome = 'approved') OR (event = 'mcp_tool_completed' AND properties.outcome = 'success') OR (event IN ('page_deploy_completed','form_publish_completed','checkout_started','payment_succeeded') AND properties.outcome = 'success')) GROUP BY event");
   if (result.status !== "ok") return result;
-  return { status: "ok", data: result.data.flatMap((row) => typeof row[0] === "string" && typeof row[1] === "string" && typeof row[2] === "number" ? [{ tool: row[0], outcome: row[1], count: row[2] }] : []) };
+  const labels: Record<string, string> = {
+    user_signed_up: "Signed up",
+    connector_oauth_completed: "Connected an AI app",
+    mcp_tool_completed: "Completed an AI action",
+    page_deploy_completed: "Published a web page",
+    form_publish_completed: "Published a form",
+    checkout_started: "Started checkout",
+    payment_succeeded: "Paid",
+  };
+  const counts = new Map(result.data.map((row) => [text(row[0]), number(row[1])]));
+  return { status: "ok", data: Object.entries(labels).map(([event, label]) => ({ event, label, users: counts.get(event) ?? 0 })) };
+}
+
+async function loadToolHealth(): Promise<ProviderResult<ToolHealth[]>> {
+  const result = await postHogQuery("SELECT properties.tool_name, properties.product_area, properties.client_type, properties.outcome, count(), avg(toFloat(properties.duration_ms)) FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event = 'mcp_tool_completed' GROUP BY properties.tool_name, properties.product_area, properties.client_type, properties.outcome ORDER BY count() DESC LIMIT 100");
+  if (result.status !== "ok") return result;
+  const grouped = new Map<string, ToolHealth & { weightedDuration: number }>();
+  for (const row of result.data) {
+    const tool = text(row[0]);
+    const area = text(row[1]);
+    const client = text(row[2]);
+    const outcome = text(row[3]);
+    const count = number(row[4]);
+    const avgDuration = number(row[5]);
+    const key = `${tool}:${area}:${client}`;
+    const current = grouped.get(key) ?? { tool, area, client, success: 0, errors: 0, runs: 0, avgDurationMs: 0, weightedDuration: 0 };
+    if (outcome === "success") current.success += count;
+    else current.errors += count;
+    current.runs += count;
+    current.weightedDuration += avgDuration * count;
+    grouped.set(key, current);
+  }
+  return {
+    status: "ok",
+    data: [...grouped.values()].map(({ weightedDuration, ...item }) => ({ ...item, avgDurationMs: item.runs ? Math.round(weightedDuration / item.runs) : 0 })).sort((a, b) => b.runs - a.runs),
+  };
+}
+
+async function loadFailures(): Promise<ProviderResult<FailureCount[]>> {
+  const result = await postHogQuery("SELECT properties.tool_name, properties.error_code, count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event = 'mcp_tool_completed' AND properties.outcome = 'error' GROUP BY properties.tool_name, properties.error_code ORDER BY count() DESC LIMIT 30");
+  if (result.status !== "ok") return result;
+  return { status: "ok", data: result.data.map((row) => ({ tool: text(row[0]), code: text(row[1]), count: number(row[2]) })) };
+}
+
+async function loadActiveUsers(): Promise<ProviderResult<ActiveUsers>> {
+  const result = await postHogQuery("SELECT uniqIf(distinct_id, timestamp > now() - INTERVAL 1 DAY), uniqIf(distinct_id, timestamp > now() - INTERVAL 7 DAY), uniq(distinct_id) FROM events WHERE timestamp > now() - INTERVAL 30 DAY AND event = 'mcp_tool_completed' AND properties.outcome = 'success'");
+  if (result.status !== "ok") return result;
+  const row = result.data[0] ?? [];
+  return { status: "ok", data: { day: number(row[0]), week: number(row[1]), month: number(row[2]) } };
+}
+
+async function loadRuntimeSignals(): Promise<ProviderResult<RuntimeSignal[]>> {
+  const result = await postHogQuery("SELECT event, properties.outcome, properties.reason, count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event IN ('form_submission_completed','generated_page_request_completed') GROUP BY event, properties.outcome, properties.reason ORDER BY count() DESC LIMIT 40");
+  if (result.status !== "ok") return result;
+  return { status: "ok", data: result.data.map((row) => ({ event: text(row[0]), outcome: text(row[1]), reason: text(row[2], "none"), count: number(row[3]) })) };
 }
 
 async function loadFeedback(): Promise<ProviderResult<FeedbackItem[]>> {
@@ -102,9 +169,7 @@ async function loadSentryIssues(): Promise<ProviderResult<SentryIssue[]>> {
   const token = process.env.SENTRY_API_TOKEN;
   if (!org || !project || !token) return unavailable("not_configured");
   try {
-    const response = await fetchWithTimeout(sentryIssuesUrl(host, org, project), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await fetchWithTimeout(sentryIssuesUrl(host, org, project), { headers: { Authorization: `Bearer ${token}` } });
     if (!response) return unavailable("timeout");
     if (response.status === 429) return unavailable("rate_limited");
     if (!response.ok) return unavailable("provider_error");
@@ -112,8 +177,8 @@ async function loadSentryIssues(): Promise<ProviderResult<SentryIssue[]>> {
     return { status: "ok", data: rows.flatMap((row) => typeof row.id === "string" && typeof row.title === "string" && typeof row.permalink === "string" && typeof row.lastSeen === "string" ? [{
       id: row.id,
       title: row.title,
-      count: Number(row.count) || 0,
-      users: Number(row.userCount) || 0,
+      count: number(row.count),
+      users: number(row.userCount),
       permalink: row.permalink,
       lastSeen: row.lastSeen,
     }] : []) };
@@ -123,17 +188,21 @@ async function loadSentryIssues(): Promise<ProviderResult<SentryIssue[]>> {
 }
 
 async function loadDashboardUncached() {
-  const [events, tools, feedback, issues] = await Promise.allSettled([
-    loadProductEvents(), loadToolCounts(), loadFeedback(), loadSentryIssues(),
+  const [events, activation, tools, failures, activeUsers, runtime, feedback, issues] = await Promise.allSettled([
+    loadProductEvents(), loadActivation(), loadToolHealth(), loadFailures(), loadActiveUsers(), loadRuntimeSignals(), loadFeedback(), loadSentryIssues(),
   ]);
   const safe = <T,>(result: PromiseSettledResult<ProviderResult<T>>): ProviderResult<T> => result.status === "fulfilled" ? result.value : unavailable("provider_error");
   return {
     events: safe(events),
+    activation: safe(activation),
     tools: safe(tools),
+    failures: safe(failures),
+    activeUsers: safe(activeUsers),
+    runtime: safe(runtime),
     feedback: safe(feedback),
     issues: safe(issues),
     generatedAt: new Date().toISOString(),
   };
 }
 
-export const loadDashboard = unstable_cache(loadDashboardUncached, ["jobing-admin-dashboard-v1"], { revalidate: 60 });
+export const loadDashboard = unstable_cache(loadDashboardUncached, ["jobing-admin-dashboard-v2"], { revalidate: 120 });

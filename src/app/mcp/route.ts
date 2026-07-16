@@ -31,6 +31,8 @@ import {
 import { consumeConnectorRateLimit, validateAccessTokenInfo } from "@/lib/oauth";
 import { effectiveOAuthScopes } from "@/lib/oauth-scopes";
 import { captureProductEvent } from "@/lib/product-telemetry";
+import { countBucket, payloadSizeBucket } from "@/lib/product-analytics-contract";
+import { getConnectorClientType } from "@/lib/oauth-client-telemetry";
 import { rateLimit, requestIp } from "@/lib/rate-limit";
 
 const handler = createMcpHandler(
@@ -87,6 +89,10 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: "pages:write",
         fallback: "Could not deploy the page.",
+        properties: {
+          page_contains_form: /<form\b/i.test(html),
+          payload_size_bucket: payloadSizeBucket(html.length),
+        },
         execute: async (actor) => {
           const page = await deployConnectedPage(actor.userId, id, html);
           return {
@@ -124,6 +130,7 @@ const handler = createMcpHandler(
             structuredContent: { pages },
           };
         },
+        resultProperties: (result) => ({ result_count_bucket: countBucket(result.structuredContent.pages.length) }),
       }),
     );
 
@@ -164,6 +171,10 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: "pages:manage",
         fallback: "Could not update the page.",
+        properties: {
+          page_contains_form: /<form\b/i.test(html),
+          payload_size_bucket: payloadSizeBucket(html.length),
+        },
         execute: async (actor) => {
           const page = await updateConnectedPage(actor.userId, id, html, expectedUpdatedAt);
           return { content: [{ type: "text", text: `Updated page "${page.id}": ${page.url}` }], structuredContent: page };
@@ -212,6 +223,11 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: "forms:write",
         fallback: "Could not create the form draft.",
+        properties: {
+          field_count_bucket: countBucket(input.fields.length),
+          has_file_upload: input.fields.some((field) => field.type === "file"),
+          resource_status: "draft",
+        },
         execute: async (actor) => {
           const form = await createConnectorForm(actor, buildConnectorFormDraft(input), input.operationId);
           return {
@@ -247,6 +263,7 @@ const handler = createMcpHandler(
             structuredContent: { forms },
           };
         },
+        resultProperties: (result) => ({ result_count_bucket: countBucket(result.structuredContent.forms.length) }),
       }),
     );
 
@@ -263,6 +280,11 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: ["forms:read", "forms:write"],
         fallback: "Could not update the form draft.",
+        properties: {
+          field_count_bucket: countBucket(input.fields.length),
+          has_file_upload: input.fields.some((field) => field.type === "file"),
+          resource_status: "draft",
+        },
         execute: async (actor) => {
           const current = (await listConnectorForms(actor)).find((form) => form.id === input.formId);
           if (!current?.definition) throw new FormsServiceError("form_not_found", "The requested form could not be found.", 404);
@@ -301,6 +323,7 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: ["forms:read", "forms:write"],
         fallback: "Could not duplicate the form.",
+        properties: { resource_status: "draft" },
         execute: async (actor) => {
           const form = await duplicateConnectorForm(actor, sourceFormId, name, operationId);
           return {
@@ -331,6 +354,10 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: "forms.responses:read",
         fallback: "Could not read the form responses.",
+        properties: {
+          query_used: Boolean(query),
+          response_state: state,
+        },
         execute: async (actor) => {
           const responses = await listConnectorFormResponses(actor, formId, { query, state, sort, page, pageSize });
           const lockedNotice = responses.hiddenTotal > 0
@@ -344,6 +371,11 @@ const handler = createMcpHandler(
             },
           };
         },
+        resultProperties: (result) => ({
+          result_count_bucket: countBucket(result.structuredContent.items.length),
+          has_hidden_results: result.structuredContent.hiddenTotal > 0,
+          plan_key: result.structuredContent.planKey,
+        }),
       }),
     );
 
@@ -363,6 +395,7 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: "forms.responses:write",
         fallback: "Could not organize the form response.",
+        properties: { response_state: state },
         execute: async (actor) => {
           const result = await setConnectorFormResponseState(actor, submissionId, state);
           return {
@@ -395,6 +428,7 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: "forms:publish",
         fallback: "Could not publish the form.",
+        properties: { resource_status: "published" },
         execute: async (actor) => {
           const form = await publishConnectorForm(actor, formId, expectedRevision, operationId);
           return {
@@ -423,6 +457,10 @@ const handler = createMcpHandler(
         authInfo,
         requiredScope: "feedback:write",
         fallback: "Feedback could not be saved right now.",
+        properties: {
+          feedback_kind: input.kind,
+          use_case: input.useCase,
+        },
         execute: async (actor) => {
           const feedback = await reportConnectorFeedback(actor, input);
           return {
@@ -450,6 +488,19 @@ async function grantRateLimitedHandler(req: Request) {
   }
 
   if (!(await consumeConnectorRateLimit(grantId))) {
+    const userId = req.auth?.extra?.userId;
+    const clientType = req.auth?.extra?.clientType;
+    captureProductEvent({
+      event: "mcp_request_completed",
+      distinctId: typeof userId === "string" ? userId : undefined,
+      properties: {
+        outcome: "error",
+        error_code: "grant_rate_limited",
+        status: "429",
+        client_type: typeof clientType === "string" ? clientType : "other",
+        product_area: "connector",
+      },
+    });
     return new Response(JSON.stringify({ error: "rate_limit_exceeded" }), {
       status: 429,
       headers: {
@@ -467,12 +518,13 @@ const authHandler = withMcpAuth(
   async (_, token) => {
     const info = await validateAccessTokenInfo(token);
     if (!info || !token) return undefined;
+    const clientType = await getConnectorClientType(info.clientId);
     return {
       token,
       clientId: info.clientId,
       scopes: effectiveOAuthScopes(info.scope),
       expiresAt: info.expiresAt,
-      extra: { userId: info.userId, grantId: info.grantId },
+      extra: { userId: info.userId, grantId: info.grantId, clientType },
     };
   },
   {

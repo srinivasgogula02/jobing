@@ -15,6 +15,8 @@ import {
   setConnectorFormResponseState,
   updateConnectorForm,
 } from "@/lib/forms-service";
+import { captureProductEvent } from "@/lib/product-telemetry";
+import { countBucket } from "@/lib/product-analytics-contract";
 
 const FORMS_PATH = "/dashboard/forms";
 
@@ -52,7 +54,9 @@ export async function createFormAction() {
   let created;
   try {
     created = await createConnectorForm(currentActor, { name: "Untitled form", definition }, `dashboard:create:${randomUUID()}`);
+    captureProductEvent({ event: "form_draft_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "create", outcome: "success", field_count_bucket: countBucket(definition.fields.length), resource_status: "draft" } });
   } catch (error) {
+    captureProductEvent({ event: "form_draft_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "create", outcome: "error", error_code: error instanceof FormsServiceError ? error.code : "internal_error" } });
     if (error instanceof FormsServiceError && error.code === "form_limit_reached") {
       redirect("/pricing?reason=forms_limit");
     }
@@ -73,7 +77,9 @@ export async function duplicateFormAction(formId: string) {
       `${source.name} copy`.slice(0, 200),
       `dashboard:duplicate:${randomUUID()}`,
     );
+    captureProductEvent({ event: "form_draft_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "duplicate", outcome: "success", resource_status: "draft" } });
   } catch (error) {
+    captureProductEvent({ event: "form_draft_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "duplicate", outcome: "error", error_code: error instanceof FormsServiceError ? error.code : "internal_error" } });
     if (error instanceof FormsServiceError && error.code === "form_limit_reached") {
       redirect("/pricing?reason=forms_limit");
     }
@@ -99,10 +105,12 @@ export async function saveFormAction(input: unknown) {
       description: parsed.data.description,
       definition: parsed.data.definition,
     });
+    captureProductEvent({ event: "form_draft_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "update", outcome: "success", field_count_bucket: countBucket(parsed.data.definition.fields.length), resource_status: saved.status } });
     revalidatePath(FORMS_PATH);
     revalidatePath(`${FORMS_PATH}/${parsed.data.formId}`);
     return { ok: true as const, revision: saved.revision, status: saved.status };
   } catch (error) {
+    captureProductEvent({ event: "form_draft_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "update", outcome: "error", error_code: error instanceof FormsServiceError ? error.code : "internal_error" } });
     return { ok: false as const, error: friendlyMessage(error) };
   }
 }
@@ -123,10 +131,12 @@ export async function publishFormAction(input: unknown) {
       parsed.data.expectedRevision,
       `dashboard:publish:${randomUUID()}`,
     );
+    captureProductEvent({ event: "form_publish_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "publish", outcome: "success", resource_status: "published" } });
     revalidatePath(FORMS_PATH);
     revalidatePath(`${FORMS_PATH}/${parsed.data.formId}`);
     return { ok: true as const, revision: published.revision, version: published.version, endpointId: published.endpointId };
   } catch (error) {
+    captureProductEvent({ event: "form_publish_completed", distinctId: currentActor.userId, properties: { source: "dashboard", product_area: "forms", operation: "publish", outcome: "error", error_code: error instanceof FormsServiceError ? error.code : "internal_error" } });
     const message = friendlyMessage(error);
     return {
       ok: false as const,

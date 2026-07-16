@@ -7,12 +7,21 @@ import { ConnectorFeedbackError } from "@/lib/connector-feedback";
 import { FormsServiceError, type FormsActor } from "@/lib/forms-service";
 import type { OAuthScope } from "@/lib/oauth-scopes";
 import { captureProductEvent, captureProductException } from "@/lib/product-telemetry";
+import { durationBucket, errorClass, MCP_TOOL_METADATA } from "@/lib/product-analytics-contract";
 
 export type PublicToolFailure = {
   code: string;
   message: string;
   operational: boolean;
 };
+
+const COMPLETED_OUTCOME_EVENTS = {
+  deploy_page: "page_deploy_completed",
+  create_form_draft: "form_draft_completed",
+  list_forms: "forms_list_completed",
+  publish_form: "form_publish_completed",
+  report_connector_feedback: "connector_feedback_submitted",
+} as const;
 
 const SAFE_CODE = /^[a-z][a-z0-9_]{0,79}$/;
 
@@ -45,35 +54,74 @@ export async function runConnectorTool<T>(input: {
   requiredScope: OAuthScope | readonly OAuthScope[];
   fallback: string;
   execute: (actor: FormsActor) => Promise<T>;
+  properties?: Record<string, string | number | boolean | null | undefined>;
+  resultProperties?: (result: T) => Record<string, string | number | boolean | null | undefined>;
 }): Promise<T | ReturnType<typeof toolError>> {
   const startedAt = performance.now();
-  let distinctId: string | undefined;
+  const possibleUserId = input.authInfo?.extra?.userId;
+  const distinctId = typeof possibleUserId === "string" ? possibleUserId : undefined;
+  const clientType = input.authInfo?.extra?.clientType;
+  const metadata = MCP_TOOL_METADATA[input.toolName];
+  const requiredScopes = Array.isArray(input.requiredScope) ? input.requiredScope : [input.requiredScope];
   try {
     const actor = requireConnectorActor(input.authInfo, input.requiredScope);
-    distinctId = actor.userId;
     const result = await input.execute(actor);
+    const elapsed = Math.max(0, Math.round(performance.now() - startedAt));
+    const resultProperties = input.resultProperties?.(result);
     captureProductEvent({
       event: "mcp_tool_completed",
-      distinctId,
+      distinctId: actor.userId,
       properties: {
         tool_name: input.toolName,
+        product_area: metadata?.productArea ?? "connector",
+        tool_action: metadata?.toolAction ?? "other",
+        access_mode: metadata?.accessMode ?? "write",
+        primary_scope: requiredScopes[0],
+        scope_count: requiredScopes.length,
         outcome: "success",
-        duration_ms: Math.max(0, Math.round(performance.now() - startedAt)),
-        client_type: "oauth",
+        duration_ms: elapsed,
+        duration_bucket: durationBucket(elapsed),
+        client_type: typeof clientType === "string" ? clientType : "other",
+        ...input.properties,
+        ...resultProperties,
       },
     });
+    const outcomeEvent = COMPLETED_OUTCOME_EVENTS[input.toolName as keyof typeof COMPLETED_OUTCOME_EVENTS];
+    if (outcomeEvent) {
+      captureProductEvent({
+        event: outcomeEvent,
+        distinctId: actor.userId,
+        properties: {
+          source: "connector",
+          product_area: metadata?.productArea ?? "connector",
+          client_type: typeof clientType === "string" ? clientType : "other",
+          outcome: "success",
+          ...input.properties,
+          ...resultProperties,
+        },
+      });
+    }
     return result;
   } catch (error) {
     const failure = normalizeConnectorToolFailure(error, input.fallback);
+    const elapsed = Math.max(0, Math.round(performance.now() - startedAt));
     captureProductEvent({
       event: "mcp_tool_completed",
       distinctId,
       properties: {
         tool_name: input.toolName,
+        product_area: metadata?.productArea ?? "connector",
+        tool_action: metadata?.toolAction ?? "other",
+        access_mode: metadata?.accessMode ?? "write",
+        primary_scope: requiredScopes[0],
+        scope_count: requiredScopes.length,
         outcome: "error",
         error_code: failure.code,
-        duration_ms: Math.max(0, Math.round(performance.now() - startedAt)),
-        client_type: "oauth",
+        error_class: errorClass(failure.code),
+        duration_ms: elapsed,
+        duration_bucket: durationBucket(elapsed),
+        client_type: typeof clientType === "string" ? clientType : "other",
+        ...input.properties,
       },
     });
     if (failure.operational) captureProductException({ errorCode: failure.code, operation: "mcp_tool", toolName: input.toolName });

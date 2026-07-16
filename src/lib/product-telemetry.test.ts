@@ -8,11 +8,17 @@ describe("sanitizeTelemetryProperties", () => {
       outcome: "success",
       duration_ms: 124,
       is_idempotent_replay: false,
+      product_area: "pages",
+      tool_action: "create",
+      page_contains_form: true,
     })).toEqual({
       tool_name: "deploy_page",
       outcome: "success",
       duration_ms: 124,
       is_idempotent_replay: false,
+      product_area: "pages",
+      tool_action: "create",
+      page_contains_form: true,
     });
   });
 

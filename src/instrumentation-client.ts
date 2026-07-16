@@ -36,5 +36,24 @@ if (posthogToken && observabilityEnabled) {
     capture_pageview: false,
     capture_pageleave: false,
     disable_session_recording: true,
+    session_recording: {
+      // Replays are opt-in from the route controller and deliberately show
+      // interaction/layout only. Product text and every input value are masked.
+      maskAllInputs: true,
+      maskTextSelector: "*",
+      recordCrossOriginIframes: false,
+      recordHeaders: false,
+      recordBody: false,
+      maskCapturedNetworkRequestFn: (request) => {
+        try {
+          const url = new URL(request.name, window.location.origin);
+          url.search = "";
+          url.hash = "";
+          return { ...request, name: url.toString() };
+        } catch {
+          return null;
+        }
+      },
+    },
   });
 }

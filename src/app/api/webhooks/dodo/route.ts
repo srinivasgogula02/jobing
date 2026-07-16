@@ -3,12 +3,12 @@ import { headers } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendMetaPurchaseEvent } from '@/lib/metaCAPI';
-import { getPostHogClient } from '@/lib/posthog-server';
 import crypto from 'node:crypto';
 import { syncFormsWorkspaceProjection } from '@/lib/forms-service';
 import { buildFormsSubscriptionProjection, subscriptionAccessState, type SubscriptionAccessState } from '@/lib/subscription-entitlements';
 import { getBillingPlanByProductId } from '@/lib/billing-plans';
 import { dodoWebhookHeaders, verifyDodoWebhook } from '@/lib/dodo-webhook';
+import { captureProductEvent } from '@/lib/product-telemetry';
 
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
@@ -61,18 +61,9 @@ export async function POST(req: Request) {
                     productId: event.data.product_id,
                 });
                 await syncSubscriptionFormsEntitlement(event, eventKey, userId, "active");
-                const posthog = getPostHogClient();
                 const activatedDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
                 const activatedPlan = getBillingPlanByProductId(event.data.product_id);
-                await posthog?.captureImmediate({
-                    distinctId: activatedDistinctId,
-                    event: 'subscription_activated',
-                    properties: {
-                        plan: activatedPlan?.key || 'unknown',
-                        event_type: event.type,
-                        currency: event.data.currency,
-                    },
-                }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
+                captureProductEvent({ event: 'subscription_activated', distinctId: activatedDistinctId, properties: { product_area: 'billing', plan_key: activatedPlan?.key || 'unknown', status: 'active', outcome: 'success' } });
                 break;
             }
 
@@ -100,16 +91,8 @@ export async function POST(req: Request) {
                     clerkUserId: event.data.metadata?.clerk_user_id || null,
                 });
                 await syncSubscriptionFormsEntitlement(event, eventKey, userId, "inactive");
-                const posthog = getPostHogClient();
                 const cancelledDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
-                await posthog?.captureImmediate({
-                    distinctId: cancelledDistinctId,
-                    event: 'subscription_cancelled',
-                    properties: {
-                        event_type: event.type,
-                        currency: event.data.currency,
-                    },
-                }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
+                captureProductEvent({ event: 'subscription_cancelled', distinctId: cancelledDistinctId, properties: { product_area: 'billing', status: event.type.replace('subscription.', ''), outcome: 'success' } });
                 break;
             }
 
@@ -117,22 +100,20 @@ export async function POST(req: Request) {
             case "payment.succeeded": {
                 await managePayment(event);
                 sendMetaPurchaseEvent(event.data).catch(console.error);
-                const posthog = getPostHogClient();
                 const paymentDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
-                await posthog?.captureImmediate({
-                    distinctId: paymentDistinctId,
-                    event: 'payment_succeeded',
-                    properties: {
-                        currency: event.data.currency,
-                        outcome: 'succeeded',
-                    },
-                }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
+                captureProductEvent({ event: 'payment_succeeded', distinctId: paymentDistinctId, properties: { product_area: 'billing', plan_key: event.data.metadata?.jobing_plan || 'unknown', outcome: 'success', status: 'succeeded' } });
                 break;
             }
 
             case "payment.failed":
+            case "payment.cancelled": {
+                await managePayment(event);
+                const paymentDistinctId = event.data.metadata?.clerk_user_id || event.data.customer.customer_id;
+                captureProductEvent({ event: 'payment_failed', distinctId: paymentDistinctId, properties: { product_area: 'billing', plan_key: event.data.metadata?.jobing_plan || 'unknown', outcome: 'error', status: event.type.replace('payment.', ''), error_code: event.data.error_code || 'payment_not_completed' } });
+                break;
+            }
+
             case "payment.processing":
-            case "payment.cancelled":
                 await managePayment(event);
                 break;
 

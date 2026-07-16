@@ -3,6 +3,7 @@ import { waitUntil } from "@vercel/functions";
 import { getPostHogClient } from "@/lib/posthog-server";
 
 export type ProductServerEvent =
+  | "user_signed_up"
   | "connector_oauth_completed"
   | "connector_token_completed"
   | "mcp_request_completed"
@@ -11,20 +12,45 @@ export type ProductServerEvent =
   | "form_draft_completed"
   | "form_publish_completed"
   | "forms_list_completed"
-  | "connector_feedback_submitted";
+  | "connector_feedback_submitted"
+  | "checkout_started"
+  | "checkout_failed"
+  | "payment_succeeded"
+  | "payment_failed"
+  | "subscription_activated"
+  | "subscription_cancelled";
 
 const ALLOWED_PROPERTIES = new Set([
   "client_type",
+  "access_mode",
+  "duration_bucket",
   "duration_ms",
+  "error_class",
   "error_code",
+  "field_count_bucket",
+  "feedback_kind",
   "grant_age_bucket",
+  "has_file_upload",
+  "has_hidden_results",
+  "page_contains_form",
+  "payload_size_bucket",
+  "plan_key",
+  "primary_scope",
+  "product_area",
+  "query_used",
+  "resource_status",
+  "response_state",
+  "result_count_bucket",
   "is_idempotent_replay",
   "operation",
   "outcome",
   "reason",
   "scope_count",
+  "source",
   "status",
+  "tool_action",
   "tool_name",
+  "use_case",
 ]);
 
 type TelemetryValue = string | number | boolean | null | undefined;
@@ -67,19 +93,23 @@ export function captureProductEvent(input: {
   distinctId?: string;
   properties?: Record<string, TelemetryValue>;
 }) {
-  const client = getPostHogClient();
-  if (!client) return;
-  schedule(client.captureImmediate({
-    distinctId: input.distinctId || "jobing-system",
-    event: input.event,
-    properties: {
-      ...sanitizeTelemetryProperties(input.properties ?? {}),
-      service: "main",
-      environment: environment(),
-      release: process.env.VERCEL_GIT_COMMIT_SHA || "unknown",
-      $process_person_profile: false,
-    },
-  }));
+  try {
+    const client = getPostHogClient();
+    if (!client) return;
+    schedule(client.captureImmediate({
+      distinctId: input.distinctId || "jobing-system",
+      event: input.event,
+      properties: {
+        ...sanitizeTelemetryProperties(input.properties ?? {}),
+        service: "main",
+        environment: environment(),
+        release: process.env.VERCEL_GIT_COMMIT_SHA || "unknown",
+        $process_person_profile: false,
+      },
+    }));
+  } catch {
+    // Observability can never change a user-visible product outcome.
+  }
 }
 
 export function captureProductException(input: {

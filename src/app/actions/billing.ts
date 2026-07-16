@@ -3,8 +3,8 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { dodo } from "@/lib/dodo";
-import { getPostHogClient } from "@/lib/posthog-server";
 import { getBillingPlanByProductId } from "@/lib/billing-plans";
+import { captureProductEvent } from "@/lib/product-telemetry";
 
 function getSupabaseAdmin() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -109,12 +109,7 @@ export async function cancelSubscription(subscriptionId: string) {
             .update({ cancel_at_next_billing_date: true })
             .eq('subscription_id', subscriptionId);
 
-        const posthog = getPostHogClient();
-        await posthog?.captureImmediate({
-            distinctId: user.id,
-            event: 'subscription_cancelled_by_user',
-            properties: { subscription_id: subscriptionId },
-        }).catch((analyticsError) => console.error('PostHog capture failed:', analyticsError));
+        captureProductEvent({ event: 'subscription_cancelled', distinctId: user.id, properties: { product_area: 'billing', source: 'dashboard', status: 'scheduled', outcome: 'success' } });
 
         return { success: true as const };
     } catch (error: unknown) {

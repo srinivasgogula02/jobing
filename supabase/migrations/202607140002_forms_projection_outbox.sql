@@ -36,7 +36,10 @@ create or replace function public.forms_enqueue_before_user_delete()
 returns trigger
 language plpgsql
 security definer
-set search_path = pg_catalog, public
+-- Supabase installs pgcrypto in `extensions`, while stock PostgreSQL installs
+-- it in `public`. Keep both trusted schemas explicit so the same migration is
+-- portable and the security-definer function never uses the caller's path.
+set search_path = pg_catalog, public, extensions
 as $$
 declare
   v_event_key text;
@@ -55,7 +58,7 @@ begin
   end if;
 
   v_event_key := 'db-user-delete:' || encode(
-    public.digest(old.id || chr(31) || txid_current()::text, 'sha256'),
+    digest(old.id || chr(31) || txid_current()::text, 'sha256'),
     'hex'
   );
   v_payload := jsonb_build_object(

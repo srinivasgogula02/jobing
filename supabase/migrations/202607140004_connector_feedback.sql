@@ -82,7 +82,10 @@ create or replace function public.submit_connector_feedback(
 ) returns jsonb
 language plpgsql
 security definer
-set search_path = pg_catalog, public
+-- Supabase installs pgcrypto in `extensions`, while stock PostgreSQL installs
+-- it in `public`. Keep both trusted schemas explicit so this RPC works in both
+-- environments without depending on the database role's search_path.
+set search_path = pg_catalog, public, extensions
 as $$
 declare
   v_request_hash bytea;
@@ -133,7 +136,7 @@ begin
     raise exception using errcode = 'P0001', message = 'CONNECTOR_FEEDBACK_UNAUTHORIZED';
   end if;
 
-  v_request_hash := public.digest(
+  v_request_hash := digest(
     convert_to(
       jsonb_build_object(
         'kind', p_kind,

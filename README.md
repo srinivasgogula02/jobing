@@ -63,8 +63,9 @@ npm --prefix apps/admin run typecheck
 npm --prefix apps/admin run build
 ```
 
-See [CONNECTOR.md](CONNECTOR.md) for connector capabilities and
-[`apps/forms/README.md`](apps/forms/README.md) for the Forms deployment runbook,
+See [`docs/PRODUCT_REFERENCE.md`](docs/PRODUCT_REFERENCE.md) for the complete current
+product reference, [CONNECTOR.md](CONNECTOR.md) for historical connector notes,
+and [`apps/forms/README.md`](apps/forms/README.md) for the Forms deployment runbook,
 and [`apps/pages-runtime/README.md`](apps/pages-runtime/README.md) for the isolated
 generated-pages deployment. The private metrics deployment is documented in
 [`apps/admin/README.md`](apps/admin/README.md).

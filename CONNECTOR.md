@@ -1,5 +1,7 @@
 # Jobing MCP connector
 
+> **Historical phase document:** This file records the original connector boundary and no longer lists every live capability. For the current product, supported workflows, permissions, limits, and honest capability boundaries, use [`docs/PRODUCT_REFERENCE.md`](docs/PRODUCT_REFERENCE.md).
+
 Jobing exposes one account-scoped MCP server:
 
 ```text
@@ -10,7 +12,7 @@ Users connect Jobing once. The main `jobing.site` deployment remains the OAuth
 authorization server and calls the separate Forms deployment over an HMAC-signed
 internal API. Users do not install a second Forms connector.
 
-## Phase 1 tools
+## Original Phase 1 tools
 
 - `create_note` — creates a new public note.
 - `deploy_page` — deploys a new public HTML page.

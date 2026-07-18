@@ -23,21 +23,29 @@ type Panel = "questions" | "design" | "success" | "access";
 type SaveState = "saved" | "dirty" | "saving" | "error";
 type DeletedQuestion = { field: FormField; index: number };
 
-const palette: FormField["type"][] = ["text", "textarea", "email", "tel", "number", "select", "radio", "checkbox", "date", "file", "consent", "url"];
+const palette: FormField["type"][] = ["text", "textarea", "email", "tel", "number", "select", "radio", "checkbox", "yes_no", "rating", "date", "time", "file", "consent", "url"];
 const optionTypes: FormField["type"][] = ["select", "radio", "checkbox"];
+
+function localDateTime(value: string) {
+  const date = new Date(value);
+  const pad = (number: number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 function PreviewControl({ field }: { field: FormField }) {
   if (field.type === "textarea") return <textarea disabled placeholder={field.placeholder || "Long answer text"} />;
   if (field.type === "select") return <select disabled defaultValue=""><option value="">Choose</option>{field.options?.map((option) => <option key={option.value}>{option.label}</option>)}</select>;
   if (field.type === "radio" || field.type === "checkbox") return <div className="answer-choices">{field.options?.map((option) => <span key={option.value}><i data-shape={field.type} />{option.label}</span>)}</div>;
   if (field.type === "consent") return <div className="answer-choices"><span><i data-shape="checkbox" />I agree</span></div>;
+  if (field.type === "yes_no") return <div className="answer-choices answer-choices--inline"><span><i data-shape="radio" />Yes</span><span><i data-shape="radio" />No</span></div>;
+  if (field.type === "rating") return <div className="answer-rating">{[1, 2, 3, 4, 5].map((value) => <span key={value}>{value}</span>)}</div>;
   if (field.type === "file") return <button className="answer-file" type="button" disabled><Plus size={15} /> Add file <small>Maximum {field.validation?.maxFileSizeMb ?? 2} MB</small></button>;
   return <input disabled type={field.type === "tel" ? "tel" : field.type} placeholder={field.placeholder || "Short answer text"} />;
 }
 
 function panelLabel(panel: Panel) {
   if (panel === "success") return "After submit";
-  if (panel === "access") return "Websites";
+  if (panel === "access") return "Behavior";
   return panel.charAt(0).toUpperCase() + panel.slice(1);
 }
 
@@ -126,6 +134,7 @@ export function FormEditor({ form }: { form: EditableForm }) {
 
   const selectedIndex = definition.fields.findIndex((field) => field.id === selectedId);
   const selected = definition.fields[selectedIndex];
+  const conditionSources = definition.fields.slice(0, Math.max(0, selectedIndex)).filter((field) => !field.hidden);
 
   const updateSelected = (patch: Partial<FormField>) => {
     if (!selected) return;
@@ -277,7 +286,16 @@ export function FormEditor({ form }: { form: EditableForm }) {
                             {field.type === "text" || field.type === "textarea" ? <><label>Minimum length<input type="number" min="0" value={field.validation?.minLength ?? ""} onChange={(event) => updateSelected({ validation: { ...field.validation, minLength: event.target.value ? Number(event.target.value) : undefined } })} /></label><label>Maximum length<input type="number" min="1" value={field.validation?.maxLength ?? ""} onChange={(event) => updateSelected({ validation: { ...field.validation, maxLength: event.target.value ? Number(event.target.value) : undefined } })} /></label></> : null}
                             {field.type === "number" ? <><label>Minimum<input type="number" value={field.validation?.min ?? ""} onChange={(event) => updateSelected({ validation: { ...field.validation, min: event.target.value ? Number(event.target.value) : undefined } })} /></label><label>Maximum<input type="number" value={field.validation?.max ?? ""} onChange={(event) => updateSelected({ validation: { ...field.validation, max: event.target.value ? Number(event.target.value) : undefined } })} /></label></> : null}
                             {field.type === "file" ? <><label>Allowed file types<input placeholder=".pdf,image/*" value={field.validation?.acceptedFileTypes?.join(",") ?? ""} onChange={(event) => updateSelected({ validation: { ...field.validation, acceptedFileTypes: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) } })} /></label><label>Maximum file size<select value={field.validation?.maxFileSizeMb ?? 2} onChange={(event) => updateSelected({ validation: { ...field.validation, maxFileSizeMb: Number(event.target.value) as 1 | 2 } })}><option value="1">1 MB</option><option value="2">2 MB</option></select></label></> : null}
-                            <label className="advanced-checkbox"><input type="checkbox" checked={field.hidden} onChange={(event) => updateSelected({ hidden: event.target.checked })} /> Hide this question</label>
+                            {conditionSources.length ? <>
+                              <label className="advanced-checkbox"><input type="checkbox" checked={Boolean(field.condition)} onChange={(event) => updateSelected({ condition: event.target.checked ? { fieldKey: conditionSources[0].key, operator: "is_not_empty" } : undefined })} /> Show only when…</label>
+                              {field.condition ? <div className="condition-settings">
+                                <label>Earlier question<select value={field.condition.fieldKey} onChange={(event) => updateSelected({ condition: { ...field.condition!, fieldKey: event.target.value } })}>{conditionSources.map((source) => <option value={source.key} key={source.id}>{source.label}</option>)}</select></label>
+                                <label>Rule<select value={field.condition.operator} onChange={(event) => updateSelected({ condition: { ...field.condition!, operator: event.target.value as NonNullable<FormField["condition"]>["operator"] } })}><option value="equals">is</option><option value="not_equals">is not</option><option value="contains">contains</option><option value="not_contains">does not contain</option><option value="is_empty">is unanswered</option><option value="is_not_empty">is answered</option><option value="greater_than">is greater than</option><option value="less_than">is less than</option></select></label>
+                                {!(["is_empty", "is_not_empty"] as string[]).includes(field.condition.operator) ? <label>Value<input value={field.condition.value ?? ""} onChange={(event) => updateSelected({ condition: { ...field.condition!, value: event.target.value } })} placeholder="Answer to match" /></label> : null}
+                              </div> : null}
+                            </> : null}
+                            <label className="advanced-checkbox"><input type="checkbox" checked={field.hidden} onChange={(event) => updateSelected({ hidden: event.target.checked, ...(!event.target.checked ? { defaultValue: undefined } : {}) })} /> Use as hidden context</label>
+                            {field.hidden ? <label>Hidden context value <small>Saved with each response. Visitors do not see it.</small><input value={field.defaultValue ?? ""} maxLength={2000} placeholder="For example: summer_campaign" onChange={(event) => updateSelected({ defaultValue: event.target.value || undefined })} /></label> : null}
                           </div>
                         </details>
 
@@ -310,7 +328,16 @@ export function FormEditor({ form }: { form: EditableForm }) {
 
       {panel === "success" ? <div className="settings-canvas settings-canvas--single"><section className="settings-card"><p>AFTER SOMEONE SUBMITS</p><h2>Show a clear next step.</h2><div className="settings-fields"><label>Thank-you title<input value={definition.confirmation.title} onChange={(event) => changeDefinition((current) => ({ ...current, confirmation: { ...current.confirmation, title: event.target.value } }))} /></label><label>Message<textarea rows={4} value={definition.confirmation.message} onChange={(event) => changeDefinition((current) => ({ ...current, confirmation: { ...current.confirmation, message: event.target.value } }))} /></label><label>Send them to another page <small>Optional HTTPS URL</small><input type="url" placeholder="https://example.com/thanks" value={definition.confirmation.redirectUrl ?? ""} onChange={(event) => changeDefinition((current) => ({ ...current, confirmation: { ...current.confirmation, redirectUrl: event.target.value || undefined } }))} /></label></div><div className="confirmation-preview"><Check size={19} /><div><b>{definition.confirmation.title}</b><p>{definition.confirmation.message}</p></div></div></section></div> : null}
 
-      {panel === "access" ? <div className="settings-canvas settings-canvas--single"><section className="settings-card"><p>WEBSITES THAT CAN USE THIS FORM</p><h2>Open everywhere, unless you decide otherwise.</h2><p className="settings-copy">Leave the list empty to accept responses from any website. Add a website only when you want to restrict where this form can be used.</p><div className="settings-fields"><label>Allowed websites <small>One full website address per line</small><textarea rows={7} placeholder={"https://www.example.com\nhttps://shop.example.com"} value={definition.settings.allowedOrigins.join("\n")} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { allowedOrigins: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean).slice(0, 20) } }))} /></label></div></section></div> : null}
+      {panel === "access" ? <div className="settings-canvas settings-canvas--single"><section className="settings-card"><p>FORM BEHAVIOR</p><h2>Control when and how people respond.</h2><p className="settings-copy">Pause collection, schedule a window, stop at an exact number, or keep the form open without a cap.</p><div className="settings-fields">
+        <label className="settings-check"><input type="checkbox" checked={definition.settings.acceptResponses} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { ...current.settings, acceptResponses: event.target.checked } }))} /> Accept new responses</label>
+        <label>Open on <small>Optional</small><input type="datetime-local" value={definition.settings.opensAt ? localDateTime(definition.settings.opensAt) : ""} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { ...current.settings, opensAt: event.target.value ? new Date(event.target.value).toISOString() : undefined } }))} /></label>
+        <label>Close on <small>Optional</small><input type="datetime-local" value={definition.settings.closesAt ? localDateTime(definition.settings.closesAt) : ""} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { ...current.settings, closesAt: event.target.value ? new Date(event.target.value).toISOString() : undefined } }))} /></label>
+        <label>Stop after <small>Optional total responses</small><input type="number" min="1" max="1000000" placeholder="No limit" value={definition.settings.responseLimit ?? ""} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { ...current.settings, responseLimit: event.target.value ? Number(event.target.value) : undefined } }))} /></label>
+        <label>Message when closed<textarea rows={3} value={definition.settings.closedMessage} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { ...current.settings, closedMessage: event.target.value } }))} /></label>
+        <label>Button text<input value={definition.settings.submitButtonLabel} maxLength={80} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { ...current.settings, submitButtonLabel: event.target.value } }))} /></label>
+        <label className="settings-check"><input type="checkbox" checked={definition.settings.showProgress} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { ...current.settings, showProgress: event.target.checked } }))} /> Show completion progress</label>
+        <label>Allowed websites <small>Leave empty to accept from any website. One full address per line.</small><textarea rows={5} placeholder={"https://www.example.com\nhttps://shop.example.com"} value={definition.settings.allowedOrigins.join("\n")} onChange={(event) => changeDefinition((current) => ({ ...current, settings: { ...current.settings, allowedOrigins: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean).slice(0, 20) } }))} /></label>
+      </div></section></div> : null}
     </div>
   );
 }

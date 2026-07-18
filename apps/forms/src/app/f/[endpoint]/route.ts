@@ -3,6 +3,7 @@ import { waitUntil } from "@vercel/functions";
 import { NextResponse } from "next/server";
 import { acceptSubmission, getPublicForm, recordBlockedSubmission } from "@/lib/forms-store";
 import { renderPublicForm } from "@/lib/public-form-html";
+import { formAvailability } from "@/lib/form-conditions";
 import { isHoneypotRejection, validateSubmission } from "@/lib/submission-validation";
 import { isPagesRuntimeOrigin } from "@/lib/platform-origin";
 import { parseSubmissionRequest, SubmissionRequestError } from "@/lib/submission-request";
@@ -39,8 +40,9 @@ export async function GET(request: Request, context: { params: Promise<{ endpoin
   const form = await getPublicForm(endpoint);
   if (!form) return html("<!doctype html><title>Form unavailable</title><p>This form is unavailable.</p>", 404);
   const submitted = new URL(request.url).searchParams.get("submitted") === "1";
+  const availability = formAvailability(form.definition, form.submissionCount);
   return html(
-    renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), ...(submitted ? { message: form.definition.confirmation.message } : {}) }),
+    renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), ...(submitted ? { message: form.definition.confirmation.message } : !availability.accepting ? { closedMessage: availability.message } : {}) }),
     200,
     submitted ? "no-store" : "public, max-age=0, s-maxage=15, stale-while-revalidate=45",
   );
@@ -230,10 +232,14 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
     return complete(NextResponse.redirect(`${canonical(endpoint)}?submitted=1`, 303), { outcome: "accepted", reason: "success", status_code: 303 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    const status = message.includes("RATE_LIMITED") ? 429 : message.includes("ORIGIN_NOT_ALLOWED") ? 403 : message.includes("FORM_LIMIT_REACHED") ? 429 : 500;
-    const reason: FormSubmissionTelemetry["reason"] = status === 429 ? "rate_limited" : status === 403 ? "origin_not_allowed" : "submission_failed";
+    const status = message.includes("RATE_LIMITED") ? 429 : message.includes("ORIGIN_NOT_ALLOWED") ? 403 : message.includes("FORM_CLOSED") ? 409 : message.includes("FORM_LIMIT_REACHED") ? 429 : 500;
+    const reason: FormSubmissionTelemetry["reason"] = status === 429 ? "rate_limited" : status === 403 ? "origin_not_allowed" : status === 409 ? "form_closed" : "submission_failed";
     if (status === 429 || status === 403) rememberBlocked(reason);
-    return complete(jsonError(reason, status === 500 ? "The response could not be saved." : "This submission is not allowed.", status, responseOrigin), { outcome: status === 500 ? "unavailable" : "rejected", reason, status_code: status }, status === 500 ? error : undefined);
+    const publicMessage = status === 500 ? "The response could not be saved." : status === 409 ? form.definition.settings.closedMessage : "This submission is not allowed.";
+    const response = status === 409 && !wantsJson
+      ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), closedMessage: publicMessage }), status)
+      : jsonError(reason, publicMessage, status, responseOrigin);
+    return complete(response, { outcome: status === 500 ? "unavailable" : "rejected", reason, status_code: status }, status === 500 ? error : undefined);
   }
   } catch (error) {
     return complete(

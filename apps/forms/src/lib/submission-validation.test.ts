@@ -28,6 +28,23 @@ describe("validateSubmission", () => {
       errors: { name: "Name is required.", email: "Enter a valid email address.", topic: "Choose a valid option." },
     });
   });
+
+  it("requires a conditional answer only while its earlier rule matches", () => {
+    const conditionalDefinition = {
+      ...definition,
+      fields: [
+        { id: randomUUID(), key: "needs_help", type: "yes_no" as const, label: "Need help?", required: true },
+        { id: randomUUID(), key: "details", type: "textarea" as const, label: "Tell us more", required: true, condition: { fieldKey: "needs_help", operator: "equals" as const, value: "yes" } },
+      ],
+    };
+    expect(validateSubmission(conditionalDefinition, { needs_help: "no", details: "spoofed" })).toEqual({ success: true, values: { needs_help: "no" } });
+    expect(validateSubmission(conditionalDefinition, { needs_help: "yes" })).toEqual({ success: false, errors: { details: "Tell us more is required." } });
+  });
+
+  it("collects declared hidden context without making it a visible requirement", () => {
+    const contextual = { ...definition, fields: [...definition.fields, { id: randomUUID(), key: "campaign", type: "text" as const, label: "Campaign", hidden: true, defaultValue: "summer" }] };
+    expect(validateSubmission(contextual, { name: "Ada", email: "ada@example.com", campaign: "summer" })).toEqual({ success: true, values: { name: "Ada", email: "ada@example.com", campaign: "summer" } });
+  });
 });
 
 describe("isHoneypotRejection", () => {

@@ -41,7 +41,7 @@ try {
   const history = await migrationClient.query(
     "select name from public.jobing_forms_schema_migrations order by version",
   );
-  assert(history.rowCount === 14, `Expected 14 migrations, found ${history.rowCount}.`);
+  assert(history.rowCount === 15, `Expected 15 migrations, found ${history.rowCount}.`);
 
   const privileges = await migrationClient.query(`
     select
@@ -188,6 +188,7 @@ try {
   const expectedNames = [
     "accept_submission",
     "accept_submission_v2",
+    "accept_submission_v3",
     "apply_workspace_projection",
     "claim_request_nonce",
     "create_dashboard_form",

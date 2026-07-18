@@ -208,7 +208,7 @@ describe("public form submission telemetry", () => {
     expect(response.status).toBe(200);
     const body = await response.text();
     expect(body).not.toContain("challenges.cloudflare.com");
-    expect(body).toContain('<button type="submit" data-submit-button>');
+    expect(body).toContain('<button type="submit" data-submit-button');
   });
 
   it("serves the normal hosted form through the CDN without embedding a shared submission ID", async () => {

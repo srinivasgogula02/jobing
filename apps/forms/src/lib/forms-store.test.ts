@@ -9,7 +9,7 @@ const db = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db", () => db);
 
-import { createFormDraft, publishForm } from "./forms-store";
+import { acceptSubmission, createFormDraft, publishForm } from "./forms-store";
 
 const firstGrantId = "33333333-3333-4333-8333-333333333333";
 const secondGrantId = "44444444-4444-4444-8444-444444444444";
@@ -50,6 +50,15 @@ beforeEach(() => {
 });
 
 describe("forms store request idempotency", () => {
+  it("uses race-safe form behavior enforcement and falls back during rolling migrations", async () => {
+    db.query
+      .mockRejectedValueOnce(Object.assign(new Error("missing function"), { code: "42883" }))
+      .mockResolvedValueOnce({ rows: [{ value: { submissionId: "11111111-1111-4111-8111-111111111111", message: "Thanks", redirectUrl: null, fileCount: 0 } }] });
+    await expect(acceptSubmission({ endpointId: "frm_test", idempotencyKey: "submission-test", values: { email: "a@example.com" }, origin: null, ipHash: "a".repeat(64) })).resolves.toMatchObject({ message: "Thanks" });
+    expect(db.query.mock.calls[0]?.[0]).toContain("accept_submission_v3");
+    expect(db.query.mock.calls[1]?.[0]).toContain("accept_submission_v2");
+  });
+
   it("persists a fixed-length SHA-256 request hash", async () => {
     const rawBody = JSON.stringify({ operationId: "operation-create-123", name: "Contact" });
     await createFormDraft(createDraftRequest());

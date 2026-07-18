@@ -23,13 +23,14 @@ const REASONS = new Set([
   "configuration_missing",
   "rate_limited",
   "origin_not_allowed",
+  "form_closed",
   "submission_failed",
   "unhandled_exception",
 ]);
 const RESPONSE_MODES = new Set(["json", "browser"]);
 const SOURCES = new Set(["generated_page", "custom_site", "direct"]);
 const DURATION_BUCKETS = new Set(["lt_100ms", "100_499ms", "500_999ms", "1_2s", "gte_3s"]);
-const STATUS_CODES = new Set([201, 303, 400, 403, 404, 413, 415, 422, 429, 500, 503]);
+const STATUS_CODES = new Set([201, 303, 400, 403, 404, 409, 413, 415, 422, 429, 500, 503]);
 
 export type FormSubmissionTelemetry = {
   outcome: "accepted" | "rejected" | "unavailable";
@@ -47,9 +48,10 @@ export type FormSubmissionTelemetry = {
     | "configuration_missing"
     | "rate_limited"
     | "origin_not_allowed"
+    | "form_closed"
     | "submission_failed"
     | "unhandled_exception";
-  status_code: 201 | 303 | 400 | 403 | 404 | 413 | 415 | 422 | 429 | 500 | 503;
+  status_code: 201 | 303 | 400 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 503;
   response_mode: "json" | "browser";
   source: "generated_page" | "custom_site" | "direct";
   duration_bucket: "lt_100ms" | "100_499ms" | "500_999ms" | "1_2s" | "gte_3s";

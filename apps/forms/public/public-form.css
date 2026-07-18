@@ -21,16 +21,20 @@ label{display:block;font-weight:600;line-height:1.4}
 input,textarea,select{width:100%;min-height:48px;margin-top:12px;border:1px solid color-mix(in srgb,var(--text) 18%,transparent);border-radius:8px;background:color-mix(in srgb,var(--text) 7%,var(--canvas));padding:12px 14px;color:var(--text);font:inherit}
 textarea{resize:vertical}
 .choices{display:grid;gap:8px;margin-top:12px}
+.choices-inline{grid-template-columns:repeat(2,minmax(0,1fr))}
 .choice{display:flex;gap:10px;align-items:center;min-height:44px;font-weight:400}
 .choice input{width:20px;min-height:20px;margin:0}
+.rating{display:grid;grid-template-columns:repeat(5,minmax(44px,1fr));gap:8px;margin-top:12px}.rating label{position:relative}.rating input{position:absolute;opacity:0;pointer-events:none}.rating span{min-height:48px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--text) 18%,transparent);border-radius:8px;cursor:pointer}.rating input:checked+span{border-color:var(--lime);background:color-mix(in srgb,var(--lime) 16%,var(--canvas));color:var(--lime)}
+.form-progress{position:sticky;top:0;z-index:2;margin:8px 0 0;padding:14px 0 12px;background:var(--canvas)}.form-progress:before{content:"";height:4px;display:block;background:color-mix(in srgb,var(--text) 13%,transparent)}.form-progress>span{width:0;height:4px;display:block;margin-top:-4px;background:var(--lime);transition:width .18s ease-out}.form-progress small{display:block;margin-top:7px;color:color-mix(in srgb,var(--text) 60%,transparent);font:10px ui-monospace,monospace;text-align:right}
 button{width:100%;min-height:52px;margin-top:28px;border:1px solid var(--lime);border-radius:8px;background:var(--lime);color:#0b0e14;font:700 15px inherit;cursor:pointer}
 button:disabled{cursor:wait;opacity:.72}
 html[data-button=outline] button{background:transparent;color:var(--lime)}
 :focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 .privacy{color:color-mix(in srgb,var(--text) 58%,transparent);font-size:12px;line-height:1.5;text-align:center}
 .trap{position:absolute;left:-9999px}
-.success,.form-error{margin-top:32px;border:1px solid color-mix(in srgb,var(--text) 16%,transparent);background:color-mix(in srgb,var(--text) 7%,var(--canvas));padding:24px}
+.success,.closed,.form-error{margin-top:32px;border:1px solid color-mix(in srgb,var(--text) 16%,transparent);background:color-mix(in srgb,var(--text) 7%,var(--canvas));padding:24px}
 .success{border-left:3px solid var(--success)}
+.closed{border-left:3px solid var(--lime)}
 .form-error{border-left:3px solid var(--error)}
-.success p,.form-error p{color:color-mix(in srgb,var(--text) 68%,transparent);margin-bottom:0;line-height:1.5}
+.success p,.closed p,.form-error p{color:color-mix(in srgb,var(--text) 68%,transparent);margin-bottom:0;line-height:1.5}
 @media(max-width:520px){main{padding-top:18px}.field{grid-template-columns:34px 1fr}header{padding-bottom:32px}.eyebrow{margin-top:36px}}

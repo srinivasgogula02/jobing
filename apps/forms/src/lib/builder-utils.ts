@@ -14,6 +14,9 @@ export const fieldLabels: Record<FormField["type"], string> = {
   date: "Date",
   file: "File upload",
   consent: "Consent",
+  rating: "Rating",
+  yes_no: "Yes or no",
+  time: "Time",
   url: "Website",
 };
 

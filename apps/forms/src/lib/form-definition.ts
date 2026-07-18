@@ -13,7 +13,32 @@ export const fieldTypeSchema = z.enum([
   "checkbox",
   "consent",
   "file",
+  "rating",
+  "yes_no",
+  "time",
 ]);
+
+export const conditionOperatorSchema = z.enum([
+  "equals",
+  "not_equals",
+  "contains",
+  "not_contains",
+  "is_empty",
+  "is_not_empty",
+  "greater_than",
+  "less_than",
+]);
+
+export const fieldConditionSchema = z.object({
+  fieldKey: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/),
+  operator: conditionOperatorSchema,
+  value: z.string().max(500).optional(),
+}).superRefine((condition, context) => {
+  const needsValue = !["is_empty", "is_not_empty"].includes(condition.operator);
+  if (needsValue && !condition.value?.trim()) {
+    context.addIssue({ code: "custom", path: ["value"], message: `${condition.operator} requires a comparison value.` });
+  }
+});
 
 const optionSchema = z.object({
   value: z.string().min(1).max(120),
@@ -29,6 +54,8 @@ export const formFieldSchema = z.object({
   placeholder: z.string().trim().max(200).optional(),
   required: z.boolean().default(false),
   hidden: z.boolean().default(false),
+  defaultValue: z.string().max(2_000).optional(),
+  condition: fieldConditionSchema.optional(),
   options: z.array(optionSchema).min(1).max(100).optional(),
   validation: z.object({
     minLength: z.number().int().min(0).max(10_000).optional(),
@@ -49,6 +76,8 @@ export const formFieldSchema = z.object({
   if (field.type !== "file" && (field.validation?.acceptedFileTypes || field.validation?.maxFileSizeMb)) {
     context.addIssue({ code: "custom", path: ["validation"], message: "File validation can only be used on file fields." });
   }
+  if (field.defaultValue !== undefined && !field.hidden) context.addIssue({ code: "custom", path: ["defaultValue"], message: "Default context values are only supported on hidden fields." });
+  if (field.hidden && field.type === "file") context.addIssue({ code: "custom", path: ["hidden"], message: "File uploads cannot be hidden fields." });
   if (field.validation?.minLength !== undefined && field.validation.maxLength !== undefined && field.validation.minLength > field.validation.maxLength) {
     context.addIssue({ code: "custom", path: ["validation"], message: "minLength cannot exceed maxLength." });
   }
@@ -69,7 +98,14 @@ export const formDefinitionSchema = z.object({
   }).default({ title: "Response received", message: "Thanks, your response was received." }),
   settings: z.object({
     allowedOrigins: z.array(z.string().url().transform((value) => new URL(value).origin)).max(20).default([]),
-  }).default({ allowedOrigins: [] }),
+    acceptResponses: z.boolean().default(true),
+    opensAt: z.string().datetime({ offset: true }).optional(),
+    closesAt: z.string().datetime({ offset: true }).optional(),
+    responseLimit: z.number().int().min(1).max(1_000_000).optional(),
+    closedMessage: z.string().trim().min(1).max(1_000).default("This form is not accepting responses right now."),
+    showProgress: z.boolean().default(false),
+    submitButtonLabel: z.string().trim().min(1).max(80).default("Send response"),
+  }).default({ allowedOrigins: [], acceptResponses: true, closedMessage: "This form is not accepting responses right now.", showProgress: false, submitButtonLabel: "Send response" }),
   presentation: z.object({
     colorMode: z.enum(["dark", "light"]).default("dark"),
     accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#c6f24e"),
@@ -95,7 +131,16 @@ export const formDefinitionSchema = z.object({
     if (keys.has(field.key)) context.addIssue({ code: "custom", path: ["fields", index, "key"], message: "Field keys must be unique." });
     ids.add(field.id);
     keys.add(field.key);
+    if (field.condition) {
+      const sourceIndex = definition.fields.findIndex((candidate) => candidate.key === field.condition!.fieldKey);
+      if (sourceIndex < 0) context.addIssue({ code: "custom", path: ["fields", index, "condition", "fieldKey"], message: "Condition source field does not exist." });
+      else if (sourceIndex >= index) context.addIssue({ code: "custom", path: ["fields", index, "condition", "fieldKey"], message: "Conditions can only use an earlier question." });
+      else if (definition.fields[sourceIndex].hidden) context.addIssue({ code: "custom", path: ["fields", index, "condition", "fieldKey"], message: "A hidden question cannot control another question." });
+    }
   });
+  if (definition.settings.opensAt && definition.settings.closesAt && new Date(definition.settings.opensAt) >= new Date(definition.settings.closesAt)) {
+    context.addIssue({ code: "custom", path: ["settings", "closesAt"], message: "Closing time must be after opening time." });
+  }
 });
 
 export const internalActorSchema = z.object({

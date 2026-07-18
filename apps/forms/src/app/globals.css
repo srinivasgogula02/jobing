@@ -547,6 +547,10 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
 .advanced-settings-grid { padding: 4px 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .advanced-settings label, .settings-fields label, .color-settings label { display: grid; gap: 6px; color: #6e756b; font-size: 10px; font-weight: 630; }
 .advanced-settings .advanced-checkbox { min-height: 44px; display: flex; align-items: center; gap: 8px; }
+.advanced-settings .advanced-checkbox input,.settings-check input { width: 18px; min-height: 18px; margin: 0; }
+.condition-settings { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; padding: 12px; border: 1px solid #dfe3da; background: #fff; }
+.answer-choices--inline { grid-template-columns: repeat(2,minmax(0,1fr)); }.answer-rating { display: grid; grid-template-columns: repeat(5,minmax(32px,1fr)); gap: 6px; }.answer-rating span { min-height: 38px; display: grid; place-items: center; border: 1px solid #d9ddd4; color: #626a60; font-size: 11px; }
+.settings-fields .settings-check { min-height: 44px; display: flex; align-items: center; gap: 9px; color: #151914; font-size: 13px; }
 .advanced-checkbox input { width: 17px; min-height: 17px; }
 .question-actions { min-height: 61px; margin-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid #e5e8e1; }
 .question-actions > div { display: flex; align-items: center; gap: 3px; }
@@ -639,6 +643,7 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
   .question-card-edit { padding: 26px 16px 0; }
   .question-edit-head { grid-template-columns: 1fr; gap: 9px; }
   .advanced-settings-grid { grid-template-columns: 1fr; }
+  .condition-settings { grid-template-columns: 1fr; }
   .question-actions { align-items: flex-start; flex-direction: column; padding: 9px 0 10px; }
   .question-actions > div:last-child { width: 100%; justify-content: flex-end; }
   .question-card-summary { padding-inline: 18px; }

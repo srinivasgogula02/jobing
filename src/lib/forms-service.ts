@@ -121,20 +121,31 @@ function escapeHtml(value: string) {
 }
 
 function nativeFormHtml(definition: ConnectorFormDefinition, action: string) {
+  const hiddenFields = definition.fields.filter((field) => field.hidden).map((field) => `  <input type="hidden" name="${escapeHtml(field.key)}" value="${escapeHtml(field.defaultValue ?? "")}">`).join("\n");
   const fields = definition.fields.filter((field) => !field.hidden).map((field) => {
     const name = escapeHtml(field.key);
     const label = escapeHtml(field.label);
-    const required = field.required ? " required" : "";
+    const required = field.required && !field.condition ? " required" : "";
     const placeholder = field.placeholder ? ` placeholder="${escapeHtml(field.placeholder)}"` : "";
-    if (field.type === "textarea") return `  <label>${label}\n    <textarea name="${name}"${placeholder}${required}></textarea>\n  </label>`;
-    if (field.type === "select") return `  <label>${label}\n    <select name="${name}"${required}>\n      <option value="">Choose one</option>\n${(field.options ?? []).map((option) => `      <option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("\n")}\n    </select>\n  </label>`;
-    if (["radio", "checkbox"].includes(field.type)) return `  <fieldset>\n    <legend>${label}</legend>\n${(field.options ?? []).map((option) => `    <label><input type="${field.type}" name="${name}" value="${escapeHtml(option.value)}"${required}> ${escapeHtml(option.label)}</label>`).join("\n")}\n  </fieldset>`;
-    if (field.type === "consent") return `  <label><input type="checkbox" name="${name}" value="yes"${required}> ${label}</label>`;
-    if (field.type === "file") return `  <label>${label}\n    <input type="file" name="${name}"${required}${field.validation?.acceptedFileTypes?.length ? ` accept="${escapeHtml(field.validation.acceptedFileTypes.join(","))}"` : ""}>\n  </label>`;
-    const type = ["email", "number", "tel", "url", "date"].includes(field.type) ? field.type : "text";
-    return `  <label>${label}\n    <input type="${type}" name="${name}"${placeholder}${required}>\n  </label>`;
+    let control: string;
+    if (field.type === "textarea") control = `<label>${label}\n    <textarea name="${name}"${placeholder}${required}></textarea>\n  </label>`;
+    else if (field.type === "select") control = `<label>${label}\n    <select name="${name}"${required}>\n      <option value="">Choose one</option>\n${(field.options ?? []).map((option) => `      <option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("\n")}\n    </select>\n  </label>`;
+    else if (["radio", "checkbox"].includes(field.type)) control = `<fieldset>\n    <legend>${label}</legend>\n${(field.options ?? []).map((option) => `    <label><input type="${field.type}" name="${name}" value="${escapeHtml(option.value)}"${required}> ${escapeHtml(option.label)}</label>`).join("\n")}\n  </fieldset>`;
+    else if (field.type === "yes_no") control = `<fieldset>\n    <legend>${label}</legend>\n    <label><input type="radio" name="${name}" value="yes"${required}> Yes</label>\n    <label><input type="radio" name="${name}" value="no"${required}> No</label>\n  </fieldset>`;
+    else if (field.type === "rating") control = `<fieldset>\n    <legend>${label}</legend>\n${[1,2,3,4,5].map((rating) => `    <label><input type="radio" name="${name}" value="${rating}"${required}> ${rating}</label>`).join("\n")}\n  </fieldset>`;
+    else if (field.type === "consent") control = `<label><input type="checkbox" name="${name}" value="yes"${required}> ${label}</label>`;
+    else if (field.type === "file") control = `<label>${label}\n    <input type="file" name="${name}"${required}${field.validation?.acceptedFileTypes?.length ? ` accept="${escapeHtml(field.validation.acceptedFileTypes.join(","))}"` : ""}>\n  </label>`;
+    else {
+      const type = ["email", "number", "tel", "url", "date", "time"].includes(field.type) ? field.type : "text";
+      control = `<label>${label}\n    <input type="${type}" name="${name}"${placeholder}${required}>\n  </label>`;
+    }
+    const condition = field.condition ? ` data-jobing-condition="${escapeHtml(JSON.stringify(field.condition))}"` : "";
+    const requiredMarker = field.required ? " data-jobing-required=\"true\"" : "";
+    return `  <div data-jobing-field="${name}"${condition}${requiredMarker}>\n  ${control}\n  </div>`;
   }).join("\n\n");
-  return `<form method="POST" enctype="multipart/form-data" action="${escapeHtml(action)}">\n${fields}\n\n  <div aria-hidden="true" style="position:absolute;left:-9999px">\n    <label>Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>\n  </div>\n  <button type="submit">Submit</button>\n</form>`;
+  const conditionalScript = definition.fields.some((field) => field.condition) ? `\n<script>\n(function(){var form=document.currentScript.previousElementSibling;function vals(k){var n=form.elements.namedItem(k),a=n?(n.length&&!n.tagName?Array.from(n):[n]):[];return a.filter(function(x){return !x.disabled&&(!/checkbox|radio/.test(x.type)||x.checked)}).map(function(x){return String(x.value||'').trim()}).filter(Boolean)}function match(c,a){var e=String(c.value||'').trim();if(c.operator==='is_empty')return !a.length;if(c.operator==='is_not_empty')return !!a.length;if(c.operator==='equals')return a.includes(e);if(c.operator==='not_equals')return !a.includes(e);if(c.operator==='contains')return a.some(function(v){return v.toLowerCase().includes(e.toLowerCase())});if(c.operator==='not_contains')return a.every(function(v){return !v.toLowerCase().includes(e.toLowerCase())});var l=Number(a[0]),r=Number(e);return Number.isFinite(l)&&Number.isFinite(r)&&(c.operator==='greater_than'?l>r:l<r)}function update(){form.querySelectorAll('[data-jobing-condition]').forEach(function(row){var c=JSON.parse(row.dataset.jobingCondition),show=match(c,vals(c.fieldKey));row.hidden=!show;row.querySelectorAll('input,textarea,select').forEach(function(x){x.disabled=!show;x.required=show&&row.dataset.jobingRequired==='true'})})}form.addEventListener('input',update);form.addEventListener('change',update);update()})();\n</script>` : "";
+  const buttonLabel = escapeHtml(definition.settings?.submitButtonLabel ?? "Send response");
+  return `<form method="POST" enctype="multipart/form-data" action="${escapeHtml(action)}">\n${hiddenFields}${hiddenFields ? "\n\n" : ""}${fields}\n\n  <div aria-hidden="true" style="position:absolute;left:-9999px">\n    <label>Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label>\n  </div>\n  <button type="submit">${buttonLabel}</button>\n</form>${conditionalScript}`;
 }
 
 export function publicFormsEndpointUrl(endpointId: string) {
@@ -166,12 +177,14 @@ export type ConnectorFormDefinition = {
   fields: Array<{
     id: string;
     key: string;
-    type: "text" | "email" | "textarea" | "number" | "tel" | "url" | "date" | "select" | "radio" | "checkbox" | "consent" | "file";
+    type: "text" | "email" | "textarea" | "number" | "tel" | "url" | "date" | "time" | "select" | "radio" | "checkbox" | "consent" | "file" | "rating" | "yes_no";
     label: string;
     description?: string;
     placeholder?: string;
     required?: boolean;
     hidden?: boolean;
+    defaultValue?: string;
+    condition?: { fieldKey: string; operator: "equals" | "not_equals" | "contains" | "not_contains" | "is_empty" | "is_not_empty" | "greater_than" | "less_than"; value?: string };
     options?: Array<{ value: string; label: string }>;
     validation?: {
       minLength?: number;
@@ -183,7 +196,16 @@ export type ConnectorFormDefinition = {
     };
   }>;
   confirmation?: { title?: string; message: string; redirectUrl?: string };
-  settings?: { allowedOrigins: string[] };
+  settings?: {
+    allowedOrigins: string[];
+    acceptResponses?: boolean;
+    opensAt?: string;
+    closesAt?: string;
+    responseLimit?: number;
+    closedMessage?: string;
+    showProgress?: boolean;
+    submitButtonLabel?: string;
+  };
   presentation?: {
     colorMode: "dark" | "light";
     accentColor: string;

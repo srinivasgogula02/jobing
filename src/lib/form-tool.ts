@@ -12,12 +12,18 @@ export const formOperationIdSchema = z.string()
 
 export const formFieldInputSchema = z.object({
   key: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/).describe("Stable lowercase key, for example work_email."),
-  type: z.enum(["text", "email", "textarea", "number", "tel", "url", "date", "select", "radio", "checkbox", "consent", "file"]),
+  type: z.enum(["text", "email", "textarea", "number", "tel", "url", "date", "time", "select", "radio", "checkbox", "consent", "file", "rating", "yes_no"]),
   label: z.string().trim().min(1).max(200),
   description: z.string().trim().max(500).optional(),
   placeholder: z.string().trim().max(200).optional(),
   required: z.boolean().default(false),
   hidden: z.boolean().default(false),
+  defaultValue: z.string().max(2_000).optional().describe("Static context saved with every response. Only valid when hidden is true; the generated page may replace it dynamically."),
+  condition: z.object({
+    fieldKey: z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/),
+    operator: z.enum(["equals", "not_equals", "contains", "not_contains", "is_empty", "is_not_empty", "greater_than", "less_than"]),
+    value: z.string().max(500).optional(),
+  }).optional().describe("Optionally show this field only when an earlier field matches. Use stable field keys."),
   options: z.array(z.object({
     value: z.string().min(1).max(120),
     label: z.string().min(1).max(160),
@@ -44,6 +50,11 @@ export const formFieldInputSchema = z.object({
   if (field.validation?.min !== undefined && field.validation.max !== undefined && field.validation.min > field.validation.max) {
     context.addIssue({ code: "custom", path: ["validation"], message: "min cannot exceed max." });
   }
+  if (field.condition && !["is_empty", "is_not_empty"].includes(field.condition.operator) && !field.condition.value?.trim()) {
+    context.addIssue({ code: "custom", path: ["condition", "value"], message: `${field.condition.operator} requires a comparison value.` });
+  }
+  if (field.defaultValue !== undefined && !field.hidden) context.addIssue({ code: "custom", path: ["defaultValue"], message: "defaultValue is only supported on hidden fields." });
+  if (field.hidden && field.type === "file") context.addIssue({ code: "custom", path: ["hidden"], message: "File uploads cannot be hidden fields." });
 });
 
 const presentationInputSchema = z.object({
@@ -56,6 +67,32 @@ const presentationInputSchema = z.object({
   buttonStyle: z.enum(["solid", "outline"]),
 });
 
+const behaviorInputSchema = z.object({
+  acceptResponses: z.boolean().optional().describe("Set false to pause new responses."),
+  opensAt: z.string().datetime({ offset: true }).nullable().optional().describe("Optional ISO 8601 opening time. Use null while editing to remove it."),
+  closesAt: z.string().datetime({ offset: true }).nullable().optional().describe("Optional ISO 8601 closing time. Use null while editing to remove it."),
+  responseLimit: z.number().int().min(1).max(1_000_000).nullable().optional().describe("Optional exact lifetime response cap. Use null while editing to remove it."),
+  closedMessage: z.string().trim().min(1).max(1_000).optional(),
+  showProgress: z.boolean().optional(),
+  submitButtonLabel: z.string().trim().min(1).max(80).optional(),
+}).superRefine((behavior, context) => {
+  if (behavior.opensAt && behavior.closesAt && new Date(behavior.opensAt) >= new Date(behavior.closesAt)) {
+    context.addIssue({ code: "custom", path: ["closesAt"], message: "Closing time must be after opening time." });
+  }
+});
+
+function validateFieldConditions(fields: Array<{ key: string; hidden?: boolean; condition?: { fieldKey: string } }>, context: z.RefinementCtx) {
+  const seen = new Map<string, { hidden?: boolean }>();
+  fields.forEach((field, index) => {
+    if (field.condition) {
+      const source = seen.get(field.condition.fieldKey);
+      if (!source) context.addIssue({ code: "custom", path: ["fields", index, "condition", "fieldKey"], message: "Conditions can only use an earlier field key." });
+      else if (source.hidden) context.addIssue({ code: "custom", path: ["fields", index, "condition", "fieldKey"], message: "A hidden field cannot control another field." });
+    }
+    seen.set(field.key, field);
+  });
+}
+
 export const createFormDraftToolInputSchema = z.object({
   operationId: formOperationIdSchema.describe("Required stable idempotency key. Reuse it unchanged when retrying the same creation."),
   name: z.string().trim().min(1).max(200).describe("Dashboard name for the form."),
@@ -67,6 +104,7 @@ export const createFormDraftToolInputSchema = z.object({
   allowedOrigins: z.array(z.string().url().transform((value) => new URL(value).origin)).max(20).optional()
     .describe("HTTPS website origins allowed to submit, for example https://example.com. Omit for hosted-form-only use."),
   presentation: presentationInputSchema.optional().describe("Optional styling for the hosted form. Native HTML embedded in a custom page can be styled freely with page CSS."),
+  behavior: behaviorInputSchema.optional().describe("Optional response scheduling, cap, progress, and button behavior."),
 }).superRefine((input, context) => {
   const keys = new Set<string>();
   input.fields.forEach((field, index) => {
@@ -75,6 +113,7 @@ export const createFormDraftToolInputSchema = z.object({
     }
     keys.add(field.key);
   });
+  validateFieldConditions(input.fields, context);
 });
 
 export type CreateFormDraftToolInput = z.output<typeof createFormDraftToolInputSchema>;
@@ -92,12 +131,14 @@ export const updateFormDraftToolInputSchema = z.object({
   allowedOrigins: z.array(z.string().url().transform((value) => new URL(value).origin)).max(20).optional()
     .describe("Complete allowed-origin list. Omit to keep the current list."),
   presentation: presentationInputSchema.optional().describe("Complete hosted-form styling. Omit to keep the current styling."),
+  behavior: behaviorInputSchema.optional().describe("Behavior values to change. Omitted values keep their current settings."),
 }).superRefine((input, context) => {
   const keys = new Set<string>();
   input.fields.forEach((field, index) => {
     if (keys.has(field.key)) context.addIssue({ code: "custom", path: ["fields", index, "key"], message: "Field keys must be unique." });
     keys.add(field.key);
   });
+  validateFieldConditions(input.fields, context);
 });
 
 export type UpdateFormDraftToolInput = z.output<typeof updateFormDraftToolInputSchema>;
@@ -131,6 +172,8 @@ export function buildConnectorFormDraft(input: CreateFormDraftToolInput): Create
         ...(field.placeholder !== undefined ? { placeholder: field.placeholder } : {}),
         required: field.required,
         hidden: field.hidden,
+        ...(field.defaultValue !== undefined ? { defaultValue: field.defaultValue } : {}),
+        ...(field.condition ? { condition: field.condition } : {}),
         ...(field.options !== undefined ? {
           options: field.options.map((option) => ({ value: option.value, label: option.label })),
         } : {}),
@@ -150,7 +193,16 @@ export function buildConnectorFormDraft(input: CreateFormDraftToolInput): Create
         message: input.confirmationMessage ?? "Thanks, your response was received.",
         ...(input.redirectUrl ? { redirectUrl: input.redirectUrl } : {}),
       },
-      ...(input.allowedOrigins ? { settings: { allowedOrigins: input.allowedOrigins } } : {}),
+      ...((input.allowedOrigins || input.behavior) ? { settings: {
+        allowedOrigins: input.allowedOrigins ?? [],
+        ...(input.behavior?.acceptResponses !== undefined ? { acceptResponses: input.behavior.acceptResponses } : {}),
+        ...(input.behavior?.opensAt ? { opensAt: input.behavior.opensAt } : {}),
+        ...(input.behavior?.closesAt ? { closesAt: input.behavior.closesAt } : {}),
+        ...(input.behavior?.responseLimit ? { responseLimit: input.behavior.responseLimit } : {}),
+        ...(input.behavior?.closedMessage ? { closedMessage: input.behavior.closedMessage } : {}),
+        ...(input.behavior?.showProgress !== undefined ? { showProgress: input.behavior.showProgress } : {}),
+        ...(input.behavior?.submitButtonLabel ? { submitButtonLabel: input.behavior.submitButtonLabel } : {}),
+      } } : {}),
       ...(input.presentation ? { presentation: input.presentation } : {}),
     },
   };
@@ -183,6 +235,8 @@ export function buildUpdatedConnectorFormDraft(
         ...(field.placeholder !== undefined ? { placeholder: field.placeholder } : {}),
         required: field.required,
         hidden: field.hidden,
+        ...(field.defaultValue !== undefined ? { defaultValue: field.defaultValue } : {}),
+        ...(field.condition ? { condition: field.condition } : {}),
         ...(field.options !== undefined ? { options: field.options } : {}),
         ...(field.validation !== undefined ? { validation: field.validation } : {}),
       })),
@@ -195,6 +249,13 @@ export function buildUpdatedConnectorFormDraft(
       },
       settings: {
         allowedOrigins: input.allowedOrigins ?? current.definition.settings?.allowedOrigins ?? [],
+        acceptResponses: input.behavior?.acceptResponses ?? current.definition.settings?.acceptResponses ?? true,
+        ...(input.behavior?.opensAt === null ? {} : input.behavior?.opensAt !== undefined ? { opensAt: input.behavior.opensAt } : current.definition.settings?.opensAt ? { opensAt: current.definition.settings.opensAt } : {}),
+        ...(input.behavior?.closesAt === null ? {} : input.behavior?.closesAt !== undefined ? { closesAt: input.behavior.closesAt } : current.definition.settings?.closesAt ? { closesAt: current.definition.settings.closesAt } : {}),
+        ...(input.behavior?.responseLimit === null ? {} : input.behavior?.responseLimit !== undefined ? { responseLimit: input.behavior.responseLimit } : current.definition.settings?.responseLimit !== undefined ? { responseLimit: current.definition.settings.responseLimit } : {}),
+        closedMessage: input.behavior?.closedMessage ?? current.definition.settings?.closedMessage ?? "This form is not accepting responses right now.",
+        showProgress: input.behavior?.showProgress ?? current.definition.settings?.showProgress ?? false,
+        submitButtonLabel: input.behavior?.submitButtonLabel ?? current.definition.settings?.submitButtonLabel ?? "Send response",
       },
       ...(input.presentation ?? current.definition.presentation
         ? { presentation: input.presentation ?? current.definition.presentation! }

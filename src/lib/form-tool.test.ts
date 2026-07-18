@@ -63,6 +63,33 @@ describe("create form tool input", () => {
     expect(buildConnectorFormDraft(parsed).definition.settings).toEqual({ allowedOrigins: ["https://example.com"] });
     expect(createFormDraftToolInputSchema.safeParse({ ...input, redirectUrl: "http://example.com/thanks" }).success).toBe(false);
   });
+
+  it("builds conditional questions and response controls for AI-created forms", () => {
+    const parsed = createFormDraftToolInputSchema.parse({
+      ...input,
+      fields: [
+        { key: "campaign", type: "text", label: "Campaign", hidden: true, defaultValue: "summer_launch" },
+        { key: "needs_help", type: "yes_no", label: "Need help?" },
+        { key: "urgency", type: "rating", label: "How urgent?", condition: { fieldKey: "needs_help", operator: "equals", value: "yes" } },
+      ],
+      behavior: { responseLimit: 100, showProgress: true, submitButtonLabel: "Request help" },
+    });
+    const result = buildConnectorFormDraft(parsed);
+    expect(result.definition.fields[0]).toMatchObject({ hidden: true, defaultValue: "summer_launch" });
+    expect(result.definition.fields[2].condition).toEqual({ fieldKey: "needs_help", operator: "equals", value: "yes" });
+    expect(result.definition.settings).toMatchObject({ responseLimit: 100, showProgress: true, submitButtonLabel: "Request help" });
+  });
+
+  it("rejects forward condition references and reversed schedules", () => {
+    expect(createFormDraftToolInputSchema.safeParse({
+      ...input,
+      fields: [{ key: "details", type: "text", label: "Details", condition: { fieldKey: "later", operator: "is_not_empty" } }, { key: "later", type: "text", label: "Later" }],
+    }).success).toBe(false);
+    expect(createFormDraftToolInputSchema.safeParse({
+      ...input,
+      behavior: { opensAt: "2026-07-20T00:00:00.000Z", closesAt: "2026-07-19T00:00:00.000Z" },
+    }).success).toBe(false);
+  });
 });
 
 describe("update form tool input", () => {
@@ -98,6 +125,7 @@ describe("update form tool input", () => {
       title: "Contact us",
       fields: input.fields,
       redirectUrl: null,
+      behavior: { opensAt: null, closesAt: null, responseLimit: null },
       presentation: {
         colorMode: "light",
         accentColor: "#3366FF",

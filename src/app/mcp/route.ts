@@ -239,7 +239,7 @@ const handler = createMcpHandler(
       "create_form_draft",
       {
         title: "Create a Jobing form draft",
-        description: "Creates a versioned form draft and a native HTML form template. Use this whenever a page needs a form. Never embed Jobing Forms in an iframe; place the returned form markup directly in the page and customize its HTML/CSS. After success, surface the returned edit and Forms dashboard URLs to the user.",
+        description: "Creates a versioned form draft and a native HTML form template. Use this whenever a page needs a form. Supports conditional questions, ratings, yes/no, response schedules and caps, progress, uploads, and custom success behavior. Never embed Jobing Forms in an iframe; place the returned form markup directly in the page and customize its HTML/CSS. After success, surface the returned edit and Forms dashboard URLs to the user.",
         inputSchema: createFormDraftToolInputSchema.and(z.object({ useCase: mcpUseCaseSchema })),
         annotations: {
           readOnlyHint: false,
@@ -257,6 +257,8 @@ const handler = createMcpHandler(
           use_case: input.useCase,
           field_count_bucket: countBucket(input.fields.length),
           has_file_upload: input.fields.some((field) => field.type === "file"),
+          has_conditional_logic: input.fields.some((field) => Boolean(field.condition)),
+          has_response_controls: Boolean(input.behavior),
           resource_status: "draft",
         },
         execute: async (actor) => {
@@ -308,7 +310,7 @@ const handler = createMcpHandler(
       "update_form_draft",
       {
         title: "Edit a Jobing form draft",
-        description: "Updates a form's versioned draft while preserving all existing submissions and the currently published version. Use list_forms first, send the complete desired field list, then publish the returned revision only if the user wants the changes live.",
+        description: "Updates questions, conditional rules, design, response schedule/cap, progress, and success behavior in a versioned draft while preserving all existing submissions and the currently published version. Use list_forms first, send the complete desired field list, then publish the returned revision only if the user wants the changes live.",
         inputSchema: updateFormDraftToolInputSchema.and(z.object({ useCase: mcpUseCaseSchema })),
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       },
@@ -321,6 +323,8 @@ const handler = createMcpHandler(
           use_case: input.useCase,
           field_count_bucket: countBucket(input.fields.length),
           has_file_upload: input.fields.some((field) => field.type === "file"),
+          has_conditional_logic: input.fields.some((field) => Boolean(field.condition)),
+          has_response_controls: Boolean(input.behavior),
           resource_status: "draft",
         },
         execute: async (actor) => {

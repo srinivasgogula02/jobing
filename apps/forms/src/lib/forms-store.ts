@@ -53,7 +53,7 @@ function isUndefinedDatabaseFunction(error: unknown) {
 
 const publicFormSchema = z.object({
   formId: z.string().uuid(), endpointId: z.string(), versionId: z.string().uuid(),
-  version: z.coerce.number().int().positive(), name: z.string(), definition: z.unknown(),
+  version: z.coerce.number().int().positive(), name: z.string(), definition: z.unknown(), submissionCount: z.coerce.number().int().nonnegative().default(0),
 });
 
 const submissionFileSchema = z.object({
@@ -156,10 +156,23 @@ export async function getPublicForm(endpointId: string) {
 export type SubmissionUpload = { fieldKey: string; fileName: string; contentType: string; contentBase64: string };
 
 export async function acceptSubmission(input: { endpointId: string; idempotencyKey: string; values: Record<string, string | string[]>; origin: string | null; ipHash: string; files?: SubmissionUpload[] }) {
-  const result = await query<{ value: unknown }>(
-    "select forms_api.accept_submission_v2($1,$2,$3::jsonb,$4,$5,$6::jsonb) as value",
-    [input.endpointId, input.idempotencyKey, JSON.stringify(input.values), input.origin, input.ipHash, JSON.stringify(input.files ?? [])],
-  );
+  const parameters = [input.endpointId, input.idempotencyKey, JSON.stringify(input.values), input.origin, input.ipHash, JSON.stringify(input.files ?? [])];
+  let result;
+  try {
+    result = await query<{ value: unknown }>(
+      "select forms_api.accept_submission_v3($1,$2,$3::jsonb,$4,$5,$6::jsonb) as value",
+      parameters,
+    );
+  } catch (error) {
+    // Keep deployments available while a new migration rolls through. The
+    // hosted UI still honors behavior controls; v3 makes them race-safe for API
+    // submissions as soon as the database migration is applied.
+    if (!isUndefinedDatabaseFunction(error)) throw error;
+    result = await query<{ value: unknown }>(
+      "select forms_api.accept_submission_v2($1,$2,$3::jsonb,$4,$5,$6::jsonb) as value",
+      parameters,
+    );
+  }
   return z.object({ submissionId: z.string().uuid(), message: z.string(), redirectUrl: z.string().nullable(), fileCount: z.coerce.number().int().nonnegative() }).parse(result.rows[0]?.value);
 }
 

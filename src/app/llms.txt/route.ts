@@ -1,12 +1,10 @@
 /**
- * /llms.txt — discovery manifest for AI agents (the AEO equivalent of
- * sitemap.xml). Points crawlers at the markdown twins of our key pages and every
- * published blog post. Regenerated hourly so new posts show up automatically.
+ * AI-agent discovery manifest. It points crawlers to current Markdown twins and
+ * public product surfaces. Retired career-product content is excluded.
  */
 import { createLlmsTxtHandler } from "@dualmark/nextjs";
 import type { LlmsTxtSection } from "@dualmark/core";
 import { SITE_URL } from "@/lib/dualmark";
-import { getPublishedBlogs } from "@/app/actions/blog";
 
 export const dynamic = "force-static";
 export const revalidate = 3600;
@@ -14,52 +12,41 @@ export const revalidate = 3600;
 const md = (path: string) => `${SITE_URL}${path}.md`;
 
 export async function GET() {
-  let posts: Awaited<ReturnType<typeof getPublishedBlogs>> = [];
-  try {
-    posts = await getPublishedBlogs();
-  } catch {
-    posts = [];
-  }
-
   const sections: LlmsTxtSection[] = [
     {
-      title: "Key Pages",
-      description: "Core product and information pages.",
+      title: "Jobing AI",
+      description: "Current product, connector setup, plans, and company information.",
       links: [
-        { title: "Home", href: md("/index"), description: "What Jobing AI does." },
-        { title: "Tools", href: md("/tools"), description: "Free AI career tools." },
-        { title: "Pricing", href: md("/pricing"), description: "Plans and pricing." },
-        { title: "About", href: md("/about"), description: "Mission and vision." },
+        { title: "Home", href: md("/index"), description: "What Jobing AI is and what it can do today." },
+        { title: "Connector guide", href: md("/connector"), description: "How to connect Jobing to a compatible AI app, permissions, and prompts." },
+        { title: "Pricing", href: md("/pricing"), description: "Free, Starter, and Business allowances and limit behavior." },
+        { title: "About", href: md("/about"), description: "Why Jobing exists and the principles behind the product." },
+        { title: "Jobing Forms", href: "https://forms.jobing.site", description: "Custom forms, native website integration, response collection, and AI-assisted review." },
+      ],
+    },
+    {
+      title: "Free Utilities",
+      description: "Focused public browser tools separate from the main connector workflow.",
+      links: [
+        { title: "All utilities", href: md("/tools"), description: "Jobing Clipboard, HTML Online Viewer, and LastMinute." },
+        { title: "Online Notepad", href: md("/online-notepad"), description: "Write and share text through a short browser link." },
+        { title: "Online Clipboard", href: md("/online-clipboard"), description: "Move text between devices through a short link." },
+        { title: "Share Text", href: md("/share-text"), description: "Turn text into a shareable browser link." },
       ],
     },
     {
       title: "Legal",
       links: [
         { title: "Privacy Policy", href: md("/privacy") },
-        { title: "Terms & Conditions", href: md("/terms") },
+        { title: "Terms of Service", href: md("/terms") },
       ],
     },
   ];
 
-  if (posts.length > 0) {
-    sections.push({
-      title: "Blog",
-      description: "Resume, ATS, and job-search strategy articles.",
-      links: [
-        { title: "All articles", href: md("/blog") },
-        ...posts.map((p) => ({
-          title: p.title,
-          href: md(`/blog/${p.permalink}`),
-          description: p.description,
-        })),
-      ],
-    });
-  }
-
   return createLlmsTxtHandler({
     brandName: "Jobing AI",
     description:
-      "Jobing AI builds fast, focused web tools for sharing notes, previewing HTML, and getting everyday work done.",
+      "Jobing AI is one connector that lets a compatible AI app publish web pages, create custom forms, collect responses, and help the user work with those responses.",
     sections,
     cacheControl: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
   }).GET();

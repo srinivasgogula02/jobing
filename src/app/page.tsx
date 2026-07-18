@@ -3,11 +3,11 @@ import { HomePageClient } from "./HomePageClient";
 
 export const metadata: Metadata = {
   title: "Jobing AI | Give your AI the tools to finish the work",
-  description: "Connect Jobing AI to any MCP-compatible AI. Publish websites, create forms, collect leads, and follow up by email from one conversation.",
+  description: "Connect Jobing AI to a compatible AI app. Publish web pages, create custom forms, collect responses, and work with those responses from one conversation.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "Your AI can now finish the work",
-    description: "One MCP connector for live pages, custom forms, lead collection, and email follow-up.",
+    description: "One connector for live web pages, custom forms, response collection, and AI-assisted response work.",
     url: "https://jobing.site",
   },
 };

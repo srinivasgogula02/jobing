@@ -1,85 +1,61 @@
-import React from "react";
+import Link from "next/link";
+import { Bot, FormInput, Globe2, Link2, ShieldCheck } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { LegalContent, LegalSection } from "@/components/LegalContent";
-import { Rocket, Target, Mail } from "lucide-react";
 
 export const metadata = {
-  title: "About Us | Jobing AI",
+  title: "About Jobing AI",
+  description: "Why Jobing AI exists and how one connector helps an AI app finish the page-and-form workflow.",
 };
+
+const principles = [
+  { icon: Bot, title: "Finish the workflow", body: "Return a live page, working form, response inbox, and useful links instead of another setup tutorial." },
+  { icon: ShieldCheck, title: "Keep the user in control", body: "Show permissions clearly, keep drafts private, confirm destructive actions, and make connections easy to revoke." },
+  { icon: FormInput, title: "Let the design belong to the customer", body: "Forms can use native website code instead of a forced branded iframe." },
+  { icon: Globe2, title: "Make every result manageable", body: "Everything created through AI is also available from a normal dashboard." },
+] as const;
 
 export default function AboutPage() {
   return (
     <DashboardLayout>
       <LegalContent title="About Jobing AI">
-        <LegalSection title="Our Mission">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-[#C1FF00]/20 flex items-center justify-center shrink-0">
-              <Rocket size={24} className="text-[#1a1a1a]" />
-            </div>
-            <p className="text-lg font-bold text-[#1a1a1a] leading-snug">
-              We started Jobing AI with a single goal: to make professional resume building accessible, intelligent, and highly effective for everyone.
-            </p>
-          </div>
+        <LegalSection title="Why Jobing exists">
+          <p className="text-lg font-bold leading-snug text-[#1a1a1a]">
+            AI apps can understand a request, write copy, and generate code, but people are often left to complete the difficult part themselves.
+          </p>
           <p>
-            In today&apos;s competitive job market, your resume needs to do more than just list your experience—it needs to tell a compelling story that resonates with both AI filters and human recruiters. Jobing AI leverages the latest advancements in artificial intelligence to help you bridge that gap.
+            A page still needs to be published. A form still needs a reliable place to send answers. Responses still need to be reviewed and turned into a decision. Jobing AI exists to close that gap between an AI answer and a finished result.
           </p>
         </LegalSection>
 
-        <LegalSection title="Our Vision">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-[#C1FF00]/20 flex items-center justify-center shrink-0">
-              <Target size={24} className="text-[#1a1a1a]" />
-            </div>
-            <p>
-              We envision a future where your skills and potential are never overlooked due to poor formatting or missing keywords. We are building the most intuitive and powerful AI career assistant to empower job seekers at every stage of their professional journey.
-            </p>
-          </div>
+        <LegalSection title="Our mission">
+          <p>
+            Our mission is to let people complete useful online work from the AI app they already know. One approved connector should be enough to publish a focused web page, add a custom form, collect responses, and return to the same conversation when something needs to change.
+          </p>
         </LegalSection>
 
-        <LegalSection title="Why Jobing AI?">
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-             <li className="bg-[#fafafa] p-6 rounded-2xl border border-[#e5e5e5]">
-               <h4 className="font-black text-[#1a1a1a] mb-2 flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-[#C1FF00]" />
-                 AI Tailoring
-               </h4>
-               <p className="text-[13px] leading-relaxed">Our models analyze specific job descriptions to highlight your most relevant achievements instantly.</p>
-             </li>
-             <li className="bg-[#fafafa] p-6 rounded-2xl border border-[#e5e5e5]">
-                <h4 className="font-black text-[#1a1a1a] mb-2 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#C1FF00]" />
-                  LinkedIn Integration
-                </h4>
-                <p className="text-[13px] leading-relaxed">Import your existing profile data in seconds and never start from a blank page again.</p>
-             </li>
-             <li className="bg-[#fafafa] p-6 rounded-2xl border border-[#e5e5e5]">
-                <h4 className="font-black text-[#1a1a1a] mb-2 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#C1FF00]" />
-                  Modern Aesthetics
-                </h4>
-                <p className="text-[13px] leading-relaxed">Generate premium, ATS-friendly designs that stand out in any recruiter&apos;s inbox.</p>
-             </li>
-             <li className="bg-[#fafafa] p-6 rounded-2xl border border-[#e5e5e5]">
-                <h4 className="font-black text-[#1a1a1a] mb-2 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#C1FF00]" />
-                  Privacy First
-                </h4>
-                <p className="text-[13px] leading-relaxed">Your data is yours. We use enterprise-grade security to ensure your information is always protected.</p>
-             </li>
+        <LegalSection title="How we build">
+          <ul className="my-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+            {principles.map((principle) => (
+              <li className="border border-[#e5e5e5] bg-[#fafafa] p-6" key={principle.title}>
+                <principle.icon className="mb-4 text-[#5f8700]" size={22} />
+                <h3 className="mb-2 font-black text-[#1a1a1a]">{principle.title}</h3>
+                <p className="text-[13px] leading-relaxed">{principle.body}</p>
+              </li>
+            ))}
           </ul>
         </LegalSection>
 
-        <LegalSection title="Get In Touch">
-           <div className="bg-[#1a1a1a] text-white p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
-             <div>
-               <h3 className="text-xl font-black mb-2">Have questions?</h3>
-               <p className="text-white/60 text-sm">We&apos;re here to help you build your dream career.</p>
-             </div>
-             <a href="mailto:support@jobing.ai" className="flex items-center gap-2.5 px-6 py-3 bg-[#C1FF00] text-[#1a1a1a] rounded-xl font-bold hover:scale-[1.05] transition-transform">
-               <Mail size={18} />
-               Contact Support
-             </a>
-           </div>
+        <LegalSection title="Start with one connection">
+          <div className="flex flex-col items-start justify-between gap-6 bg-[#151914] p-8 text-white md:flex-row md:items-center">
+            <div>
+              <h3 className="mb-2 text-xl font-black">Give your AI the tools to finish the work.</h3>
+              <p className="text-sm text-white/65">Publish web pages, create custom forms, and work with responses from the AI app you already use.</p>
+            </div>
+            <Link href="/connector" className="flex items-center gap-2.5 bg-[#baff29] px-6 py-3 font-bold text-[#151914]">
+              <Link2 size={18} /> Connect Jobing AI
+            </Link>
+          </div>
         </LegalSection>
       </LegalContent>
     </DashboardLayout>

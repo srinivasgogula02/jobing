@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronRight, Copy, FormInput, Globe2, Menu, Play, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Copy, FormInput, Globe2, Menu, X } from "lucide-react";
 import { track } from "@/lib/analytics";
 import { ToolchainShowcase } from "@/components/ToolchainShowcase";
+import { ConnectorSetupGuide, type ConnectorPlatform } from "@/components/ConnectorSetupGuide";
 import styles from "./home-v2.module.css";
 
 const MCP_URL = "https://jobing.site/mcp";
@@ -17,13 +18,11 @@ const platformLogos = {
 const platforms = {
   chatgpt: {
     label: "ChatGPT",
-    playbackId: process.env.NEXT_PUBLIC_MUX_CHATGPT_PLAYBACK_ID,
-    steps: ["Open ChatGPT Settings", "Choose Apps & Connectors", "Add the Jobing AI MCP URL"],
+    playbackId: "dQdNFomRgqYV02ntREt601n57L01drfOV9vgiwGVBWaAWg",
   },
   claude: {
     label: "Claude",
     playbackId: "owFFBz2hKX6GLXroqC9lK9v3E1VwXAe02g00ZQR02Cx00B8",
-    steps: ["Open Claude Settings", "Choose Connectors", "Add the Jobing AI MCP URL"],
   },
 } as const;
 
@@ -46,7 +45,7 @@ function CopyConnector({ large = false, placement }: { large?: boolean; placemen
 }
 
 export function HomePageClient() {
-  const [platform, setPlatform] = useState<keyof typeof platforms>("claude");
+  const [platform, setPlatform] = useState<ConnectorPlatform>("claude");
   const [menuOpen, setMenuOpen] = useState(false);
   const [platformOpen, setPlatformOpen] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
@@ -103,10 +102,10 @@ export function HomePageClient() {
         </div>
         <div className={styles.videoShell} ref={videoShellRef}>
           <div className={styles.videoFrameFull}>
-            {current.playbackId && videoReady ? <iframe key={current.playbackId} src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`} title={`How to connect Jobing AI to ${current.label}`} loading="lazy" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen onLoad={() => track("setup_video_loaded", { platform })} /> : current.playbackId ? <img className={styles.videoPoster} src={`https://image.mux.com/${current.playbackId}/thumbnail.webp?time=0&width=1200`} alt={`${current.label} connection video preview`} loading="lazy" /> : <div className={styles.videoPlaceholder}><span><Play fill="currentColor" /></span><strong>{current.label} connection video</strong><p>Add the Mux playback ID to show your screen recording here.</p></div>}
+            {videoReady ? <iframe key={current.playbackId} src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`} title={`How to connect Jobing AI to ${current.label}`} loading="lazy" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen onLoad={() => track("setup_video_loaded", { platform })} /> : <img className={styles.videoPoster} src={`https://image.mux.com/${current.playbackId}/thumbnail.webp?time=0&width=1200`} alt={`${current.label} connection video preview`} loading="lazy" />}
           </div>
-          <ol className={styles.setupSteps}>{current.steps.map((step, index) => <li key={step}><span>{index + 1}</span>{step}</li>)}</ol>
         </div>
+        <ConnectorSetupGuide platform={platform} onPlatformChange={setPlatform} placement="homepage" />
       </section>
 
       <ToolchainShowcase />

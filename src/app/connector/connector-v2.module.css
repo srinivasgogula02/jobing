@@ -142,10 +142,6 @@
 .videoPlaceholder > span { width: 60px; height: 60px; display: grid; place-items: center; border-radius: 50%; background: var(--lime); color: var(--ink); }
 .videoPlaceholder strong { margin-top: 18px; font-size: 20px; }
 .videoPlaceholder p { margin: 8px 20px 0; color: #aeb5aa; font-size: 13px; }
-.setupSteps { margin: 0; padding: 16px 8px 5px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; list-style: none; }
-.setupSteps li { display: flex; align-items: center; gap: 10px; color: #555d52; }
-.setupSteps li span { width: 27px; height: 27px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: var(--lime); color: var(--ink); font-size: 11px; font-weight: 800; }
-.setupSteps b { font-size: 12px; font-weight: 680; }
 
 .abilitiesSection { padding: 82px 20px; background: #151914; color: #fff; scroll-margin-top: 70px; }
 .sectionIntro, .sectionIntroLight { max-width: 780px; margin: auto; text-align: center; }
@@ -251,7 +247,6 @@
   .videoShell { margin-top: 27px; padding: 6px; border-radius: 16px; }
   .videoFrame { border-radius: 11px; }
   .videoPlaceholder > span { width: 50px; height: 50px; }
-  .setupSteps { padding: 15px 5px 4px; grid-template-columns: 1fr; gap: 10px; }
   .sectionIntro, .sectionIntroLight { text-align: left; }
   .sectionIntro h2, .sectionIntroLight h2 { font-size: 38px; line-height: 1.04; }
   .sectionIntro > span, .sectionIntroLight > span { font-size: 15px; }

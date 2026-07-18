@@ -14,12 +14,12 @@ import {
   Inbox,
   Menu,
   MessageSquareText,
-  Play,
   ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { ConnectorSetupGuide, type ConnectorPlatform } from "@/components/ConnectorSetupGuide";
 import styles from "./connector-v2.module.css";
 
 const CONNECTOR_URL = "https://jobing.site/mcp";
@@ -33,12 +33,10 @@ const platforms = {
   claude: {
     label: "Claude",
     playbackId: "owFFBz2hKX6GLXroqC9lK9v3E1VwXAe02g00ZQR02Cx00B8",
-    steps: ["Open Claude Settings", "Choose Connectors", "Add the Jobing AI URL"],
   },
   chatgpt: {
     label: "ChatGPT",
-    playbackId: process.env.NEXT_PUBLIC_MUX_CHATGPT_PLAYBACK_ID,
-    steps: ["Open ChatGPT Settings", "Choose Apps & Connectors", "Add the Jobing AI URL"],
+    playbackId: "dQdNFomRgqYV02ntREt601n57L01drfOV9vgiwGVBWaAWg",
   },
 } as const;
 
@@ -129,7 +127,7 @@ function ConnectorUrl({ placement }: { placement: "connector_hero" | "connector_
 }
 
 export function ConnectorPageClient() {
-  const [platform, setPlatform] = useState<keyof typeof platforms>("claude");
+  const [platform, setPlatform] = useState<ConnectorPlatform>("claude");
   const [platformOpen, setPlatformOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
@@ -247,30 +245,18 @@ export function ConnectorPageClient() {
 
         <div className={styles.videoShell}>
           <div className={styles.videoFrame}>
-            {current.playbackId ? (
-              <iframe
-                key={current.playbackId}
-                src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`}
-                title={`How to connect Jobing AI to ${current.label}`}
-                loading="eager"
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
-                onLoad={() => track("setup_video_loaded", { platform, placement: "connector_page" })}
-              />
-            ) : (
-              <div className={styles.videoPlaceholder}>
-                <span><Play fill="currentColor" /></span>
-                <strong>{current.label} setup</strong>
-                <p>Follow the three steps below. The connection link is the same.</p>
-              </div>
-            )}
+            <iframe
+              key={current.playbackId}
+              src={`https://player.mux.com/${current.playbackId}?autoplay=muted&muted=true&metadata-video-title=Connect%20Jobing%20AI%20to%20${current.label}&accent-color=%23c1ff00`}
+              title={`How to connect Jobing AI to ${current.label}`}
+              loading="eager"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              onLoad={() => track("setup_video_loaded", { platform, placement: "connector_page" })}
+            />
           </div>
-          <ol className={styles.setupSteps}>
-            {current.steps.map((step, index) => (
-              <li key={step}><span>{index + 1}</span><b>{step}</b></li>
-            ))}
-          </ol>
         </div>
+        <ConnectorSetupGuide platform={platform} onPlatformChange={setPlatform} placement="connector_page" />
       </section>
 
       <section id="abilities" className={styles.abilitiesSection}>

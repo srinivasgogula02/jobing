@@ -1,9 +1,9 @@
 import { MetadataRoute } from 'next';
-import { getPublishedBlogs } from './actions/blog';
+import { getPublishedBlogIndex } from './actions/blog';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch dynamic blog routes
-  const blogs = await getPublishedBlogs();
+  const blogs = await getPublishedBlogIndex();
 
   const blogEntries: MetadataRoute.Sitemap = blogs.map((blog) => ({
     url: `https://jobing.site/blog/${blog.permalink}`,

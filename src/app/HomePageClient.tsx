@@ -78,15 +78,15 @@ export function HomePageClient() {
         <div className={styles.headerInner}>
           <Link href="/" className={styles.brand} aria-label="Jobing AI home"><Image src="/logo.png" alt="" width={36} height={36} priority /><span>Jobing AI</span></Link>
           <nav className={styles.desktopNav} aria-label="Main navigation">
-            <a href="#connect">How to connect</a><a href="#use-cases">What it can do</a><Link href="/pricing">Pricing</Link>
-            <Link className={styles.navCta} href="/dashboard">Dashboard</Link>
+            <a href="#connect">How to connect</a><a href="#use-cases">What it can do</a><Link href="/blog">Guides</Link><Link href="/pricing">Pricing</Link>
+            <Link className={styles.navCta} href="/dashboard" prefetch={false}>Dashboard</Link>
           </nav>
           <div className={styles.mobileHeaderActions}>
-            <Link className={styles.mobileDashboard} href="/dashboard">Dashboard</Link>
+            <Link className={styles.mobileDashboard} href="/dashboard" prefetch={false}>Dashboard</Link>
             <button className={styles.menuButton} type="button" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-label="Toggle navigation">{menuOpen ? <X /> : <Menu />}</button>
           </div>
         </div>
-        {menuOpen && <nav className={styles.mobileNav} aria-label="Mobile navigation"><a href="#connect" onClick={() => setMenuOpen(false)}>How to connect</a><a href="#use-cases" onClick={() => setMenuOpen(false)}>What it can do</a><Link href="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link></nav>}
+        {menuOpen && <nav className={styles.mobileNav} aria-label="Mobile navigation"><a href="#connect" onClick={() => setMenuOpen(false)}>How to connect</a><a href="#use-cases" onClick={() => setMenuOpen(false)}>What it can do</a><Link href="/blog" onClick={() => setMenuOpen(false)}>Guides</Link><Link href="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link></nav>}
       </header>
 
       <section className={styles.hero}>
@@ -134,7 +134,7 @@ export function HomePageClient() {
 
       <section className={styles.finalCta}><div><p>One connection. Real outcomes.</p><h2>Give your AI a way to act.</h2><span>Copy the MCP URL and connect Jobing AI to the AI app you already use.</span></div><CopyConnector placement="footer" /></section>
 
-      <footer className={styles.footer}><div><Image src="/logo.png" alt="" width={24} height={24} /><span>Jobing AI · The connector that finishes the work</span></div><nav><Link href="/dashboard">Dashboard</Link><Link href="/dashboard/pages">Pages</Link><Link href="/dashboard/forms">Forms</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav></footer>
+      <footer className={styles.footer}><div><Image src="/logo.png" alt="" width={24} height={24} /><span>Jobing AI · The connector that finishes the work</span></div><nav><Link href="/blog">Guides</Link><Link href="/dashboard" prefetch={false}>Dashboard</Link><Link href="/dashboard/pages" prefetch={false}>Pages</Link><Link href="/dashboard/forms" prefetch={false}>Forms</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav></footer>
     </main>
   );
 }

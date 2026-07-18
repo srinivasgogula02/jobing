@@ -17,12 +17,13 @@ export function PublicSiteHeader() {
         <nav className="hidden items-center gap-7 text-sm font-semibold text-[#656d62] md:flex" aria-label="Main navigation">
           <Link href="/#connect" className="hover:text-[#151914]">How to connect</Link>
           <Link href="/#use-cases" className="hover:text-[#151914]">What it can do</Link>
+          <Link href="/blog" className="hover:text-[#151914]">Guides</Link>
           <Link href="/pricing" className="text-[#151914]">Pricing</Link>
-          <Link href="/dashboard" className="dark-surface-link inline-flex min-h-11 items-center rounded-xl bg-[#151914] px-4 hover:bg-[#293025]">Dashboard</Link>
+          <Link href="/dashboard" prefetch={false} className="dark-surface-link inline-flex min-h-11 items-center rounded-xl bg-[#151914] px-4 hover:bg-[#293025]">Dashboard</Link>
         </nav>
         <button type="button" className="grid h-11 w-11 place-items-center rounded-xl border border-[#d8ddd3] text-[#151914] md:hidden" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label="Toggle navigation">{open ? <X size={20} /> : <Menu size={20} />}</button>
       </div>
-      {open ? <nav className="grid gap-1 border-t border-[#e1e4dc] bg-[#f7f8f4] p-3 text-sm font-semibold text-[#555d52] md:hidden" aria-label="Mobile navigation"><Link className="min-h-11 rounded-lg px-3 py-3" href="/#connect" onClick={() => setOpen(false)}>How to connect</Link><Link className="min-h-11 rounded-lg px-3 py-3" href="/#use-cases" onClick={() => setOpen(false)}>What it can do</Link><Link className="min-h-11 rounded-lg px-3 py-3" href="/pricing" onClick={() => setOpen(false)}>Pricing</Link><Link className="dark-surface-link min-h-11 rounded-lg bg-[#151914] px-3 py-3 text-center" href="/dashboard" onClick={() => setOpen(false)}>Dashboard</Link></nav> : null}
+      {open ? <nav className="grid gap-1 border-t border-[#e1e4dc] bg-[#f7f8f4] p-3 text-sm font-semibold text-[#555d52] md:hidden" aria-label="Mobile navigation"><Link className="min-h-11 rounded-lg px-3 py-3" href="/#connect" onClick={() => setOpen(false)}>How to connect</Link><Link className="min-h-11 rounded-lg px-3 py-3" href="/#use-cases" onClick={() => setOpen(false)}>What it can do</Link><Link className="min-h-11 rounded-lg px-3 py-3" href="/blog" onClick={() => setOpen(false)}>Guides</Link><Link className="min-h-11 rounded-lg px-3 py-3" href="/pricing" onClick={() => setOpen(false)}>Pricing</Link><Link className="dark-surface-link min-h-11 rounded-lg bg-[#151914] px-3 py-3 text-center" href="/dashboard" prefetch={false} onClick={() => setOpen(false)}>Dashboard</Link></nav> : null}
     </header>
   );
 }

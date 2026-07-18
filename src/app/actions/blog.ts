@@ -1,7 +1,12 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
-import { BLOG_PAGE_SIZE, type BlogListItem } from "@/lib/blog-config";
+import { unstable_cache } from "next/cache";
+import {
+    BLOG_PAGE_SIZE,
+    RETIRED_BLOG_PERMALINKS,
+    type BlogListItem,
+} from "@/lib/blog-config";
 
 export interface BlogPost {
     id: string;
@@ -17,18 +22,20 @@ export interface BlogPost {
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const retiredPermalinks = `(${RETIRED_BLOG_PERMALINKS.join(",")})`;
 
 // Always create a new client instance for server actions
 function getSupabase() {
     return createClient(supabaseUrl, supabaseAnonKey);
 }
 
-export async function getPublishedBlogs(): Promise<BlogPost[]> {
+const loadPublishedBlogs = unstable_cache(async (): Promise<BlogPost[]> => {
     const supabase = getSupabase();
     const { data, error } = await supabase
         .from('blogs')
-        .select('*')
+        .select('id, created_at, title, description, content, image_url, keywords, permalink, published')
         .eq('published', true)
+        .not('permalink', 'in', retiredPermalinks)
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -37,6 +44,32 @@ export async function getPublishedBlogs(): Promise<BlogPost[]> {
     }
     
     return data as BlogPost[];
+}, ["current-published-blogs"], { revalidate: 300, tags: ["blogs"] });
+
+export async function getPublishedBlogs(): Promise<BlogPost[]> {
+    return loadPublishedBlogs();
+}
+
+/** Metadata-only index used by the sitemap and AI discovery manifest. */
+const loadPublishedBlogIndex = unstable_cache(async (): Promise<BlogListItem[]> => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+        .from('blogs')
+        .select('id, created_at, title, description, image_url, keywords, permalink')
+        .eq('published', true)
+        .not('permalink', 'in', retiredPermalinks)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching blog index:", error);
+        return [];
+    }
+
+    return (data ?? []) as BlogListItem[];
+}, ["current-published-blog-index"], { revalidate: 300, tags: ["blogs"] });
+
+export async function getPublishedBlogIndex(): Promise<BlogListItem[]> {
+    return loadPublishedBlogIndex();
 }
 
 /**
@@ -46,19 +79,19 @@ export async function getPublishedBlogs(): Promise<BlogPost[]> {
  * count in a single round-trip, instead of `select('*')` over the whole table.
  * This keeps the /blog page's DB cost and payload flat as the blog count grows.
  */
-export async function getPublishedBlogsPage(
-    page = 1,
-    pageSize = BLOG_PAGE_SIZE
-): Promise<{ blogs: BlogListItem[]; total: number }> {
+const loadPublishedBlogsPage = unstable_cache(async (
+    page: number,
+    pageSize: number
+): Promise<{ blogs: BlogListItem[]; total: number }> => {
     const supabase = getSupabase();
-    const safePage = Math.max(1, Math.floor(Number(page) || 1));
-    const from = (safePage - 1) * pageSize;
+    const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
     const { data, error, count } = await supabase
         .from('blogs')
-        .select('id, created_at, title, description, image_url, permalink', { count: 'exact' })
+        .select('id, created_at, title, description, image_url, keywords, permalink', { count: 'exact' })
         .eq('published', true)
+        .not('permalink', 'in', retiredPermalinks)
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -68,9 +101,18 @@ export async function getPublishedBlogsPage(
     }
 
     return { blogs: (data ?? []) as BlogListItem[], total: count ?? 0 };
+}, ["current-published-blogs-page"], { revalidate: 300, tags: ["blogs"] });
+
+export async function getPublishedBlogsPage(
+    page = 1,
+    pageSize = BLOG_PAGE_SIZE
+): Promise<{ blogs: BlogListItem[]; total: number }> {
+    const safePage = Math.max(1, Math.floor(Number(page) || 1));
+    const safePageSize = Math.min(50, Math.max(1, Math.floor(Number(pageSize) || BLOG_PAGE_SIZE)));
+    return loadPublishedBlogsPage(safePage, safePageSize);
 }
 
-export async function getBlogByPermalink(permalink: string): Promise<BlogPost | null> {
+const loadBlogByPermalink = unstable_cache(async (permalink: string): Promise<BlogPost | null> => {
     const supabase = getSupabase();
     const { data, error } = await supabase
         .from('blogs')
@@ -87,4 +129,12 @@ export async function getBlogByPermalink(permalink: string): Promise<BlogPost | 
     }
     
     return data as BlogPost;
+}, ["current-blog-by-permalink"], { revalidate: 300, tags: ["blogs"] });
+
+export async function getBlogByPermalink(permalink: string): Promise<BlogPost | null> {
+    if ((RETIRED_BLOG_PERMALINKS as readonly string[]).includes(permalink)) {
+        return null;
+    }
+
+    return loadBlogByPermalink(permalink);
 }

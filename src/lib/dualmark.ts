@@ -7,6 +7,8 @@
  */
 import type { DualmarkNextConfig } from "@dualmark/nextjs";
 import { toMarkdownPath } from "@dualmark/core";
+import { getPublishedBlogs } from "@/app/actions/blog";
+import { RETIRED_BLOG_PERMALINKS } from "@/lib/blog-config";
 
 /** Public origin, no trailing slash. Override locally with NEXT_PUBLIC_SITE_URL. */
 export const SITE_URL = (
@@ -15,6 +17,7 @@ export const SITE_URL = (
 
 const CONNECTOR_URL = `${SITE_URL}/mcp`;
 const FORMS_SITE_URL = "https://forms.jobing.site";
+const AUTHOR = "Srinivas Gogula";
 
 function renderHome(): string {
   return `# Jobing AI
@@ -78,6 +81,7 @@ connector ability.
 - [Jobing Forms](${FORMS_SITE_URL})
 - [Pricing](${SITE_URL}/pricing)
 - [About Jobing AI](${SITE_URL}/about)
+- [Jobing guides](${SITE_URL}/blog)
 - [Free utilities](${SITE_URL}/tools)
 `;
 }
@@ -137,7 +141,8 @@ be reviewed or disconnected from [Manage connections](${SITE_URL}/connector/mana
 > and move obvious spam out of the inbox.
 
 [Open the visual connection guide](${SITE_URL}/connector) or
-[go to the dashboard](${SITE_URL}/dashboard).
+[go to the dashboard](${SITE_URL}/dashboard). For practical examples, read the
+[Jobing guides](${SITE_URL}/blog).
 `;
 }
 
@@ -185,7 +190,8 @@ when something needs to change.
   and connected apps.
 
 Start with the [connection guide](${SITE_URL}/connector), visit
-[Jobing Forms](${FORMS_SITE_URL}), or open [Pricing](${SITE_URL}/pricing).
+[Jobing Forms](${FORMS_SITE_URL}), read the [Jobing guides](${SITE_URL}/blog),
+or open [Pricing](${SITE_URL}/pricing).
 `;
 }
 
@@ -257,7 +263,9 @@ Explore the collection at [${SITE_URL}/tools](${SITE_URL}/tools).
 ## Main Jobing product
 
 To publish web pages, create custom forms, and work with responses from your AI
-app, use the [Jobing AI connector](${SITE_URL}/connector).
+app, use the [Jobing AI connector](${SITE_URL}/connector). Read practical notes
+about AI workflows, publishing, forms, and the product in the
+[Jobing guides](${SITE_URL}/blog).
 `;
 }
 
@@ -540,6 +548,34 @@ export const dualmarkConfig: DualmarkNextConfig = {
   siteUrl: SITE_URL,
   internalNamespace: "md",
 
+  collections: {
+    // Published product articles get a clean listing at /blog.md and one
+    // Markdown twin per article at /blog/<permalink>.md.
+    blog: {
+      converter: "blog",
+      slugStrategy: "single",
+      listingMetadata: {
+        title: "Jobing Guides",
+        description:
+          "Practical notes on AI workflows, web-page publishing, custom forms, product decisions, and the systems behind Jobing.",
+      },
+      getEntries: async () => {
+        const posts = await getPublishedBlogs();
+        return posts.map((post) => ({
+          id: post.permalink,
+          body: post.content,
+          data: {
+            title: post.title,
+            description: post.description,
+            author: AUTHOR,
+            publishedDate: new Date(post.created_at),
+            category: post.keywords?.split(",")[0]?.trim() || "Jobing guide",
+          },
+        }));
+      },
+    },
+  },
+
   staticPages: [
     { pattern: "/", render: renderHome },
     { pattern: "/connector", render: renderConnector },
@@ -581,7 +617,11 @@ const STATIC_TWIN_PATHS = new Set(
 /** Does pathname have a Markdown twin that Jobing currently serves? */
 export function hasMarkdownTwin(pathname: string): boolean {
   const clean = pathname.replace(/\/+$/, "") || "/";
-  return STATIC_TWIN_PATHS.has(clean);
+  if (STATIC_TWIN_PATHS.has(clean)) return true;
+  if (clean === "/blog") return true;
+  const blogMatch = clean.match(/^\/blog\/([^/]+)$/u);
+  if (blogMatch) return !(RETIRED_BLOG_PERMALINKS as readonly string[]).includes(blogMatch[1]);
+  return false;
 }
 
 /** Public twin path for an HTML path, for example /about to /about.md. */

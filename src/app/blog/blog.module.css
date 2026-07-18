@@ -1,0 +1,146 @@
+.article {
+  color: #4f574d;
+  font-size: clamp(1rem, 1.4vw, 1.075rem);
+  line-height: 1.78;
+}
+
+.article :global(h2) {
+  scroll-margin-top: 6rem;
+  margin: 3.5rem 0 1rem;
+  border-top: 1px solid #dfe3da;
+  padding-top: 1.5rem;
+  color: #151914;
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.article :global(h3) {
+  scroll-margin-top: 6rem;
+  margin: 2.25rem 0 0.75rem;
+  color: #151914;
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.article :global(p),
+.article :global(ul),
+.article :global(ol),
+.article :global(blockquote),
+.article :global(pre) {
+  margin-bottom: 1.5rem;
+}
+
+.article :global(ul),
+.article :global(ol) {
+  padding-left: 1.35rem;
+}
+
+.article :global(li) {
+  margin: 0.5rem 0;
+  padding-left: 0.25rem;
+}
+
+.article :global(li::marker) {
+  color: #719500;
+  font-weight: 700;
+}
+
+.article :global(strong) {
+  color: #151914;
+  font-weight: 750;
+}
+
+.article :global(a) {
+  color: #527800;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.article :global(a:hover) {
+  color: #151914;
+}
+
+.article :global(blockquote) {
+  border-left: 3px solid #719500;
+  background: #f0f3eb;
+  padding: 1.25rem 1.5rem;
+  color: #30372e;
+  font-size: 1.05em;
+}
+
+.article :global(code) {
+  border: 1px solid #dfe3da;
+  background: #f0f2ed;
+  padding: 0.12rem 0.35rem;
+  color: #2e3b1d;
+  font-family: var(--font-home-mono), ui-monospace, monospace;
+  font-size: 0.88em;
+  overflow-wrap: anywhere;
+}
+
+.article :global(pre) {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #30372e;
+  background: #151914;
+  padding: 1.25rem;
+  color: #eef2ea;
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.article :global(pre code) {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  overflow-wrap: normal;
+}
+
+.article :global(hr) {
+  margin: 3rem 0;
+  border: 0;
+  border-top: 1px solid #dfe3da;
+}
+
+.article :global(table) {
+  display: block;
+  width: 100%;
+  margin: 2rem 0;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+
+.article :global(th),
+.article :global(td) {
+  min-width: 9rem;
+  border: 1px solid #dfe3da;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+}
+
+.article :global(th) {
+  background: #f0f2ed;
+  color: #151914;
+}
+
+@media (max-width: 640px) {
+  .article {
+    line-height: 1.72;
+  }
+
+  .article :global(h2) {
+    margin-top: 2.75rem;
+  }
+
+  .article :global(blockquote) {
+    padding: 1rem;
+  }
+}

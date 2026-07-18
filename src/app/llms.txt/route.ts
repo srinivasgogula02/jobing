@@ -5,6 +5,7 @@
 import { createLlmsTxtHandler } from "@dualmark/nextjs";
 import type { LlmsTxtSection } from "@dualmark/core";
 import { SITE_URL } from "@/lib/dualmark";
+import { getPublishedBlogIndex } from "@/app/actions/blog";
 
 export const dynamic = "force-static";
 export const revalidate = 3600;
@@ -12,6 +13,13 @@ export const revalidate = 3600;
 const md = (path: string) => `${SITE_URL}${path}.md`;
 
 export async function GET() {
+  let posts: Awaited<ReturnType<typeof getPublishedBlogIndex>> = [];
+  try {
+    posts = await getPublishedBlogIndex();
+  } catch {
+    posts = [];
+  }
+
   const sections: LlmsTxtSection[] = [
     {
       title: "Jobing AI",
@@ -22,6 +30,18 @@ export async function GET() {
         { title: "Pricing", href: md("/pricing"), description: "Free, Starter, and Business allowances and limit behavior." },
         { title: "About", href: md("/about"), description: "Why Jobing exists and the principles behind the product." },
         { title: "Jobing Forms", href: "https://forms.jobing.site", description: "Custom forms, native website integration, response collection, and AI-assisted review." },
+      ],
+    },
+    {
+      title: "Jobing Guides",
+      description: "Current articles about AI workflows, publishing, custom forms, product decisions, and building Jobing.",
+      links: [
+        { title: "All guides", href: md("/blog"), description: "Browse every current Jobing article." },
+        ...posts.map((post) => ({
+          title: post.title,
+          href: md(`/blog/${post.permalink}`),
+          description: post.description,
+        })),
       ],
     },
     {

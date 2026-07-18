@@ -30,9 +30,16 @@ describe("Markdown twins", () => {
   it("advertises only twins that are intentionally maintained", () => {
     expect(hasMarkdownTwin("/connector")).toBe(true);
     expect(hasMarkdownTwin("/connector/")).toBe(true);
-    expect(hasMarkdownTwin("/blog")).toBe(false);
-    expect(hasMarkdownTwin("/blog/old-career-post")).toBe(false);
+    expect(hasMarkdownTwin("/blog")).toBe(true);
+    expect(hasMarkdownTwin("/blog/current-product-post")).toBe(true);
+    expect(hasMarkdownTwin("/blog/how-to-defeat-ats")).toBe(false);
+    expect(hasMarkdownTwin("/blog/nested/post")).toBe(false);
     expect(markdownTwinPath("/connector")).toBe("/connector.md");
+  });
+
+  it("points readers to current Jobing guides", async () => {
+    expect(await renderTwin("/")).toContain("Jobing guides");
+    expect(dualmarkConfig.collections?.blog?.listingMetadata?.description).toContain("custom forms");
   });
 
   it("states the privacy boundaries for responses and uploaded files", async () => {

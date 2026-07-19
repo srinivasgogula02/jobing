@@ -8,7 +8,9 @@ import { SITE_URL } from "@/lib/dualmark";
 import { getPublishedBlogIndex } from "@/app/actions/blog";
 
 export const dynamic = "force-static";
-export const revalidate = 3600;
+// Blog posts are published outside this deployment, so keep AI discovery close
+// to the live article index instead of caching new guides for a full day.
+export const revalidate = 300;
 
 const md = (path: string) => `${SITE_URL}${path}.md`;
 
@@ -68,6 +70,6 @@ export async function GET() {
     description:
       "Jobing AI is one connector that lets a compatible AI app publish web pages, create custom forms, collect responses, and help the user work with those responses.",
     sections,
-    cacheControl: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+    cacheControl: "public, max-age=300, s-maxage=300, stale-while-revalidate=86400",
   }).GET();
 }

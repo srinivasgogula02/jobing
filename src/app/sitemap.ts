@@ -1,6 +1,10 @@
 import { MetadataRoute } from 'next';
 import { getPublishedBlogIndex } from './actions/blog';
 
+// Blog posts are published from the standalone campaign console. Regenerate the
+// sitemap regularly so a content publish does not require a main-app deploy.
+export const revalidate = 300;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch dynamic blog routes
   const blogs = await getPublishedBlogIndex();

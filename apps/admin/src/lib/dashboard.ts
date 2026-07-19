@@ -54,7 +54,7 @@ async function postHogQuery(query: string): Promise<ProviderResult<unknown[][]>>
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ query: { kind: "HogQLQuery", query } }),
-    });
+    }, 15_000);
     if (!response) return unavailable("timeout");
     if (response.status === 429) return unavailable("rate_limited");
     if (!response.ok) return unavailable("provider_error");

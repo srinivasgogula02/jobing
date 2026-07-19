@@ -16,6 +16,19 @@ function mcpRequest(body: object, sessionId?: string) {
   });
 }
 
+function wrappedRequest(request: Request) {
+  return new Proxy(request, {
+    get(target, property) {
+      const value = Reflect.get(target, property, target);
+      if (typeof value !== "function" || property === "clone") return value;
+      return value.bind(target);
+    },
+    set(target, property, value) {
+      return Reflect.set(target, property, value, target);
+    },
+  });
+}
+
 describe("stateless MCP sessions", () => {
   it("returns one session token at initialize and reuses it across tool calls", async () => {
     const capture = vi.fn();
@@ -96,7 +109,7 @@ describe("stateless MCP sessions", () => {
     expect(failedResponse.headers.has(MCP_SESSION_HEADER)).toBe(false);
   });
 
-  it("preserves OAuth authentication when cloning the initialize request", async () => {
+  it("preserves OAuth authentication when rebuilding the initialize request", async () => {
     const auth = {
       token: "test-token",
       clientId: "chatgpt",
@@ -119,5 +132,23 @@ describe("stateless MCP sessions", () => {
     await handler(request);
 
     expect(receivedAuth).toBe(auth);
+  });
+
+  it("supports runtime-wrapped requests whose native clone method loses its private state", async () => {
+    const handler = withStatelessMcpSession(async () => new Response("initialized"));
+    const request = wrappedRequest(mcpRequest({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: { clientInfo: { name: "ChatGPT", version: "1" } },
+    }));
+
+    const response = await handler(request);
+
+    expect(response.status).toBe(200);
+    expect(decodeSessionId(response.headers.get(MCP_SESSION_HEADER))).toMatchObject({
+      sessionId: expect.stringMatching(/^ses_/),
+      clientName: "ChatGPT",
+    });
   });
 });

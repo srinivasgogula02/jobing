@@ -86,4 +86,22 @@ describe("Jobing MCP analytics", () => {
     expect(options.reportMissing).toBe(true);
     expect(options.missingCapabilityToolName).toBe("get_more_tools");
   });
+
+  it("groups stateless calls by the authenticated Jobing user", async () => {
+    const options = createJobingMcpAnalyticsOptions();
+    expect(options.enableConversationId).toBe(false);
+    expect(typeof options.identify).toBe("function");
+
+    if (typeof options.identify !== "function") throw new Error("MCP user identification is not configured");
+    const identify = options.identify;
+    const first = await identify({ params: { name: "create_form_draft" } } as never, {
+      authInfo: { extra: { userId: "user_123" } },
+    } as never);
+    const second = await identify({ params: { name: "publish_form" } } as never, {
+      authInfo: { extra: { userId: "user_123" } },
+    } as never);
+
+    expect(first).toEqual({ distinctId: "user_123" });
+    expect(second).toEqual(first);
+  });
 });

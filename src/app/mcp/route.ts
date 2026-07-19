@@ -10,6 +10,7 @@ import {
 } from "@/lib/connected-tools";
 import { runConnectorTool } from "@/lib/connector-tool-runtime";
 import { instrumentJobingMcpServer } from "@/lib/mcp-analytics";
+import { withStatelessMcpSession } from "@/lib/mcp-session";
 import {
   buildConnectorFormDraft,
   buildUpdatedConnectorFormDraft,
@@ -523,6 +524,7 @@ const handler = createMcpHandler(
   },
   { basePath: "", maxDuration: 60 },
 );
+const sessionHandler = withStatelessMcpSession(handler);
 
 async function grantRateLimitedHandler(req: Request) {
   const grantId = req.auth?.extra?.grantId;
@@ -556,7 +558,7 @@ async function grantRateLimitedHandler(req: Request) {
       },
     });
   }
-  return handler(req);
+  return sessionHandler(req);
 }
 
 const authHandler = withMcpAuth(

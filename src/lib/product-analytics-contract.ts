@@ -3,6 +3,24 @@ export type ToolAction = "create" | "list" | "read" | "update" | "delete" | "dup
 export type AccessMode = "read" | "write" | "destructive";
 export type ConnectorClientType = "chatgpt" | "claude" | "other";
 
+export const MCP_USE_CASES = [
+  "marketing_page",
+  "business_website",
+  "portfolio",
+  "lead_capture",
+  "contact_form",
+  "job_application",
+  "event_registration",
+  "survey_feedback",
+  "waitlist",
+  "booking_request",
+  "newsletter_signup",
+  "customer_support",
+  "internal_workflow",
+  "content_sharing",
+  "other",
+] as const;
+
 export const MCP_TOOL_METADATA: Record<string, {
   productArea: ProductArea;
   toolAction: ToolAction;

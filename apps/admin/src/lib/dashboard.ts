@@ -10,6 +10,7 @@ export type ToolHealth = { tool: string; area: string; client: string; success: 
 export type FailureCount = { tool: string; code: string; count: number };
 export type ActiveUsers = { day: number; week: number; month: number };
 export type RuntimeSignal = { event: string; outcome: string; reason: string; count: number };
+export type MissingCapability = { intent: string; client: string; count: number };
 export type FeedbackItem = {
   id: string;
   kind: string;
@@ -65,18 +66,18 @@ async function postHogQuery(query: string): Promise<ProviderResult<unknown[][]>>
 }
 
 async function loadProductEvents(): Promise<ProviderResult<EventCount[]>> {
-  const result = await postHogQuery("SELECT event, count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event IN ('user_signed_up','connector_oauth_completed','mcp_request_completed','mcp_tool_completed','page_deploy_completed','form_draft_completed','form_publish_completed','form_submission_completed','generated_page_request_completed','connector_feedback_submitted','checkout_started','checkout_failed','payment_succeeded','payment_failed','subscription_activated','subscription_cancelled') GROUP BY event ORDER BY count() DESC LIMIT 40");
+  const result = await postHogQuery("SELECT event, count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event IN ('user_signed_up','connector_oauth_completed','mcp_request_completed','$mcp_initialize','$mcp_tools_list','$mcp_tool_call','$mcp_missing_capability','page_deploy_completed','form_draft_completed','form_publish_completed','form_submission_completed','generated_page_request_completed','connector_feedback_submitted','checkout_started','checkout_failed','payment_succeeded','payment_failed','subscription_activated','subscription_cancelled') GROUP BY event ORDER BY count() DESC LIMIT 40");
   if (result.status !== "ok") return result;
   return { status: "ok", data: result.data.map((row) => ({ event: text(row[0]), count: number(row[1]) })) };
 }
 
 async function loadActivation(): Promise<ProviderResult<ActivationStep[]>> {
-  const result = await postHogQuery("SELECT event, uniq(distinct_id) FROM events WHERE timestamp > now() - INTERVAL 30 DAY AND ((event = 'user_signed_up') OR (event = 'connector_oauth_completed' AND properties.outcome = 'approved') OR (event = 'mcp_tool_completed' AND properties.outcome = 'success') OR (event IN ('page_deploy_completed','form_publish_completed','checkout_started','payment_succeeded') AND properties.outcome = 'success')) GROUP BY event");
+  const result = await postHogQuery("SELECT event, uniq(distinct_id) FROM events WHERE timestamp > now() - INTERVAL 30 DAY AND ((event = 'user_signed_up') OR (event = 'connector_oauth_completed' AND properties.outcome = 'approved') OR (event = '$mcp_tool_call' AND properties.$mcp_is_error = false) OR (event IN ('page_deploy_completed','form_publish_completed','checkout_started','payment_succeeded') AND properties.outcome = 'success')) GROUP BY event");
   if (result.status !== "ok") return result;
   const labels: Record<string, string> = {
     user_signed_up: "Signed up",
     connector_oauth_completed: "Connected an AI app",
-    mcp_tool_completed: "Completed an AI action",
+    "$mcp_tool_call": "Completed an AI action",
     page_deploy_completed: "Published a web page",
     form_publish_completed: "Published a form",
     checkout_started: "Started checkout",
@@ -87,7 +88,7 @@ async function loadActivation(): Promise<ProviderResult<ActivationStep[]>> {
 }
 
 async function loadToolHealth(): Promise<ProviderResult<ToolHealth[]>> {
-  const result = await postHogQuery("SELECT properties.tool_name, properties.product_area, properties.client_type, properties.outcome, count(), avg(toFloat(properties.duration_ms)) FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event = 'mcp_tool_completed' GROUP BY properties.tool_name, properties.product_area, properties.client_type, properties.outcome ORDER BY count() DESC LIMIT 100");
+  const result = await postHogQuery("SELECT properties.$mcp_tool_name, properties.product_area, coalesce(properties.client_type, properties.$mcp_client_name, 'unknown'), if(properties.$mcp_is_error = true, 'error', 'success'), count(), avg(toFloat(properties.$mcp_duration_ms)) FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event = '$mcp_tool_call' GROUP BY properties.$mcp_tool_name, properties.product_area, coalesce(properties.client_type, properties.$mcp_client_name, 'unknown'), if(properties.$mcp_is_error = true, 'error', 'success') ORDER BY count() DESC LIMIT 100");
   if (result.status !== "ok") return result;
   const grouped = new Map<string, ToolHealth & { weightedDuration: number }>();
   for (const row of result.data) {
@@ -112,16 +113,22 @@ async function loadToolHealth(): Promise<ProviderResult<ToolHealth[]>> {
 }
 
 async function loadFailures(): Promise<ProviderResult<FailureCount[]>> {
-  const result = await postHogQuery("SELECT properties.tool_name, properties.error_code, count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event = 'mcp_tool_completed' AND properties.outcome = 'error' GROUP BY properties.tool_name, properties.error_code ORDER BY count() DESC LIMIT 30");
+  const result = await postHogQuery("SELECT properties.$mcp_tool_name, coalesce(properties.$mcp_error_type, 'tool_error'), count() FROM events WHERE timestamp > now() - INTERVAL 7 DAY AND event = '$mcp_tool_call' AND properties.$mcp_is_error = true GROUP BY properties.$mcp_tool_name, coalesce(properties.$mcp_error_type, 'tool_error') ORDER BY count() DESC LIMIT 30");
   if (result.status !== "ok") return result;
   return { status: "ok", data: result.data.map((row) => ({ tool: text(row[0]), code: text(row[1]), count: number(row[2]) })) };
 }
 
 async function loadActiveUsers(): Promise<ProviderResult<ActiveUsers>> {
-  const result = await postHogQuery("SELECT uniqIf(distinct_id, timestamp > now() - INTERVAL 1 DAY), uniqIf(distinct_id, timestamp > now() - INTERVAL 7 DAY), uniq(distinct_id) FROM events WHERE timestamp > now() - INTERVAL 30 DAY AND event = 'mcp_tool_completed' AND properties.outcome = 'success'");
+  const result = await postHogQuery("SELECT uniqIf(distinct_id, timestamp > now() - INTERVAL 1 DAY), uniqIf(distinct_id, timestamp > now() - INTERVAL 7 DAY), uniq(distinct_id) FROM events WHERE timestamp > now() - INTERVAL 30 DAY AND event = '$mcp_tool_call' AND properties.$mcp_is_error = false");
   if (result.status !== "ok") return result;
   const row = result.data[0] ?? [];
   return { status: "ok", data: { day: number(row[0]), week: number(row[1]), month: number(row[2]) } };
+}
+
+async function loadMissingCapabilities(): Promise<ProviderResult<MissingCapability[]>> {
+  const result = await postHogQuery("SELECT properties.$mcp_intent, coalesce(properties.client_type, properties.$mcp_client_name, 'unknown'), count() FROM events WHERE timestamp > now() - INTERVAL 30 DAY AND event = '$mcp_missing_capability' GROUP BY properties.$mcp_intent, coalesce(properties.client_type, properties.$mcp_client_name, 'unknown') ORDER BY count() DESC LIMIT 30");
+  if (result.status !== "ok") return result;
+  return { status: "ok", data: result.data.map((row) => ({ intent: text(row[0], "No safe intent supplied"), client: text(row[1]), count: number(row[2]) })) };
 }
 
 async function loadRuntimeSignals(): Promise<ProviderResult<RuntimeSignal[]>> {
@@ -188,8 +195,8 @@ async function loadSentryIssues(): Promise<ProviderResult<SentryIssue[]>> {
 }
 
 async function loadDashboardUncached() {
-  const [events, activation, tools, failures, activeUsers, runtime, feedback, issues] = await Promise.allSettled([
-    loadProductEvents(), loadActivation(), loadToolHealth(), loadFailures(), loadActiveUsers(), loadRuntimeSignals(), loadFeedback(), loadSentryIssues(),
+  const [events, activation, tools, failures, activeUsers, runtime, missingCapabilities, feedback, issues] = await Promise.allSettled([
+    loadProductEvents(), loadActivation(), loadToolHealth(), loadFailures(), loadActiveUsers(), loadRuntimeSignals(), loadMissingCapabilities(), loadFeedback(), loadSentryIssues(),
   ]);
   const safe = <T,>(result: PromiseSettledResult<ProviderResult<T>>): ProviderResult<T> => result.status === "fulfilled" ? result.value : unavailable("provider_error");
   return {
@@ -199,10 +206,11 @@ async function loadDashboardUncached() {
     failures: safe(failures),
     activeUsers: safe(activeUsers),
     runtime: safe(runtime),
+    missingCapabilities: safe(missingCapabilities),
     feedback: safe(feedback),
     issues: safe(issues),
     generatedAt: new Date().toISOString(),
   };
 }
 
-export const loadDashboard = unstable_cache(loadDashboardUncached, ["jobing-admin-dashboard-v2"], { revalidate: 120 });
+export const loadDashboard = unstable_cache(loadDashboardUncached, ["jobing-admin-dashboard-v3"], { revalidate: 120 });

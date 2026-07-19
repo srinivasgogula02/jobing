@@ -17,10 +17,6 @@ describe("sanitizeTelemetryProperties", () => {
       product_area: "pages",
       tool_action: "create",
       page_contains_form: true,
-      mcp_tool_name: "deploy_page",
-      mcp_product_area: "pages",
-      mcp_use_case: "marketing_page",
-      mcp_page_contains_form: true,
     })).toEqual({
       tool_name: "deploy_page",
       outcome: "success",
@@ -29,10 +25,6 @@ describe("sanitizeTelemetryProperties", () => {
       product_area: "pages",
       tool_action: "create",
       page_contains_form: true,
-      mcp_tool_name: "deploy_page",
-      mcp_product_area: "pages",
-      mcp_use_case: "marketing_page",
-      mcp_page_contains_form: true,
     });
   });
 
@@ -47,26 +39,24 @@ describe("sanitizeTelemetryProperties", () => {
     })).toEqual({ status: "failed" });
   });
 
-  it("hands searchable MCP properties to the PostHog client", () => {
+  it("hands product outcome classifications to the general PostHog client", () => {
     captureProductEvent({
-      event: "mcp_tool_completed",
+      event: "page_deploy_completed",
       distinctId: "user_123",
       properties: {
-        mcp_tool_name: "create_form_draft",
-        mcp_product_area: "forms",
-        mcp_outcome: "success",
-        mcp_use_case: "contact_form",
+        product_area: "pages",
+        outcome: "success",
+        use_case: "marketing_page",
       },
     });
 
     expect(posthog.capture).toHaveBeenCalledWith(expect.objectContaining({
       distinctId: "user_123",
-      event: "mcp_tool_completed",
+      event: "page_deploy_completed",
       properties: expect.objectContaining({
-        mcp_tool_name: "create_form_draft",
-        mcp_product_area: "forms",
-        mcp_outcome: "success",
-        mcp_use_case: "contact_form",
+        product_area: "pages",
+        outcome: "success",
+        use_case: "marketing_page",
       }),
     }));
   });

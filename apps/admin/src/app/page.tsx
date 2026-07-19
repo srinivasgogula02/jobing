@@ -108,6 +108,12 @@ export default async function DashboardPage() {
     </div>
 
     <section className="panel feedbackPanel">
+      <div className="panelHeading"><div><p className="eyebrow">Unmet agent requests</p><h2>What the connector could not do</h2></div><span>PostHog MCP · 30 days</span></div>
+      <ProviderNotice result={dashboard.missingCapabilities} name="PostHog MCP analytics" />
+      {dashboard.missingCapabilities.status === "ok" && (dashboard.missingCapabilities.data.length ? <div className="feedbackList">{dashboard.missingCapabilities.data.map((item) => <article key={`${item.intent}:${item.client}`}><div><span>{item.client} · missing capability</span><strong>{item.count.toLocaleString("en-IN")} request{item.count === 1 ? "" : "s"}</strong></div><strong>{item.intent}</strong><p>Agent-reported after the available Jobing tools could not complete the request.</p></article>)}</div> : <div className="empty good"><strong>No unmet connector requests recorded</strong><span>When an AI cannot satisfy a request with the available tools, its privacy-filtered intent will appear here.</span></div>)}
+    </section>
+
+    <section className="panel feedbackPanel">
       <div className="panelHeading"><div><p className="eyebrow">Product signal</p><h2>What users explicitly need next</h2></div><span>Confirmed through the connector</span></div>
       <ProviderNotice result={dashboard.feedback} name="Supabase feedback" />
       {dashboard.feedback.status === "ok" && (dashboard.feedback.data.length ? <div className="feedbackList">{dashboard.feedback.data.map((item) => <article key={item.id}><div><span>{item.kind.replaceAll("_", " ")} · {item.status.replaceAll("_", " ")}</span><time>{new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</time></div><strong>{item.summary}</strong><p>{[item.useCase, item.blockedTool].filter(Boolean).map((value) => value?.replaceAll("_", " ")).join(" · ") || "No extra classification"}</p></article>)}</div> : <div className="empty"><strong>No confirmed feedback yet</strong><span>When a user asks the AI connector to report friction or a missing capability, it appears here.</span></div>)}

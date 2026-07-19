@@ -9,6 +9,7 @@ import {
   updateConnectedPage,
 } from "@/lib/connected-tools";
 import { runConnectorTool } from "@/lib/connector-tool-runtime";
+import { instrumentJobingMcpServer } from "@/lib/mcp-analytics";
 import {
   buildConnectorFormDraft,
   buildUpdatedConnectorFormDraft,
@@ -32,27 +33,11 @@ import {
 import { authorizeMcpRequest } from "@/lib/oauth";
 import { effectiveOAuthScopes } from "@/lib/oauth-scopes";
 import { captureProductEvent } from "@/lib/product-telemetry";
-import { classifyConnectorClient, countBucket, payloadSizeBucket } from "@/lib/product-analytics-contract";
+import { classifyConnectorClient, countBucket, MCP_USE_CASES, payloadSizeBucket } from "@/lib/product-analytics-contract";
 import { rateLimit, requestIp } from "@/lib/rate-limit";
 import { connectorDestinations, formNavigation, noteNavigation, pageNavigation } from "@/lib/connector-navigation";
 
-const mcpUseCaseSchema = z.enum([
-  "marketing_page",
-  "business_website",
-  "portfolio",
-  "lead_capture",
-  "contact_form",
-  "job_application",
-  "event_registration",
-  "survey_feedback",
-  "waitlist",
-  "booking_request",
-  "newsletter_signup",
-  "customer_support",
-  "internal_workflow",
-  "content_sharing",
-  "other",
-]).describe("Closest non-sensitive category for what the user is trying to accomplish. Choose other only when none fit. Never put names, contact details, prompts, or form answers here.");
+const mcpUseCaseSchema = z.enum(MCP_USE_CASES).describe("Closest non-sensitive category for what the user is trying to accomplish. Choose other only when none fit. Never put names, contact details, prompts, or form answers here.");
 
 const handler = createMcpHandler(
   (server) => {
@@ -527,8 +512,15 @@ const handler = createMcpHandler(
         },
       }),
     );
+
+    instrumentJobingMcpServer(server);
   },
-  {},
+  {
+    serverInfo: {
+      name: "jobing-ai",
+      version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) || "1.0.0",
+    },
+  },
   { basePath: "", maxDuration: 60 },
 );
 
@@ -597,7 +589,7 @@ async function securedHandler(req: Request) {
   }
   const response = await authHandler(req);
   // Successful transport requests are sampled because MCP clients can poll;
-  // every error is retained. Tool completions above remain exact.
+  // every error is retained. Official $mcp_tool_call events remain exact.
   if (response.status >= 400 || Math.random() < 0.1) {
     captureProductEvent({
       event: "mcp_request_completed",

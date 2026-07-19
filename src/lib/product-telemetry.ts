@@ -6,7 +6,6 @@ export type ProductServerEvent =
   | "connector_oauth_completed"
   | "connector_token_completed"
   | "mcp_request_completed"
-  | "mcp_tool_completed"
   | "page_deploy_completed"
   | "form_draft_completed"
   | "form_publish_completed"
@@ -50,29 +49,6 @@ const ALLOWED_PROPERTIES = new Set([
   "tool_action",
   "tool_name",
   "use_case",
-  "mcp_access_mode",
-  "mcp_client_type",
-  "mcp_duration_bucket",
-  "mcp_duration_ms",
-  "mcp_error_class",
-  "mcp_error_code",
-  "mcp_field_count_bucket",
-  "mcp_has_file_upload",
-  "mcp_has_hidden_results",
-  "mcp_outcome",
-  "mcp_page_contains_form",
-  "mcp_payload_size_bucket",
-  "mcp_plan_key",
-  "mcp_primary_scope",
-  "mcp_product_area",
-  "mcp_query_used",
-  "mcp_resource_status",
-  "mcp_response_state",
-  "mcp_result_count_bucket",
-  "mcp_scope_count",
-  "mcp_tool_action",
-  "mcp_tool_name",
-  "mcp_use_case",
 ]);
 
 type TelemetryValue = string | number | boolean | null | undefined;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import type { z } from "zod";
+import { z } from "zod";
 import { claimRequestNonce } from "@/lib/forms-store";
+import { InvalidIntegrationConfigurationError } from "@/lib/integration-definition";
 import { InternalAuthError, verifyInternalSignature } from "@/lib/internal-auth";
 
 const MAX_INTERNAL_BODY_BYTES = 256 * 1024;
@@ -82,7 +83,22 @@ export function internalDataResponse<T>(data: T, status = 200) {
   return NextResponse.json({ data }, { status, headers: NO_STORE_HEADERS });
 }
 
-export function internalErrorResponse(error: unknown) {
+type InternalErrorContext = {
+  operation: string;
+};
+
+function safeZodIssues(error: z.ZodError) {
+  return error.issues.slice(0, 10).map((issue) => ({
+    code: issue.code,
+    path: issue.path.map(String).join(".") || "$",
+    expected: "expected" in issue ? issue.expected : undefined,
+  }));
+}
+
+export function internalErrorResponse(
+  error: unknown,
+  context: InternalErrorContext = { operation: "unknown" },
+) {
   if (error instanceof InternalRouteError) {
     return NextResponse.json(
       { error: { code: error.code, message: error.message } },
@@ -95,19 +111,57 @@ export function internalErrorResponse(error: unknown) {
       { status: 401, headers: NO_STORE_HEADERS },
     );
   }
+  if (error instanceof InvalidIntegrationConfigurationError) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "invalid_integration_configuration",
+          message: "Check the integration fields and try again.",
+        },
+      },
+      { status: 422, headers: NO_STORE_HEADERS },
+    );
+  }
 
   const message = error instanceof Error ? error.message : "";
-  const known = ["FORBIDDEN", "FORM_LIMIT_REACHED", "IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_IN_PROGRESS", "STALE_REVISION", "FORM_NOT_FOUND"];
+  const known = [
+    "FORBIDDEN",
+    "FORM_LIMIT_REACHED",
+    "IDEMPOTENCY_CONFLICT",
+    "IDEMPOTENCY_IN_PROGRESS",
+    "STALE_REVISION",
+    "FORM_NOT_FOUND",
+    "INTEGRATION_CREDENTIALS_REQUIRED",
+    "INVALID_INTEGRATION",
+  ];
   const code = known.find((candidate) => message.includes(candidate));
   if (code) {
-    const status = code === "FORBIDDEN" ? 403 : code === "FORM_NOT_FOUND" ? 404 : code === "FORM_LIMIT_REACHED" ? 402 : 409;
+    const status = code === "FORBIDDEN"
+      ? 403
+      : code === "FORM_NOT_FOUND"
+        ? 404
+        : code === "FORM_LIMIT_REACHED"
+          ? 402
+          : code === "INTEGRATION_CREDENTIALS_REQUIRED" || code === "INVALID_INTEGRATION"
+            ? 422
+            : 409;
+    const responseCode = code === "INVALID_INTEGRATION"
+      ? "invalid_integration_configuration"
+      : code.toLowerCase();
     return NextResponse.json(
-      { error: { code: code.toLowerCase(), message: "The Forms operation could not be completed." } },
+      { error: { code: responseCode, message: "The Forms operation could not be completed." } },
       { status, headers: NO_STORE_HEADERS },
     );
   }
 
-  console.error("[forms/internal] operation failed", error instanceof Error ? { name: error.name, code: (error as { code?: string }).code } : { type: typeof error });
+  console.error("[forms/internal] operation failed", error instanceof Error
+    ? {
+        operation: context.operation,
+        name: error.name,
+        code: (error as { code?: string }).code,
+        ...(error instanceof z.ZodError ? { validationIssues: safeZodIssues(error) } : {}),
+      }
+    : { operation: context.operation, type: typeof error });
   return NextResponse.json(
     { error: { code: "internal_error", message: "The Forms service could not complete the request." } },
     { status: 500, headers: NO_STORE_HEADERS },

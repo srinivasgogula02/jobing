@@ -115,6 +115,7 @@ function statusMessage(query: Record<string, string | string[] | undefined>) {
   if (query.saved) return "Integration saved. New valid responses will use this connection.";
   if (query.removed) return "Integration removed.";
   if (query.error === "credentials_required") return "Add the required connection details before enabling this integration.";
+  if (query.error === "invalid_configuration") return "Check the connection fields, URLs, IDs, and credentials, then try again.";
   if (query.error) return "The integration could not be saved. Check every field and try again.";
   return null;
 }

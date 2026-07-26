@@ -16,6 +16,6 @@ export async function POST(request: Request) {
     const form = await createFormDraft(data);
     return internalDataResponse(form, 201);
   } catch (error) {
-    return internalErrorResponse(error);
+    return internalErrorResponse(error, { operation: "forms.create" });
   }
 }

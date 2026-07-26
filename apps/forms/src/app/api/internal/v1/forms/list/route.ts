@@ -18,6 +18,6 @@ export async function POST(request: Request) {
       : await listFormSummariesForActor(data.actor.userId);
     return internalDataResponse({ forms });
   } catch (error) {
-    return internalErrorResponse(error);
+    return internalErrorResponse(error, { operation: "forms.list" });
   }
 }

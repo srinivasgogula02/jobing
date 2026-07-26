@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { InvalidIntegrationConfigurationError } from "./integration-definition";
 import { sha256Hex } from "./internal-auth";
 
 const db = vi.hoisted(() => ({
@@ -9,7 +10,12 @@ const db = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db", () => db);
 
-import { acceptSubmission, createFormDraft, publishForm } from "./forms-store";
+import {
+  acceptSubmission,
+  createFormDraft,
+  publishForm,
+  saveFormIntegration,
+} from "./forms-store";
 
 const firstGrantId = "33333333-3333-4333-8333-333333333333";
 const secondGrantId = "44444444-4444-4444-8444-444444444444";
@@ -120,5 +126,20 @@ describe("forms store request idempotency", () => {
     expect(secondValues[6]).toBe(secondGrantId);
     expect(firstValues[3]).toBe(secondValues[3]);
     expect(firstValues[4]).not.toBe(secondValues[4]);
+  });
+
+  it("rejects invalid integration input before writing to the database", async () => {
+    await expect(saveFormIntegration({
+      actorId: "user_123",
+      formId: "11111111-1111-4111-8111-111111111111",
+      provider: "email",
+      config: {
+        recipients: ["not-an-email"],
+        subject: "New response",
+      },
+      replaceSecret: false,
+    })).rejects.toBeInstanceOf(InvalidIntegrationConfigurationError);
+
+    expect(db.query).not.toHaveBeenCalled();
   });
 });

@@ -19,6 +19,13 @@ export const integrationProviderSchema = z.enum([
 
 export type IntegrationProvider = z.infer<typeof integrationProviderSchema>;
 
+export class InvalidIntegrationConfigurationError extends Error {
+  constructor(public readonly provider: IntegrationProvider) {
+    super("The integration configuration is invalid.");
+    this.name = "InvalidIntegrationConfigurationError";
+  }
+}
+
 export const clientIntegrationProviderSchema = z.enum(["google_analytics", "facebook_pixel"]);
 
 const fieldKeySchema = z.string().min(1).max(64).regex(/^[a-z][a-z0-9_]*$/);

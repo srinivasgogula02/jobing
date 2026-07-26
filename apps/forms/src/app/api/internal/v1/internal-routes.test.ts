@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+import { InvalidIntegrationConfigurationError } from "@/lib/integration-definition";
 import { sha256Hex, signInternalPayload } from "@/lib/internal-auth";
 
 const store = vi.hoisted(() => ({
@@ -282,6 +284,52 @@ describe("Forms internal routes", () => {
     const deniedResponse = await formIntegrations(denied.request, { params: Promise.resolve({ formId: FORM_ID }) });
     expect(deniedResponse.status).toBe(403);
     expect(store.saveFormIntegration).not.toHaveBeenCalled();
+  });
+
+  it("returns invalid integration fields as a non-retryable client error", async () => {
+    const path = `/api/internal/v1/forms/${FORM_ID}/integrations`;
+    store.saveFormIntegration.mockRejectedValueOnce(new InvalidIntegrationConfigurationError("email"));
+    const { request } = signedRequest(path, {
+      action: "save",
+      actor: actor(["forms:write"]),
+      provider: "email",
+      config: { recipients: ["not-an-email"], subject: "New response" },
+      replaceSecret: false,
+    });
+    const response = await formIntegrations(request, { params: Promise.resolve({ formId: FORM_ID }) });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "invalid_integration_configuration",
+        message: "Check the integration fields and try again.",
+      },
+    });
+  });
+
+  it("logs a safe operation and field path for an unexpected response schema mismatch", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const path = `/api/internal/v1/forms/${FORM_ID}/integrations`;
+    const schemaFailure = z.object({ updatedAt: z.string() }).safeParse({ updatedAt: null });
+    if (schemaFailure.success) throw new Error("Expected the test schema to reject the fixture.");
+    store.listFormIntegrationsForActor.mockRejectedValueOnce(schemaFailure.error);
+    const { request } = signedRequest(path, {
+      action: "list",
+      actor: actor(["forms:read"]),
+    });
+    const response = await formIntegrations(request, { params: Promise.resolve({ formId: FORM_ID }) });
+
+    expect(response.status).toBe(500);
+    expect(consoleError).toHaveBeenCalledWith(
+      "[forms/internal] operation failed",
+      expect.objectContaining({
+        operation: "integrations.list",
+        name: "ZodError",
+        validationIssues: [
+          expect.objectContaining({ path: "updatedAt", expected: "string" }),
+        ],
+      }),
+    );
   });
 
   it("applies a signed workspace projection", async () => {

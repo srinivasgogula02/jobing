@@ -27,6 +27,6 @@ export async function POST(request: Request, context: { params: Promise<{ formId
     if (!form) throw new InternalRouteError(502, "invalid_response", "The published form could not be loaded.");
     return internalDataResponse({ ...published, definition: form.definition });
   } catch (error) {
-    return internalErrorResponse(error);
+    return internalErrorResponse(error, { operation: "forms.publish" });
   }
 }

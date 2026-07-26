@@ -15,6 +15,6 @@ export async function POST(request: Request) {
     const projection = await applyWorkspaceProjection(data, rawBody);
     return internalDataResponse(projection);
   } catch (error) {
-    return internalErrorResponse(error);
+    return internalErrorResponse(error, { operation: "workspaces.sync" });
   }
 }

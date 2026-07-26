@@ -26,6 +26,6 @@ export async function POST(request: Request, context: { params: Promise<{ formId
     if (!form) throw new InternalRouteError(404, "form_not_found", "The requested form was not found.");
     return internalDataResponse(form);
   } catch (error) {
-    return internalErrorResponse(error);
+    return internalErrorResponse(error, { operation: "forms.get" });
   }
 }

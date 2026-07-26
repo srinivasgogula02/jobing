@@ -20,6 +20,6 @@ export async function POST(request: Request, context: { params: Promise<{ submis
     if (!changed) throw new InternalRouteError(404, "response_not_found", "The response was not found.");
     return internalDataResponse({ submissionId: submissionId.data, state: data.state });
   } catch (error) {
-    return internalErrorResponse(error);
+    return internalErrorResponse(error, { operation: "responses.update_state" });
   }
 }

@@ -140,6 +140,8 @@ const publicUpstreamErrorMessages: Readonly<Record<string, string>> = {
   idempotency_in_progress: "The same Forms operation is already in progress.",
   insufficient_scope: "This connector has not been granted the required Forms permission.",
   invalid_payload: "The Forms request is invalid.",
+  invalid_integration_configuration: "Check the integration fields and try again.",
+  integration_credentials_required: "Add the required connection details and try again.",
   form_not_found: "The requested form could not be found.",
   stale_revision: "The form changed after it was read. Refresh it and try again.",
   response_not_found: "The requested form response could not be found.",

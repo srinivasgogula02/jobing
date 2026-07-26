@@ -10,6 +10,7 @@ import {
   formIntegrationSchema,
   integrationProviderSchema,
   integrationNeedsSecret,
+  InvalidIntegrationConfigurationError,
   parseIntegrationConfig,
   parseIntegrationSecret,
   type FormIntegration,
@@ -258,12 +259,23 @@ export async function saveFormIntegration(input: {
   replaceSecret: boolean;
 }) {
   const provider = integrationProviderSchema.parse(input.provider);
-  const config = parseIntegrationConfig(provider, input.config);
+  let config: unknown;
+  let parsedSecret: unknown;
+  try {
+    config = parseIntegrationConfig(provider, input.config);
+    if (input.replaceSecret || (integrationNeedsSecret(provider) && input.secret !== undefined)) {
+      parsedSecret = parseIntegrationSecret(provider, input.secret);
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new InvalidIntegrationConfigurationError(provider);
+    }
+    throw error;
+  }
+
   let encrypted: { ciphertext: string; keyId: string } | undefined;
-  if (input.replaceSecret) {
-    encrypted = encryptIntegrationSecret(parseIntegrationSecret(provider, input.secret));
-  } else if (integrationNeedsSecret(provider) && input.secret !== undefined) {
-    encrypted = encryptIntegrationSecret(parseIntegrationSecret(provider, input.secret));
+  if (parsedSecret !== undefined) {
+    encrypted = encryptIntegrationSecret(parsedSecret);
   }
   const result = await query<{ value: unknown }>(
     "select forms_api.upsert_form_integration($1,$2::uuid,$3,$4::jsonb,$5,$6,$7) as value",

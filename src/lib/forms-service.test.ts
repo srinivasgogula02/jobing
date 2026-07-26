@@ -6,6 +6,7 @@ vi.mock("server-only", () => ({}));
 import {
   createConnectorForm,
   listConnectorFormResponses,
+  saveConnectorFormIntegration,
   setConnectorFormResponseState,
   updateConnectorForm,
   FormsServiceError,
@@ -198,6 +199,28 @@ describe("Forms internal request signing", () => {
     await expect(createConnectorForm(actor, form, "operation-123")).rejects.toMatchObject({
       code: "scope_denied",
       status: 403,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry invalid integration fields", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({
+      error: {
+        code: "invalid_integration_configuration",
+        message: "Internal validation detail.",
+      },
+    }), { status: 422 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(saveConnectorFormIntegration({
+      actor,
+      formId: "4e279eaf-0a6e-48de-a66e-3c819f3fb756",
+      provider: "email",
+      config: { recipients: ["not-an-email"] },
+    })).rejects.toMatchObject({
+      code: "invalid_integration_configuration",
+      message: "Check the integration fields and try again.",
+      status: 422,
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

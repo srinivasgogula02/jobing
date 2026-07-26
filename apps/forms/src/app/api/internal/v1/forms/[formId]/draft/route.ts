@@ -26,6 +26,6 @@ export async function POST(request: Request, context: { params: Promise<{ formId
     });
     return internalDataResponse(form);
   } catch (error) {
-    return internalErrorResponse(error);
+    return internalErrorResponse(error, { operation: "forms.update" });
   }
 }

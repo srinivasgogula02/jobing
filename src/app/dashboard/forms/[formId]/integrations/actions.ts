@@ -9,6 +9,7 @@ import { formIntegrationCatalog, integrationSettingsFromFormData } from "@/lib/f
 import {
   deleteConnectorFormIntegration,
   formIntegrationProviderSchema,
+  FormsServiceError,
   listConnectorFormIntegrations,
   saveConnectorFormIntegration,
   setConnectorFormIntegrationStatus,
@@ -47,7 +48,11 @@ export async function saveFormIntegrationAction(formData: FormData) {
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) throw error;
     const provider = formIntegrationProviderSchema.safeParse(String(formData.get("provider") ?? ""));
-    redirect(destination(formId, { error: "save_failed", ...(provider.success ? { open: provider.data } : {}) }));
+    const errorCode = error instanceof FormsServiceError
+      && ["invalid_integration_configuration", "integration_credentials_required"].includes(error.code)
+      ? "invalid_configuration"
+      : "save_failed";
+    redirect(destination(formId, { error: errorCode, ...(provider.success ? { open: provider.data } : {}) }));
   }
   revalidatePath(`/dashboard/forms/${formId}/integrations`);
   redirect(destination(formId, { saved: formIntegrationProviderSchema.parse(String(formData.get("provider") ?? "")) }));

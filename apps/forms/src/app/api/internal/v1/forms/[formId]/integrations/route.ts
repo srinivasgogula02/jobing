@@ -20,12 +20,14 @@ export const runtime = "nodejs";
 const formIdSchema = z.string().uuid();
 
 export async function POST(request: Request, context: { params: Promise<{ formId: string }> }) {
+  let operation = "integrations.request";
   try {
     const { formId: rawFormId } = await context.params;
     const formId = formIdSchema.safeParse(rawFormId);
     if (!formId.success) throw new InternalRouteError(400, "invalid_form_id", "The form ID is invalid.");
     const path = `/forms/api/internal/v1/forms/${formId.data}/integrations`;
     const { data } = await readInternalJson(request, formIntegrationRequestSchema, path);
+    operation = `integrations.${data.action}`;
 
     if (data.action === "list") {
       requireInternalScope(data.actor, "forms:read");
@@ -62,6 +64,6 @@ export async function POST(request: Request, context: { params: Promise<{ formId
     if (!changed) throw new InternalRouteError(404, "integration_not_found", "The integration was not found.");
     return internalDataResponse({ provider: data.provider, deleted: true });
   } catch (error) {
-    return internalErrorResponse(error);
+    return internalErrorResponse(error, { operation });
   }
 }

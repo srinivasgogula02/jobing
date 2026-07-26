@@ -10,6 +10,15 @@ describe("form integration catalog", () => {
     expect(new Set(formIntegrationCatalog.map((entry) => entry.provider)).size).toBe(14);
   });
 
+  it("puts the most useful starting integrations first", () => {
+    expect(formIntegrationCatalog.slice(0, 4).map((entry) => entry.provider)).toEqual([
+      "webhook",
+      "google_sheets",
+      "airtable",
+      "facebook_pixel",
+    ]);
+  });
+
   it("preserves a stored secret when a configuration edit leaves it blank", () => {
     const data = new FormData();
     data.set("provider", "slack");

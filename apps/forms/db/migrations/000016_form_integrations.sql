@@ -1,6 +1,6 @@
 set role jobing_forms_owner;
 
-create table forms.form_integrations (
+create table if not exists forms.form_integrations (
   id uuid primary key default public.gen_random_uuid(),
   workspace_id uuid not null,
   form_id uuid not null,
@@ -45,10 +45,10 @@ create table forms.form_integrations (
   )
 );
 
-create index form_integrations_form_status_idx
+create index if not exists form_integrations_form_status_idx
   on forms.form_integrations(workspace_id, form_id, status, provider);
 
-create table forms.integration_deliveries (
+create table if not exists forms.integration_deliveries (
   id uuid primary key default public.gen_random_uuid(),
   workspace_id uuid not null,
   form_id uuid not null,
@@ -76,14 +76,14 @@ create table forms.integration_deliveries (
     on delete cascade
 );
 
-create index integration_deliveries_claim_idx
+create index if not exists integration_deliveries_claim_idx
   on forms.integration_deliveries(status, next_attempt_at, created_at)
   where status in ('pending', 'retrying', 'processing');
 
-create index integration_deliveries_integration_idx
+create index if not exists integration_deliveries_integration_idx
   on forms.integration_deliveries(integration_id, created_at desc, id desc);
 
-create function forms_private.enqueue_submission_integrations()
+create or replace function forms_private.enqueue_submission_integrations()
 returns trigger
 language plpgsql
 security definer
@@ -112,11 +112,25 @@ begin
 end
 $function$;
 
-create trigger submissions_enqueue_integrations
-after insert on forms.submissions
-for each row execute function forms_private.enqueue_submission_integrations();
+do $trigger$
+begin
+  if not exists (
+    select 1
+    from pg_catalog.pg_trigger
+    where tgrelid = 'forms.submissions'::regclass
+      and tgname = 'submissions_enqueue_integrations'
+      and not tgisinternal
+  ) then
+    execute $sql$
+      create trigger submissions_enqueue_integrations
+      after insert on forms.submissions
+      for each row execute function forms_private.enqueue_submission_integrations()
+    $sql$;
+  end if;
+end
+$trigger$;
 
-create function forms_api.list_form_integrations(
+create or replace function forms_api.list_form_integrations(
   p_actor_id text,
   p_form_id uuid
 ) returns setof jsonb
@@ -159,7 +173,7 @@ as $function$
   order by integration.provider, integration.created_at
 $function$;
 
-create function forms_api.upsert_form_integration(
+create or replace function forms_api.upsert_form_integration(
   p_actor_id text,
   p_form_id uuid,
   p_provider text,
@@ -307,7 +321,7 @@ begin
 end
 $function$;
 
-create function forms_api.set_form_integration_status(
+create or replace function forms_api.set_form_integration_status(
   p_actor_id text,
   p_form_id uuid,
   p_provider text,
@@ -346,7 +360,7 @@ begin
 end
 $function$;
 
-create function forms_api.delete_form_integration(
+create or replace function forms_api.delete_form_integration(
   p_actor_id text,
   p_form_id uuid,
   p_provider text
@@ -377,7 +391,7 @@ begin
 end
 $function$;
 
-create function forms_api.claim_integration_deliveries(
+create or replace function forms_api.claim_integration_deliveries(
   p_lock_token text,
   p_limit integer default 10,
   p_submission_id uuid default null
@@ -453,7 +467,7 @@ begin
 end
 $function$;
 
-create function forms_api.complete_integration_delivery(
+create or replace function forms_api.complete_integration_delivery(
   p_lock_token text,
   p_delivery_id uuid,
   p_success boolean,
@@ -511,7 +525,7 @@ begin
 end
 $function$;
 
-create function forms_api.list_integration_submission_files(
+create or replace function forms_api.list_integration_submission_files(
   p_submission_id uuid
 ) returns setof jsonb
 language sql
@@ -585,21 +599,43 @@ $function$;
 
 alter table forms.form_integrations enable row level security;
 alter table forms.form_integrations force row level security;
-create policy owner_full_access
-  on forms.form_integrations
-  for all
-  to jobing_forms_owner
-  using (true)
-  with check (true);
+do $policy$
+begin
+  if not exists (
+    select 1
+    from pg_catalog.pg_policy
+    where polrelid = 'forms.form_integrations'::regclass
+      and polname = 'owner_full_access'
+  ) then
+    create policy owner_full_access
+      on forms.form_integrations
+      for all
+      to jobing_forms_owner
+      using (true)
+      with check (true);
+  end if;
+end
+$policy$;
 
 alter table forms.integration_deliveries enable row level security;
 alter table forms.integration_deliveries force row level security;
-create policy owner_full_access
-  on forms.integration_deliveries
-  for all
-  to jobing_forms_owner
-  using (true)
-  with check (true);
+do $policy$
+begin
+  if not exists (
+    select 1
+    from pg_catalog.pg_policy
+    where polrelid = 'forms.integration_deliveries'::regclass
+      and polname = 'owner_full_access'
+  ) then
+    create policy owner_full_access
+      on forms.integration_deliveries
+      for all
+      to jobing_forms_owner
+      using (true)
+      with check (true);
+  end if;
+end
+$policy$;
 
 revoke all on forms.form_integrations, forms.integration_deliveries
   from public, jobing_forms_control, jobing_forms_sync, jobing_forms_public,

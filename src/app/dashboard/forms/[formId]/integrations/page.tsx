@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import { FormPageHeader } from "@/components/forms/FormPageHeader";
+import { IntegrationLogo } from "@/components/forms/IntegrationLogo";
 import { dashboardFormsActor, getDashboardForm } from "@/lib/dashboard-forms";
 import { formIntegrationCatalog } from "@/lib/form-integration-catalog";
 import { listConnectorFormIntegrations, type FormIntegration, type FormIntegrationProvider } from "@/lib/forms-service";
@@ -146,7 +147,7 @@ export default async function FormIntegrationsPage({ params, searchParams }: {
       const integration = byProvider.get(entry.provider);
       const active = integration?.status === "active";
       return <details className="integration-item" key={entry.provider} open={openProvider === entry.provider}>
-        <summary><span className={`integration-mark integration-mark--${entry.provider}`} aria-hidden="true">{entry.name.slice(0, 1)}</span><span className="integration-summary"><strong>{entry.name}</strong><small>{entry.description}</small></span><span className="integration-status" data-state={active ? "active" : integration ? "paused" : "available"}>{active ? "Connected" : integration ? "Paused" : entry.category}</span></summary>
+        <summary><IntegrationLogo provider={entry.provider} name={entry.name} /><span className="integration-summary"><strong>{entry.name}</strong><small>{entry.description}</small></span><span className="integration-status" data-state={active ? "active" : integration ? "paused" : "available"}>{active ? "Connected" : integration ? "Paused" : entry.category}</span></summary>
         <div className="integration-setup">
           {integration ? <div className="integration-health"><span>Last success<strong>{integration.lastSuccessAt ? new Date(integration.lastSuccessAt).toLocaleString("en-IN") : "Waiting for a response"}</strong></span><span>Pending<strong>{integration.pendingDeliveries}</strong></span><span>Needs attention<strong>{integration.failedDeliveries}</strong></span></div> : null}
           <form action={saveFormIntegrationAction} className="integration-form">

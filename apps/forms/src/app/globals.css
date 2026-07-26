@@ -1210,8 +1210,8 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
   }
 }
 
-/* Integration setup is intentionally a vertical catalog. Users scan familiar
-   product names first, then open only the setup they need. */
+/* Integration setup starts as a logo-led destination grid. Opening a tile gives
+   its setup the full row so scanning remains fast without squeezing the form. */
 .forms-workspace .app-content.integrations-page {
   max-width: 960px;
 }
@@ -1312,38 +1312,58 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
 }
 
 .forms-workspace .integration-catalog {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
   border: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--line);
 }
 
 .forms-workspace .integration-item {
-  border-bottom: 1px solid var(--line);
+  min-width: 0;
+  background: var(--surface);
 }
 
-.forms-workspace .integration-item:last-child {
-  border-bottom: 0;
+.forms-workspace .integration-item[open] {
+  grid-column: 1 / -1;
 }
 
 .forms-workspace .integration-item > summary {
-  min-height: 86px;
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
+  position: relative;
+  min-height: 184px;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
   cursor: pointer;
   list-style: none;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
 }
 
 .forms-workspace .integration-item > summary::-webkit-details-marker {
   display: none;
 }
 
+.forms-workspace .integration-item > summary:hover {
+  background: #f8faf5;
+}
+
+.forms-workspace .integration-item > summary:focus-visible {
+  z-index: 1;
+  outline: 2px solid #7da91d;
+  outline-offset: -2px;
+}
+
 .forms-workspace .integration-item > summary::after {
+  position: absolute;
+  top: 17px;
+  right: 17px;
   content: "+";
   color: #687066;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 450;
+  line-height: 1;
 }
 
 .forms-workspace .integration-item[open] > summary::after {
@@ -1351,20 +1371,31 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
 }
 
 .forms-workspace .integration-item[open] > summary {
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
   background: #f7f8f4;
 }
 
+.forms-workspace .integration-item[open] > summary::after {
+  position: static;
+}
+
 .forms-workspace .integration-mark {
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
   display: grid;
   place-items: center;
   border: 1px solid #dce1d7;
-  background: #f2f5ed;
-  color: #365204;
-  font-size: 13px;
-  font-weight: 850;
-  letter-spacing: -.02em;
+  background: #fff;
+}
+
+.forms-workspace .integration-mark svg {
+  width: 25px;
+  height: 25px;
 }
 
 .forms-workspace .integration-summary {
@@ -1377,17 +1408,23 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
   font-size: 16px;
 }
 
-.forms-workspace .integration-summary p {
-  margin: 3px 0 0;
+.forms-workspace .integration-summary small {
+  display: -webkit-box;
+  margin: 5px 0 0;
+  overflow: hidden;
   color: var(--muted);
   font-size: 13px;
+  font-weight: 480;
   line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .forms-workspace .integration-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin-top: auto;
   padding: 5px 8px;
   border: 1px solid #d8ddd3;
   background: #fff;
@@ -1396,6 +1433,10 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
   font-weight: 800;
   letter-spacing: .06em;
   text-transform: uppercase;
+}
+
+.forms-workspace .integration-item[open] .integration-status {
+  margin-top: 0;
 }
 
 .forms-workspace .integration-status::before {
@@ -1619,17 +1660,39 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
     font-size: clamp(34px, 11vw, 48px);
   }
 
+  .forms-workspace .integration-catalog {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .forms-workspace .integration-item > summary {
-    min-height: 78px;
-    grid-template-columns: 38px minmax(0, 1fr) auto;
+    min-height: 168px;
+    padding: 14px;
+  }
+
+  .forms-workspace .integration-item > summary::after {
+    top: 14px;
+    right: 14px;
+  }
+
+  .forms-workspace .integration-item[open] > summary {
+    min-height: 74px;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
     gap: 11px;
     padding: 12px;
   }
 
+  .forms-workspace .integration-item[open] > summary::after {
+    grid-column: 3;
+  }
+
   .forms-workspace .integration-mark {
-    width: 38px;
-    height: 38px;
-    font-size: 11px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .forms-workspace .integration-mark svg {
+    width: 22px;
+    height: 22px;
   }
 
   .forms-workspace .integration-status {
@@ -1660,5 +1723,15 @@ a.ledger-row:hover { background: rgba(198, 242, 78, 0.025); }
 
   .forms-workspace .integration-actions button {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .forms-workspace .integration-catalog {
+    grid-template-columns: 1fr;
+  }
+
+  .forms-workspace .integration-item > summary {
+    min-height: 132px;
   }
 }

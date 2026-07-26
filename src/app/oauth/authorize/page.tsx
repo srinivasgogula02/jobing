@@ -15,6 +15,7 @@ import {
   type OAuthScope,
 } from "@/lib/oauth-scopes";
 import { AuthorizationActions } from "./AuthorizationActions";
+import { DOCS_PERMISSIONS_URL } from "@/lib/app-navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +133,7 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
               ? "Uploaded file contents and integration credentials are not included."
               : "Form responses, uploaded file contents, and integration credentials are not included."}{" "}
             Disconnect this app at any time from your Dashboard.
+            {" "}<a href={DOCS_PERMISSIONS_URL} className="font-semibold text-[#587300] underline decoration-[#9fbd67] underline-offset-2">Learn how permissions work</a>.
           </p>
         </div>
 

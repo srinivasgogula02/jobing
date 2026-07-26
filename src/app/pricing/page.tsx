@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { Pricing } from "@/components/Pricing";
 import { PublicSiteHeader } from "@/components/PublicSiteHeader";
 import { getUserSubscriptionForUser } from "@/lib/billing-data";
+import { DOCS_URL } from "@/lib/app-navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export default async function PricingPage({
     <div className="min-h-screen bg-[#f7f8f4]">
       <PublicSiteHeader />
       <Pricing currentProductId={currentProductId} limitReached={from === "connector-limit"} />
-      <footer className="border-t border-[#e1e4dc] bg-[#f7f8f4] px-4 py-8 text-center text-xs text-[#737a70]">Jobing AI · Secure checkout by Dodo Payments · <a href="/terms" className="underline">Terms</a> · <a href="/privacy" className="underline">Privacy</a></footer>
+      <footer className="border-t border-[#e1e4dc] bg-[#f7f8f4] px-4 py-8 text-center text-xs text-[#737a70]">Jobing AI · Secure checkout by Dodo Payments · <a href={DOCS_URL} className="underline">Docs</a> · <a href="/terms" className="underline">Terms</a> · <a href="/privacy" className="underline">Privacy</a></footer>
     </div>
   );
 }

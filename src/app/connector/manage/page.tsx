@@ -6,6 +6,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { listOAuthGrants } from "@/lib/oauth";
 import { OAUTH_SCOPE_DETAILS } from "@/lib/oauth-scopes";
 import { revokeConnectorGrant } from "./actions";
+import { DOCS_CONNECTING_URL } from "@/lib/app-navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ export default async function ManageConnectorPage() {
                   <span className="mx-auto grid h-14 w-14 place-items-center rounded-[4px] bg-[#eaf8dc] text-[#4b7000]"><PlugZap size={25} /></span>
                   <h2 className="mt-5 text-xl font-bold text-[#151914]">No AI apps connected</h2>
                   <p className="mt-2 text-sm leading-6 text-[#6e756b]">Connect Jobing AI from ChatGPT, Claude, or another app using your MCP URL. The approved app will appear here.</p>
+                  <a href={DOCS_CONNECTING_URL} className="mt-5 inline-flex min-h-11 items-center justify-center border border-[#cfd5ca] bg-white px-4 text-sm font-semibold text-[#394235] hover:border-[#9eaa96]">Read the connection guide</a>
                 </div>
               </div>
             ) : grants.map((grant) => (

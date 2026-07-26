@@ -9,9 +9,11 @@ import {
   PlugZap,
   Globe2,
   FormInput,
+  BookOpen,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { useState } from "react";
+import { DOCS_URL } from "@/lib/app-navigation";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -112,6 +114,18 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: Sideba
 
       {/* Settings */}
       <div className={`space-y-0.5 mt-4 ${collapsed ? "px-1.5" : "px-4"}`}>
+        <Link
+          href={DOCS_URL}
+          prefetch={false}
+          onClick={onClose}
+          title="Help & docs"
+          className={collapsed
+            ? "flex items-center justify-center w-9 h-9 mx-auto rounded-lg hover:bg-[#fafafa] hover:text-[#1a1a1a] transition-all"
+            : "flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium hover:bg-[#fafafa] hover:text-[#1a1a1a] transition-all"}
+        >
+          <BookOpen size={collapsed ? 17 : 16} />
+          {!collapsed && "Help & docs"}
+        </Link>
         {collapsed ? (
           <button
             title="Settings"

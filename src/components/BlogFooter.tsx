@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { DOCS_URL } from "@/lib/app-navigation";
 
 export function BlogFooter() {
   return (
@@ -32,6 +33,7 @@ export function BlogFooter() {
           <nav className="flex flex-wrap gap-x-5 gap-y-3" aria-label="Guide footer navigation">
             <Link href="/dashboard/pages" prefetch={false} className="hover:text-white">Pages</Link>
             <Link href="/dashboard/forms" prefetch={false} className="hover:text-white">Forms</Link>
+            <a href={DOCS_URL} className="hover:text-white">Docs</a>
             <Link href="/pricing" className="hover:text-white">Pricing</Link>
             <Link href="/privacy" className="hover:text-white">Privacy</Link>
             <Link href="/feedback" className="hover:text-white">Feedback</Link>

@@ -6,10 +6,10 @@
 import React, { useState, useSyncExternalStore } from "react";
 import { Sidebar } from "./Sidebar";
 import { UserButton, useUser, SignUpButton } from "@clerk/nextjs";
-import { Zap, Menu, ArrowRight } from "lucide-react";
+import { Zap, Menu, ArrowRight, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DEFAULT_AUTH_DESTINATION } from "@/lib/app-navigation";
+import { DEFAULT_AUTH_DESTINATION, DOCS_URL } from "@/lib/app-navigation";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -120,6 +120,11 @@ export function DashboardShell({ children, breadcrumbs, fullBleed }: DashboardSh
                       label="Subscription"
                       labelIcon={<Zap size={14} />}
                       href="/billing"
+                    />
+                    <UserButton.Link
+                      label="Help & docs"
+                      labelIcon={<BookOpen size={14} />}
+                      href={DOCS_URL}
                     />
                     <UserButton.Action label="manageAccount" />
                     <UserButton.Action label="signOut" />

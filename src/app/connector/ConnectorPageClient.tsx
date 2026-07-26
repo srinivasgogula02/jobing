@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { DOCS_URL } from "@/lib/app-navigation";
 import { ConnectorSetupGuide, type ConnectorPlatform } from "@/components/ConnectorSetupGuide";
 import styles from "./connector-v2.module.css";
 
@@ -156,6 +157,7 @@ export function ConnectorPageClient() {
             <a href="#setup">How to connect</a>
             <a href="#abilities">What it can do</a>
             <a href="#prompts">Prompts to try</a>
+            <a href={DOCS_URL}>Docs</a>
             <Link href="/connector/manage">Manage connection</Link>
             <Link className={styles.navCta} href="/dashboard">Dashboard</Link>
           </nav>
@@ -171,6 +173,7 @@ export function ConnectorPageClient() {
             <a href="#setup" onClick={() => setMenuOpen(false)}>How to connect</a>
             <a href="#abilities" onClick={() => setMenuOpen(false)}>What it can do</a>
             <a href="#prompts" onClick={() => setMenuOpen(false)}>Prompts to try</a>
+            <a href={DOCS_URL} onClick={() => setMenuOpen(false)}>Docs</a>
             <Link href="/connector/manage" onClick={() => setMenuOpen(false)}>Manage connection</Link>
           </nav>
         )}
@@ -349,6 +352,7 @@ export function ConnectorPageClient() {
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/dashboard/pages">Pages</Link>
           <Link href="/dashboard/forms">Forms</Link>
+          <a href={DOCS_URL}>Docs</a>
           <Link href="/pricing">Pricing</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>

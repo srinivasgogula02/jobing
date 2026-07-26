@@ -4,6 +4,7 @@ import { FormPageHeader } from "@/components/forms/FormPageHeader";
 import { IntegrationLogo } from "@/components/forms/IntegrationLogo";
 import { dashboardFormsActor, getDashboardForm } from "@/lib/dashboard-forms";
 import { formIntegrationCatalog } from "@/lib/form-integration-catalog";
+import { getFormIntegrationStatus } from "@/lib/form-integration-status";
 import { listConnectorFormIntegrations, type FormIntegration, type FormIntegrationProvider } from "@/lib/forms-service";
 import {
   deleteFormIntegrationAction,
@@ -147,10 +148,23 @@ export default async function FormIntegrationsPage({ params, searchParams }: {
     <div className="integration-catalog">{formIntegrationCatalog.map((entry) => {
       const integration = byProvider.get(entry.provider);
       const active = integration?.status === "active";
+      const deliveryStatus = getFormIntegrationStatus(integration, entry.name);
       return <details className="integration-item" key={entry.provider} open={openProvider === entry.provider}>
-        <summary><IntegrationLogo provider={entry.provider} name={entry.name} /><span className="integration-summary"><strong>{entry.name}</strong><small>{entry.description}</small></span><span className="integration-status" data-state={active ? "active" : integration ? "paused" : "available"}>{active ? "Connected" : integration ? "Paused" : entry.category}</span></summary>
+        <summary><IntegrationLogo provider={entry.provider} name={entry.name} /><span className="integration-summary"><strong>{entry.name}</strong><small>{entry.description}</small></span><span className="integration-status" data-state={deliveryStatus.state}>{integration ? deliveryStatus.badge : entry.category}</span></summary>
         <div className="integration-setup">
-          {integration ? <div className="integration-health"><span>Last success<strong>{integration.lastSuccessAt ? new Date(integration.lastSuccessAt).toLocaleString("en-IN") : "Waiting for a response"}</strong></span><span>Pending<strong>{integration.pendingDeliveries}</strong></span><span>Needs attention<strong>{integration.failedDeliveries}</strong></span></div> : null}
+          {integration ? <section className="integration-delivery-status" data-state={deliveryStatus.state} aria-live="polite">
+            <div className="integration-delivery-copy">
+              <span>Delivery status</span>
+              <strong>{deliveryStatus.headline}</strong>
+              <p>{deliveryStatus.detail}</p>
+              {deliveryStatus.action ? <p className="integration-delivery-action">{deliveryStatus.action}</p> : null}
+            </div>
+            <dl className="integration-delivery-facts">
+              <div><dt>Last success</dt><dd>{integration.lastSuccessAt ? new Date(integration.lastSuccessAt).toLocaleString("en-IN") : "Not yet"}</dd></div>
+              <div><dt>{deliveryStatus.pendingLabel}</dt><dd>{integration.pendingDeliveries}</dd></div>
+              <div><dt>Stopped retrying</dt><dd>{integration.failedDeliveries}</dd></div>
+            </dl>
+          </section> : null}
           <form action={saveFormIntegrationAction} className="integration-form">
             <input type="hidden" name="formId" value={form.id} />
             <input type="hidden" name="provider" value={entry.provider} />

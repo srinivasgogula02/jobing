@@ -4,10 +4,14 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/integration-http", () => ({
   integrationHttpRequest: vi.fn(async () => ({ status: 200, body: "{}", headers: {} })),
 }));
+vi.mock("@/lib/server-telemetry", () => ({
+  captureFormsIntegrationError: vi.fn(),
+}));
 
 import { integrationHttpRequest } from "@/lib/integration-http";
 import { deliverIntegration } from "@/lib/integration-delivery";
 import { encryptIntegrationSecret } from "@/lib/integration-crypto";
+import { captureFormsIntegrationError } from "@/lib/server-telemetry";
 
 const delivery = {
   deliveryId: "11111111-1111-4111-8111-111111111111",
@@ -33,6 +37,7 @@ describe("integration delivery", () => {
     process.env.FORMS_INTEGRATION_ENCRYPTION_KEY_ID = "test";
     process.env.FORMS_INTEGRATION_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString("base64");
     vi.mocked(integrationHttpRequest).mockClear();
+    vi.mocked(captureFormsIntegrationError).mockClear();
   });
 
   function withSecret(provider: string, config: Record<string, unknown>, secret: Record<string, unknown>) {
@@ -89,5 +94,68 @@ describe("integration delivery", () => {
     const request = vi.mocked(integrationHttpRequest).mock.calls[0][0];
     expect(request.headers?.["x-jobing-signature"]).toMatch(/^t=\d+,v1=[a-f0-9]{64}$/);
     expect(String(request.body)).not.toContain("shared-verification-secret");
+  });
+
+  it("keeps provider HTTP failures specific and retryable when appropriate", async () => {
+    vi.mocked(integrationHttpRequest).mockResolvedValueOnce({ status: 429, body: "slow down", headers: {} });
+    const outcome = await deliverIntegration(withSecret(
+      "telegram",
+      { chatId: "12345" },
+      { botToken: "123456:telegram-token" },
+    ));
+
+    expect(outcome).toEqual({
+      success: false,
+      status: 429,
+      code: "provider_http_429",
+      retryable: true,
+    });
+  });
+
+  it("classifies safe network error codes without storing sensitive messages", async () => {
+    vi.mocked(integrationHttpRequest).mockRejectedValueOnce(
+      Object.assign(new Error("getaddrinfo ENOTFOUND secret.example"), { code: "ENOTFOUND" }),
+    );
+    const outcome = await deliverIntegration(withSecret(
+      "webhook",
+      { eventName: "form.response.created" },
+      { webhookUrl: "https://example.com/jobing", signingSecret: "shared-verification-secret" },
+    ));
+
+    expect(outcome).toEqual({
+      success: false,
+      status: null,
+      code: "integration_dns_failed",
+      retryable: true,
+    });
+  });
+
+  it("identifies stored configuration that can no longer be parsed", async () => {
+    const outcome = await deliverIntegration({
+      ...delivery,
+      config: { recipients: [], subject: "" },
+    });
+
+    expect(outcome).toEqual({
+      success: false,
+      status: null,
+      code: "integration_configuration_invalid",
+      retryable: false,
+    });
+  });
+
+  it("reports only unexpected delivery exceptions to operational telemetry", async () => {
+    vi.mocked(integrationHttpRequest).mockRejectedValueOnce(new TypeError("Unexpected runtime failure"));
+    const outcome = await deliverIntegration(withSecret(
+      "telegram",
+      { chatId: "12345" },
+      { botToken: "123456:telegram-token" },
+    ));
+
+    expect(outcome.code).toBe("integration_request_failed");
+    expect(captureFormsIntegrationError).toHaveBeenCalledWith(
+      expect.any(TypeError),
+      { provider: "telegram", code: "integration_request_failed", attempt: 1 },
+    );
   });
 });

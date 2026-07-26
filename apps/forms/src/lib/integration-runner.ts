@@ -33,11 +33,21 @@ export async function runIntegrationDeliveries(input: {
       ? await listIntegrationSubmissionFiles(delivery.submission.id)
       : [];
     const outcome = await deliverIntegration(delivery, files);
+    const nextAttemptAt = retryAt(delivery.attempt, outcome.retryable);
+    if (!outcome.success) {
+      console.warn("[forms/integrations] delivery failed", {
+        provider: delivery.provider,
+        code: outcome.code,
+        httpStatus: outcome.status,
+        attempt: delivery.attempt,
+        willRetry: Boolean(nextAttemptAt),
+      });
+    }
     await completeIntegrationDelivery({
       lockToken,
       deliveryId: delivery.deliveryId,
       outcome,
-      retryAt: retryAt(delivery.attempt, outcome.retryable),
+      retryAt: nextAttemptAt,
     });
     return outcome;
   }));

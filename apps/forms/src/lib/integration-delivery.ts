@@ -10,6 +10,7 @@ import {
   type IntegrationProvider,
 } from "@/lib/integration-definition";
 import { integrationHttpRequest, type IntegrationHttpResponse } from "@/lib/integration-http";
+import { captureFormsIntegrationError } from "@/lib/server-telemetry";
 
 const integrationDeliverySchema = z.object({
   deliveryId: z.string().uuid(),
@@ -115,8 +116,13 @@ async function jsonRequest(input: {
 
 function requireSecret(delivery: IntegrationDelivery) {
   if (!delivery.secretCiphertext || !delivery.secretKeyId) throw new Error("INTEGRATION_SECRET_MISSING");
-  const decrypted = decryptIntegrationSecret(delivery.secretKeyId, delivery.secretCiphertext);
-  return parseIntegrationSecret(delivery.provider, decrypted) as Record<string, unknown>;
+  try {
+    const decrypted = decryptIntegrationSecret(delivery.secretKeyId, delivery.secretCiphertext);
+    return parseIntegrationSecret(delivery.provider, decrypted) as Record<string, unknown>;
+  } catch (error) {
+    if (error instanceof Error && /^[A-Z0-9_]+$/u.test(error.message)) throw error;
+    throw new Error("INTEGRATION_SECRET_INVALID");
+  }
 }
 
 function mappedFields(values: Record<string, unknown>, mappings: Record<string, string>) {
@@ -426,6 +432,27 @@ export function parseIntegrationDelivery(value: unknown) {
   return integrationDeliverySchema.parse(value);
 }
 
+function integrationErrorCode(error: unknown) {
+  if (error instanceof z.ZodError) return "integration_configuration_invalid";
+  if (error instanceof Error && /^[A-Z0-9_]+$/u.test(error.message)) return error.message.toLowerCase();
+  if (error instanceof Error && error.message.startsWith("GOOGLE_AUTH_HTTP_")) return error.message.toLowerCase();
+
+  const networkCode = typeof error === "object" && error !== null && "code" in error
+    ? String(error.code).toUpperCase()
+    : "";
+  if (networkCode === "ENOTFOUND" || networkCode === "EAI_AGAIN") return "integration_dns_failed";
+  if (networkCode === "ECONNREFUSED") return "integration_connection_refused";
+  if (networkCode === "ECONNRESET" || networkCode === "EPIPE") return "integration_connection_interrupted";
+  if (
+    networkCode.startsWith("CERT_")
+    || networkCode.startsWith("ERR_TLS_")
+    || networkCode === "DEPTH_ZERO_SELF_SIGNED_CERT"
+    || networkCode === "SELF_SIGNED_CERT_IN_CHAIN"
+    || networkCode === "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+  ) return "integration_tls_failed";
+  return "integration_request_failed";
+}
+
 export async function deliverIntegration(
   deliveryValue: unknown,
   files: IntegrationSubmissionFile[] = [],
@@ -453,12 +480,20 @@ export async function deliverIntegration(
       default: return { success: false, status: null, code: "provider_not_supported", retryable: false };
     }
   } catch (error) {
-    const code = error instanceof Error && /^[A-Z0-9_]+$/u.test(error.message)
-      ? error.message.toLowerCase()
-      : error instanceof Error && error.message.startsWith("GOOGLE_AUTH_HTTP_")
-        ? error.message.toLowerCase()
-        : "integration_request_failed";
-    const retryable = code.includes("timeout") || code.includes("unavailable") || code.includes("request_failed") || code.includes("google_auth_http_5");
+    const code = integrationErrorCode(error);
+    if (code === "integration_request_failed") {
+      captureFormsIntegrationError(error, {
+        provider: delivery.provider,
+        code,
+        attempt: delivery.attempt,
+      });
+    }
+    const retryable = code.includes("timeout")
+      || code.includes("unavailable")
+      || code.includes("request_failed")
+      || code.includes("dns_failed")
+      || code.includes("connection_interrupted")
+      || code.includes("google_auth_http_5");
     return { success: false, status: null, code: code.slice(0, 100), retryable };
   }
 }

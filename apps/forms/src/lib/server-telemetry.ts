@@ -31,6 +31,22 @@ const RESPONSE_MODES = new Set(["json", "browser"]);
 const SOURCES = new Set(["generated_page", "custom_site", "direct"]);
 const DURATION_BUCKETS = new Set(["lt_100ms", "100_499ms", "500_999ms", "1_2s", "gte_3s"]);
 const STATUS_CODES = new Set([201, 303, 400, 403, 404, 409, 413, 415, 422, 429, 500, 503]);
+const INTEGRATION_PROVIDERS = new Set([
+  "email",
+  "slack",
+  "lark",
+  "telegram",
+  "google_sheets",
+  "google_drive",
+  "airtable",
+  "notion",
+  "zapier",
+  "webhook",
+  "hubspot",
+  "mailchimp",
+  "google_analytics",
+  "facebook_pixel",
+]);
 
 export type FormSubmissionTelemetry = {
   outcome: "accepted" | "rejected" | "unavailable";
@@ -137,6 +153,34 @@ export function captureFormsOperationalError(
       if (typeof safe.reason === "string") scope.setTag("reason", safe.reason);
       if (typeof safe.status_code === "number") scope.setTag("status_code", String(safe.status_code));
       scope.setContext("operation", safe);
+      Sentry.captureException(error);
+    });
+  } catch {
+    // Error reporting is intentionally fail-open.
+  }
+}
+
+export function captureFormsIntegrationError(
+  error: unknown,
+  metadata: {
+    provider: string;
+    code: string;
+    attempt: number;
+  },
+) {
+  if (!isServerTelemetryEnabled() || !(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN)) return;
+  const provider = INTEGRATION_PROVIDERS.has(metadata.provider) ? metadata.provider : "unknown";
+  const code = /^[a-z0-9_]{1,100}$/u.test(metadata.code) ? metadata.code : "integration_request_failed";
+  const attempt = Number.isInteger(metadata.attempt) && metadata.attempt > 0 && metadata.attempt <= 10
+    ? metadata.attempt
+    : 1;
+  try {
+    Sentry.withScope((scope) => {
+      scope.setTag("service", TELEMETRY_SERVICE);
+      scope.setTag("operation", "integration_delivery");
+      scope.setTag("provider", provider);
+      scope.setTag("error_code", code);
+      scope.setContext("integration_delivery", { provider, code, attempt });
       Sentry.captureException(error);
     });
   } catch {

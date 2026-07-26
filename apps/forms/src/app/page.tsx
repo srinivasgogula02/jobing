@@ -141,7 +141,7 @@ export default function FormsMarketingPage() {
 
       <section className={styles.finalCta}><p>ONE URL. ONE CONNECTION.</p><h2>Ask for the form.<br /><span>Keep the answer useful.</span></h2><div className={styles.finalActions}><div><small>MCP CONNECTOR URL</small><code>{connectorUrl}</code></div><ConnectorCopyButton value={connectorUrl} /></div><PrimaryAction /></section>
 
-      <footer className={styles.footer}><Link className={styles.footerBrand} href="/"><Image src="/forms/logo.png" alt="" width={28} height={28} /><strong>Jobing Forms</strong></Link><p>Make the form. Understand the answer.</p><nav><a href="https://jobing.site">Jobing AI</a><a href={formsDashboardUrl}>Dashboard</a><a href={docsUrl}>Docs</a><a href="https://jobing.site/pricing">Pricing</a></nav></footer>
+      <footer className={styles.footer}><Link className={styles.footerBrand} href="/"><Image src="/forms/logo.png" alt="" width={28} height={28} /><strong>Jobing Forms</strong></Link><p>Make the form. Understand the answer.</p><nav><a href="https://jobing.site">Jobing AI</a><a href="https://jobing.site/form-backend">Form backend</a><a href={formsDashboardUrl}>Dashboard</a><a href={docsUrl}>Docs</a><a href="https://jobing.site/pricing">Pricing</a></nav></footer>
     </main>
   );
 }

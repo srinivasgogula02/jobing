@@ -134,7 +134,7 @@ export function HomePageClient() {
 
       <section className={styles.finalCta}><div><p>One connection. Real outcomes.</p><h2>Give your AI a way to act.</h2><span>Copy the MCP URL and connect Jobing AI to the AI app you already use.</span></div><CopyConnector placement="footer" /></section>
 
-      <footer className={styles.footer}><div><Image src="/logo.png" alt="" width={24} height={24} /><span>Jobing AI · The connector that finishes the work</span></div><nav><Link href="/blog">Guides</Link><a href={DOCS_URL}>Docs</a><Link href="/dashboard" prefetch={false}>Dashboard</Link><Link href="/dashboard/pages" prefetch={false}>Pages</Link><Link href="/dashboard/forms" prefetch={false}>Forms</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav></footer>
+      <footer className={styles.footer}><div><Image src="/logo.png" alt="" width={24} height={24} /><span>Jobing AI · The connector that finishes the work</span></div><nav><Link href="/blog">Guides</Link><Link href="/form-backend">Form backend</Link><a href={DOCS_URL}>Docs</a><Link href="/dashboard" prefetch={false}>Dashboard</Link><Link href="/dashboard/pages" prefetch={false}>Pages</Link><Link href="/dashboard/forms" prefetch={false}>Forms</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav></footer>
     </main>
   );
 }

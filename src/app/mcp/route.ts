@@ -23,6 +23,7 @@ import {
   duplicateConnectorForm,
   FormsServiceError,
   getFormFromService,
+  listConnectorFormIntegrations,
   listConnectorForms,
   listConnectorFormResponses,
   publishConnectorForm,
@@ -288,6 +289,54 @@ const handler = createMcpHandler(
           };
         },
         resultProperties: (result) => ({ result_count_bucket: countBucket(result.structuredContent.forms.length) }),
+      }),
+    );
+
+    server.registerTool(
+      "list_form_integrations",
+      {
+        title: "List integrations for a Jobing form",
+        description: "Lists which apps are connected to one form and returns the secure dashboard URL for setup. Use this when the user asks about Slack, Google Sheets, Airtable, Notion, HubSpot, Mailchimp, Google Drive, Email, Telegram, Lark, Zapier, Webhooks, Google Analytics, or Meta Pixel. Never ask the user to paste integration credentials into chat; direct them to the returned integrations URL.",
+        inputSchema: {
+          formId: z.string().uuid().describe("The form ID returned by create_form_draft or list_forms."),
+        },
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async ({ formId }, { authInfo }) => runConnectorTool({
+        toolName: "list_form_integrations",
+        authInfo,
+        requiredScope: "forms:read",
+        fallback: "Could not list the form integrations.",
+        execute: async (actor) => {
+          const integrations = await listConnectorFormIntegrations(actor, formId);
+          const navigation = formNavigation(formId);
+          const summary = integrations.length
+            ? `${integrations.length} integration${integrations.length === 1 ? " is" : "s are"} connected.`
+            : "No integrations are connected yet.";
+          return {
+            content: [{
+              type: "text",
+              text: `${summary} Connect or manage apps securely: ${navigation.integrationsUrl}. Do not send credentials through chat.`,
+            }],
+            structuredContent: {
+              integrations,
+              integrationsUrl: navigation.integrationsUrl,
+              formsDashboardUrl: navigation.formsDashboardUrl,
+              nextActions: [
+                { label: "Connect or manage apps", url: navigation.integrationsUrl },
+                { label: "Open all forms", url: navigation.formsDashboardUrl },
+              ],
+            },
+          };
+        },
+        resultProperties: (result) => ({
+          result_count_bucket: countBucket(result.structuredContent.integrations.length),
+        }),
       }),
     );
 

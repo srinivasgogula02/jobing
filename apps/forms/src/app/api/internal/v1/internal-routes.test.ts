@@ -12,6 +12,10 @@ const store = vi.hoisted(() => ({
   listSubmissionsPage: vi.fn(),
   setSubmissionReviewState: vi.fn(),
   applyWorkspaceProjection: vi.fn(),
+  listFormIntegrationsForActor: vi.fn(),
+  saveFormIntegration: vi.fn(),
+  setFormIntegrationStatus: vi.fn(),
+  deleteFormIntegration: vi.fn(),
 }));
 
 vi.mock("@/lib/forms-store", () => store);
@@ -22,6 +26,7 @@ import { POST as getForm } from "./forms/[formId]/route";
 import { POST as publishForm } from "./forms/[formId]/publish/route";
 import { POST as updateFormDraft } from "./forms/[formId]/draft/route";
 import { POST as listFormResponses } from "./forms/[formId]/responses/route";
+import { POST as formIntegrations } from "./forms/[formId]/integrations/route";
 import { POST as setFormResponseState } from "./responses/[submissionId]/state/route";
 import { POST as syncWorkspace } from "./workspaces/sync/route";
 
@@ -91,6 +96,18 @@ beforeEach(() => {
   store.listSubmissionsPage.mockReset().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20, pages: 1 });
   store.setSubmissionReviewState.mockReset().mockResolvedValue(true);
   store.applyWorkspaceProjection.mockReset().mockResolvedValue({ workspaceId: WORKSPACE_ID, applied: true });
+  store.listFormIntegrationsForActor.mockReset().mockResolvedValue([]);
+  store.saveFormIntegration.mockReset().mockResolvedValue({
+    id: "66666666-6666-4666-8666-666666666666",
+    formId: FORM_ID,
+    provider: "slack",
+    status: "active",
+    config: { title: "New lead" },
+    hasSecret: true,
+    updatedAt: "2026-07-26T12:00:00.000Z",
+  });
+  store.setFormIntegrationStatus.mockReset().mockResolvedValue(true);
+  store.deleteFormIntegration.mockReset().mockResolvedValue(true);
 });
 
 describe("Forms internal routes", () => {
@@ -216,6 +233,55 @@ describe("Forms internal routes", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ data: { submissionId: SUBMISSION_ID, state: "archived" } });
     expect(store.setSubmissionReviewState).toHaveBeenCalledWith("user_123", SUBMISSION_ID, "archived");
+  });
+
+  it("lists integration state with read scope and never returns stored credentials", async () => {
+    const path = `/api/internal/v1/forms/${FORM_ID}/integrations`;
+    store.listFormIntegrationsForActor.mockResolvedValueOnce([{
+      id: "66666666-6666-4666-8666-666666666666",
+      formId: FORM_ID,
+      provider: "slack",
+      status: "active",
+      config: { title: "New lead" },
+      hasSecret: true,
+      updatedAt: "2026-07-26T12:00:00.000Z",
+    }]);
+    const { request } = signedRequest(path, { action: "list", actor: actor(["forms:read"]) });
+    const response = await formIntegrations(request, { params: Promise.resolve({ formId: FORM_ID }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(store.listFormIntegrationsForActor).toHaveBeenCalledWith("user_123", FORM_ID);
+    expect(body.data[0]).toMatchObject({ provider: "slack", hasSecret: true });
+    expect(JSON.stringify(body)).not.toContain("webhookUrl");
+  });
+
+  it("requires write scope before saving integration credentials", async () => {
+    const path = `/api/internal/v1/forms/${FORM_ID}/integrations`;
+    const payload = {
+      action: "save",
+      actor: actor(["forms:write"]),
+      provider: "slack",
+      config: { title: "New lead" },
+      secret: { webhookUrl: "https://hooks.slack.com/services/example" },
+      replaceSecret: true,
+    };
+    const { request } = signedRequest(path, payload);
+    const response = await formIntegrations(request, { params: Promise.resolve({ formId: FORM_ID }) });
+
+    expect(response.status).toBe(200);
+    expect(store.saveFormIntegration).toHaveBeenCalledWith(expect.objectContaining({
+      actorId: "user_123",
+      formId: FORM_ID,
+      provider: "slack",
+      replaceSecret: true,
+    }));
+
+    store.saveFormIntegration.mockClear();
+    const denied = signedRequest(path, { ...payload, actor: actor(["forms:read"]) });
+    const deniedResponse = await formIntegrations(denied.request, { params: Promise.resolve({ formId: FORM_ID }) });
+    expect(deniedResponse.status).toBe(403);
+    expect(store.saveFormIntegration).not.toHaveBeenCalled();
   });
 
   it("applies a signed workspace projection", async () => {

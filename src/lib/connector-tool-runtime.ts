@@ -20,6 +20,7 @@ const COMPLETED_OUTCOME_EVENTS = {
   deploy_page: "page_deploy_completed",
   create_form_draft: "form_draft_completed",
   list_forms: "forms_list_completed",
+  list_form_integrations: "form_integrations_list_completed",
   publish_form: "form_publish_completed",
   report_connector_feedback: "connector_feedback_submitted",
 } as const;

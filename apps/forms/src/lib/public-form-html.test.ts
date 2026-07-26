@@ -59,4 +59,21 @@ describe("renderPublicForm", () => {
     expect(output).toContain("Applications reopen Monday.");
     expect(output).not.toContain("data-public-form");
   });
+
+  it("exposes only validated analytics IDs to the first-party form script", () => {
+    const output = renderPublicForm({
+      definition,
+      endpointId: "frm_test",
+      action: "https://forms.jobing.site/forms/f/frm_test",
+      clientIntegrations: [
+        { provider: "google_analytics", config: { measurementId: "G-ABC12345" } },
+        { provider: "facebook_pixel", config: { pixelId: "1234567890" } },
+      ],
+    });
+
+    expect(output).toContain('data-google-analytics="G-ABC12345"');
+    expect(output).toContain('data-facebook-pixel="1234567890"');
+    expect(output).not.toContain("googletagmanager.com");
+    expect(output).not.toContain("connect.facebook.net");
+  });
 });

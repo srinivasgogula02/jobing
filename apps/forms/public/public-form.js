@@ -9,6 +9,48 @@
     };
   }
 
+  function loadScript(src) {
+    var script = document.createElement("script");
+    script.async = true;
+    script.src = src;
+    document.head.appendChild(script);
+  }
+
+  function initializeAnalytics() {
+    var root = document.documentElement;
+    var formId = root.getAttribute("data-form-id") || "unknown";
+    var measurementId = root.getAttribute("data-google-analytics");
+    var pixelId = root.getAttribute("data-facebook-pixel");
+    var submitted = root.getAttribute("data-submitted") === "true";
+
+    if (measurementId) {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+      window.gtag("js", new Date());
+      window.gtag("config", measurementId, { anonymize_ip: true });
+      loadScript("https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(measurementId));
+      window.gtag("event", submitted ? "form_submit" : "form_view", { form_id: formId });
+    }
+
+    if (pixelId) {
+      window.fbq = window.fbq || function () {
+        if (window.fbq.callMethod) window.fbq.callMethod.apply(window.fbq, arguments);
+        else window.fbq.queue.push(arguments);
+      };
+      window.fbq.queue = window.fbq.queue || [];
+      window.fbq.loaded = true;
+      window.fbq.version = "2.0";
+      loadScript("https://connect.facebook.net/en_US/fbevents.js");
+      window.fbq("init", pixelId);
+      window.fbq("track", submitted ? "Lead" : "ViewContent", { content_name: formId });
+    }
+  }
+
+  function trackStart(formId) {
+    if (typeof window.gtag === "function") window.gtag("event", "form_start", { form_id: formId });
+    if (typeof window.fbq === "function") window.fbq("trackCustom", "FormStart", { content_name: formId });
+  }
+
   function ensureSubmissionId(form) {
     var input = form && form.querySelector('input[name="_submission_id"]');
     if (!input || input.value) return;
@@ -63,12 +105,22 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    initializeAnalytics();
     var current = elements();
     if (!current.form) return;
+    var started = false;
+    var formId = document.documentElement.getAttribute("data-form-id") || "unknown";
     ensureSubmissionId(current.form);
     updateForm(current.form);
-    current.form.addEventListener("input", function () { updateForm(current.form); });
-    current.form.addEventListener("change", function () { updateForm(current.form); });
+    function onAnswer() {
+      if (!started) {
+        started = true;
+        trackStart(formId);
+      }
+      updateForm(current.form);
+    }
+    current.form.addEventListener("input", onAnswer);
+    current.form.addEventListener("change", onAnswer);
 
     current.form.addEventListener("submit", function () {
       ensureSubmissionId(current.form);

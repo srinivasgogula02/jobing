@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   tools: new Map<string, RegisteredTool>(),
   reportFeedback: vi.fn(),
   listFormResponses: vi.fn(),
+  listFormIntegrations: vi.fn(),
   deployPage: vi.fn(),
   createForm: vi.fn(),
   publishForm: vi.fn(),
@@ -40,6 +41,7 @@ vi.mock("@/lib/forms-service", () => ({
   duplicateConnectorForm: vi.fn(),
   getFormFromService: vi.fn(),
   listConnectorForms: vi.fn(),
+  listConnectorFormIntegrations: state.listFormIntegrations,
   listConnectorFormResponses: state.listFormResponses,
   publishConnectorForm: state.publishForm,
   setConnectorFormResponseState: vi.fn(),
@@ -66,6 +68,7 @@ const authInfo = {
 beforeEach(() => {
   state.reportFeedback.mockReset();
   state.listFormResponses.mockReset();
+  state.listFormIntegrations.mockReset();
   state.deployPage.mockReset();
   state.createForm.mockReset();
   state.publishForm.mockReset();
@@ -81,10 +84,12 @@ describe("Jobing MCP management tools", () => {
       "update_form_draft",
       "duplicate_form",
       "list_form_responses",
+      "list_form_integrations",
       "set_form_response_state",
     ]));
     expect(state.tools.get("delete_page")?.config.annotations).toMatchObject({ destructiveHint: true, readOnlyHint: false });
     expect(state.tools.get("list_form_responses")?.config.annotations).toMatchObject({ readOnlyHint: true });
+    expect(state.tools.get("list_form_integrations")?.config.annotations).toMatchObject({ readOnlyHint: true });
   });
 
   it("returns the live page, editor, and Pages dashboard after deployment", async () => {
@@ -148,6 +153,32 @@ describe("Jobing MCP management tools", () => {
     const denied = await tool?.handler(input, { authInfo: { ...authInfo, scopes: ["forms:read"] } });
     expect(state.listFormResponses).not.toHaveBeenCalled();
     expect(denied).toMatchObject({ isError: true });
+  });
+
+  it("lists integration status but routes credential setup to the secure dashboard", async () => {
+    const formId = "4e279eaf-0a6e-48de-a66e-3c819f3fb756";
+    state.listFormIntegrations.mockResolvedValue([{
+      id: "f74cc716-26bc-4526-8d15-ab6dc8fe2f2f",
+      formId,
+      provider: "slack",
+      status: "active",
+      config: { title: "New response" },
+      hasSecret: true,
+      updatedAt: "2026-07-26T10:00:00.000Z",
+    }]);
+    const tool = state.tools.get("list_form_integrations");
+    const result = await tool?.handler({ formId }, {
+      authInfo: { ...authInfo, scopes: ["forms:read"] },
+    });
+
+    expect(state.listFormIntegrations).toHaveBeenCalled();
+    expect(result).toMatchObject({
+      structuredContent: {
+        integrationsUrl: `https://jobing.site/dashboard/forms/${formId}/integrations`,
+        integrations: [{ provider: "slack", hasSecret: true }],
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain("webhookUrl");
   });
 });
 

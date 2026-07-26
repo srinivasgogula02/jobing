@@ -8,6 +8,8 @@ import { isHoneypotRejection, validateSubmission } from "@/lib/submission-valida
 import { isPagesRuntimeOrigin } from "@/lib/platform-origin";
 import { parseSubmissionRequest, SubmissionRequestError } from "@/lib/submission-request";
 import { collectSubmissionFiles, MAX_UPLOAD_BYTES } from "@/lib/submission-files";
+import { runSubmissionIntegrations } from "@/lib/integration-runner";
+import type { ClientIntegration } from "@/lib/integration-definition";
 import {
   captureFormsOperationalError,
   durationBucket,
@@ -21,13 +23,29 @@ const MAX_VALUE_BYTES = 256 * 1024;
 const MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + MAX_VALUE_BYTES;
 const TURNSTILE_ACTION = "turnstile-spin-v1";
 
-const securityHeaders = {
-  "content-type": "text/html; charset=utf-8", "x-content-type-options": "nosniff",
-  "content-security-policy": "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'none'; connect-src 'self'; form-action 'self' https://jobing.site https://forms.jobing.site; base-uri 'none'; frame-ancestors 'none'",
-};
+function securityHeaders(integrations: ClientIntegration[] = []) {
+  const providers = new Set(integrations.map((item) => item.provider));
+  const scriptSrc = ["'self'"];
+  const connectSrc = ["'self'"];
+  const imgSrc = ["'self'", "data:"];
+  if (providers.has("google_analytics")) {
+    scriptSrc.push("https://www.googletagmanager.com");
+    connectSrc.push("https://www.google-analytics.com", "https://region1.google-analytics.com");
+  }
+  if (providers.has("facebook_pixel")) {
+    scriptSrc.push("https://connect.facebook.net");
+    connectSrc.push("https://www.facebook.com");
+    imgSrc.push("https://www.facebook.com");
+  }
+  return {
+    "content-type": "text/html; charset=utf-8",
+    "x-content-type-options": "nosniff",
+    "content-security-policy": `default-src 'none'; style-src 'self' 'unsafe-inline'; script-src ${scriptSrc.join(" ")}; img-src ${imgSrc.join(" ")}; frame-src 'none'; connect-src ${connectSrc.join(" ")}; form-action 'self' https://jobing.site https://forms.jobing.site; base-uri 'none'; frame-ancestors 'none'`,
+  };
+}
 
-function html(body: string, status = 200, cacheControl = "no-store") {
-  return new NextResponse(body, { status, headers: { ...securityHeaders, "cache-control": cacheControl } });
+function html(body: string, status = 200, cacheControl = "no-store", integrations: ClientIntegration[] = []) {
+  return new NextResponse(body, { status, headers: { ...securityHeaders(integrations), "cache-control": cacheControl } });
 }
 function canonical(endpoint: string) { return `${process.env.NEXT_PUBLIC_FORMS_API_URL || "https://forms.jobing.site/forms"}/f/${encodeURIComponent(endpoint)}`; }
 function corsHeaders(origin: string | null) { return origin ? { "access-control-allow-origin": origin, vary: "Origin" } : undefined; }
@@ -42,9 +60,10 @@ export async function GET(request: Request, context: { params: Promise<{ endpoin
   const submitted = new URL(request.url).searchParams.get("submitted") === "1";
   const availability = formAvailability(form.definition, form.submissionCount);
   return html(
-    renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), ...(submitted ? { message: form.definition.confirmation.message } : !availability.accepting ? { closedMessage: availability.message } : {}) }),
+    renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), clientIntegrations: form.clientIntegrations, ...(submitted ? { message: form.definition.confirmation.message } : !availability.accepting ? { closedMessage: availability.message } : {}) }),
     200,
     submitted ? "no-store" : "public, max-age=0, s-maxage=15, stale-while-revalidate=45",
+    form.clientIntegrations,
   );
 }
 
@@ -221,12 +240,14 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
   if (!validated.success || Object.keys(uploads.errors).length > 0) {
     rememberBlocked("validation_failed");
     if (wantsJson) return complete(NextResponse.json({ error: { code: "validation_failed", message: "Check the highlighted fields and try again.", fields: validationErrors } }, { status: 422, headers: corsHeaders(responseOrigin) }), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
-    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors, values: raw }), 422), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
+    return complete(html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), clientIntegrations: form.clientIntegrations, submissionId: String(data.get("_submission_id") || randomUUID()), errors: validationErrors, values: raw }), 422, "no-store", form.clientIntegrations), { outcome: "rejected", reason: "validation_failed", status_code: 422 });
   }
   if (!secret || Buffer.byteLength(secret) < 32) return complete(jsonError("unavailable", "Forms is temporarily unavailable.", 503, responseOrigin), { outcome: "unavailable", reason: "configuration_missing", status_code: 503 }, new Error("Forms submission configuration is unavailable"));
   const origin = originHeader === hostedOrigin || platformOrigin ? null : originHeader;
   try {
     const result = await acceptSubmission({ endpointId: endpoint, idempotencyKey: String(data.get("_submission_id") || request.headers.get("idempotency-key") || randomUUID()), values: validated.values, files: uploads.files, origin, ipHash: ipHash! });
+    const integrationWork = runSubmissionIntegrations(result.submissionId).catch(() => undefined);
+    try { waitUntil(integrationWork); } catch { void integrationWork; }
     if (wantsJson) return complete(NextResponse.json({ data: result }, { status: 201, headers: corsHeaders(responseOrigin) }), { outcome: "accepted", reason: "success", status_code: 201 });
     if (result.redirectUrl) return complete(NextResponse.redirect(result.redirectUrl, 303), { outcome: "accepted", reason: "success", status_code: 303 });
     return complete(NextResponse.redirect(`${canonical(endpoint)}?submitted=1`, 303), { outcome: "accepted", reason: "success", status_code: 303 });
@@ -237,7 +258,7 @@ export async function POST(request: Request, context: { params: Promise<{ endpoi
     if (status === 429 || status === 403) rememberBlocked(reason);
     const publicMessage = status === 500 ? "The response could not be saved." : status === 409 ? form.definition.settings.closedMessage : "This submission is not allowed.";
     const response = status === 409 && !wantsJson
-      ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), closedMessage: publicMessage }), status)
+      ? html(renderPublicForm({ definition: form.definition, endpointId: endpoint, action: canonical(endpoint), clientIntegrations: form.clientIntegrations, closedMessage: publicMessage }), status, "no-store", form.clientIntegrations)
       : jsonError(reason, publicMessage, status, responseOrigin);
     return complete(response, { outcome: status === 500 ? "unavailable" : "rejected", reason, status_code: status }, status === 500 ? error : undefined);
   }

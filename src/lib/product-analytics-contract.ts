@@ -34,6 +34,7 @@ export const MCP_TOOL_METADATA: Record<string, {
   delete_page: { productArea: "pages", toolAction: "delete", accessMode: "destructive" },
   create_form_draft: { productArea: "forms", toolAction: "create", accessMode: "write" },
   list_forms: { productArea: "forms", toolAction: "list", accessMode: "read" },
+  list_form_integrations: { productArea: "forms", toolAction: "list", accessMode: "read" },
   update_form_draft: { productArea: "forms", toolAction: "update", accessMode: "write" },
   duplicate_form: { productArea: "forms", toolAction: "duplicate", accessMode: "write" },
   list_form_responses: { productArea: "responses", toolAction: "read", accessMode: "read" },

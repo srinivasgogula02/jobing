@@ -13,6 +13,24 @@ const SAFE_ERROR_CODE_PATTERN = /^[a-z][a-z0-9_]{0,99}$/;
 const SAFE_ERROR_MESSAGE_PATTERN = /^[^\u0000-\u001f\u007f]*$/u;
 
 const formStatusSchema = z.enum(["draft", "published", "paused", "archived", "trashed"]);
+export const formIntegrationProviderSchema = z.enum([
+  "airtable",
+  "email",
+  "facebook_pixel",
+  "google_analytics",
+  "google_drive",
+  "google_sheets",
+  "hubspot",
+  "lark",
+  "mailchimp",
+  "notion",
+  "slack",
+  "telegram",
+  "webhook",
+  "zapier",
+]);
+
+export type FormIntegrationProvider = z.infer<typeof formIntegrationProviderSchema>;
 
 const formSummarySchema = z.object({
   id: z.string().uuid(),
@@ -86,6 +104,24 @@ const paginatedFormResponsesSchema = z.object({
   visibilityPeriod: z.literal("month").default("month"),
   planKey: z.string().default("free"),
 });
+
+const formIntegrationSchema = z.object({
+  id: z.string().uuid(),
+  formId: z.string().uuid(),
+  provider: formIntegrationProviderSchema,
+  status: z.enum(["active", "paused"]),
+  config: z.record(z.string(), z.unknown()),
+  hasSecret: z.boolean(),
+  lastDeliveryAt: z.string().nullable().default(null),
+  lastSuccessAt: z.string().nullable().default(null),
+  lastFailureAt: z.string().nullable().default(null),
+  lastErrorCode: z.string().nullable().default(null),
+  pendingDeliveries: z.coerce.number().int().nonnegative().default(0),
+  failedDeliveries: z.coerce.number().int().nonnegative().default(0),
+  updatedAt: z.string(),
+});
+
+export type FormIntegration = z.infer<typeof formIntegrationSchema>;
 
 const errorEnvelopeSchema = z.object({
   error: z.object({
@@ -671,5 +707,73 @@ export async function setConnectorFormResponseState(
   const body = await postSerializedToForms(`/api/internal/v1/responses/${encodeURIComponent(submissionId)}/state`, rawBody);
   return parseServiceResponse(z.object({
     data: z.object({ submissionId: z.string().uuid(), state: z.enum(["inbox", "spam", "archived"]) }),
+  }), body).data;
+}
+
+export async function listConnectorFormIntegrations(actor: FormsActor, formId: string) {
+  const rawBody = serializeFormsPayload({ actor, action: "list" });
+  const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(formId)}/integrations`, rawBody);
+  return parseServiceResponse(z.object({ data: z.array(formIntegrationSchema) }), body).data;
+}
+
+export async function saveConnectorFormIntegration(input: {
+  actor: FormsActor;
+  formId: string;
+  provider: FormIntegrationProvider;
+  config: unknown;
+  secret?: unknown;
+  replaceSecret?: boolean;
+}) {
+  const rawBody = serializeFormsPayload({
+    actor: input.actor,
+    action: "save",
+    provider: input.provider,
+    config: input.config,
+    secret: input.secret,
+    replaceSecret: input.replaceSecret ?? false,
+  });
+  const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(input.formId)}/integrations`, rawBody);
+  return parseServiceResponse(z.object({ data: formIntegrationSchema.pick({
+    id: true,
+    formId: true,
+    provider: true,
+    status: true,
+    config: true,
+    hasSecret: true,
+    updatedAt: true,
+  }) }), body).data;
+}
+
+export async function setConnectorFormIntegrationStatus(input: {
+  actor: FormsActor;
+  formId: string;
+  provider: FormIntegrationProvider;
+  status: "active" | "paused";
+}) {
+  const rawBody = serializeFormsPayload({
+    actor: input.actor,
+    action: "status",
+    provider: input.provider,
+    status: input.status,
+  });
+  const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(input.formId)}/integrations`, rawBody);
+  return parseServiceResponse(z.object({
+    data: z.object({ provider: formIntegrationProviderSchema, status: z.enum(["active", "paused"]) }),
+  }), body).data;
+}
+
+export async function deleteConnectorFormIntegration(input: {
+  actor: FormsActor;
+  formId: string;
+  provider: FormIntegrationProvider;
+}) {
+  const rawBody = serializeFormsPayload({
+    actor: input.actor,
+    action: "delete",
+    provider: input.provider,
+  });
+  const body = await postSerializedToForms(`/api/internal/v1/forms/${encodeURIComponent(input.formId)}/integrations`, rawBody);
+  return parseServiceResponse(z.object({
+    data: z.object({ provider: formIntegrationProviderSchema, deleted: z.literal(true) }),
   }), body).data;
 }

@@ -34,11 +34,13 @@ export function formNavigation(formId: string, liveUrl?: string, includeNextActi
   const responsesUrl = `${JOBING_ORIGIN}/dashboard/forms/${encodedId}`;
   const editUrl = `${responsesUrl}/edit`;
   const shareUrl = `${responsesUrl}/share`;
+  const integrationsUrl = `${responsesUrl}/integrations`;
   const nextActions = [
     ...(liveUrl ? [{ label: "Open live form", url: liveUrl }] : []),
     { label: "View responses", url: responsesUrl },
     { label: "Edit form", url: editUrl },
     { label: "Share or embed form", url: shareUrl },
+    { label: "Connect other apps", url: integrationsUrl },
     { label: "Open all forms", url: connectorDestinations.formsDashboardUrl },
   ] satisfies ConnectorNextAction[];
   return {
@@ -46,6 +48,7 @@ export function formNavigation(formId: string, liveUrl?: string, includeNextActi
     responsesUrl,
     editUrl,
     shareUrl,
+    integrationsUrl,
     formsDashboardUrl: connectorDestinations.formsDashboardUrl,
     ...(includeNextActions ? { nextActions } : {}),
   };

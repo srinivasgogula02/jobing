@@ -4,28 +4,26 @@ Jobing Forms is a separate Next.js deployment backed by a separate Neon database
 It shares Jobing's Clerk identity but does not share the main application's Supabase
 database, deployment environment, or runtime credentials.
 
-## Phase 1 boundary
+## Current product boundary
 
 Implemented now:
 
-- A dedicated Forms Next.js deployment served through `jobing.site/forms`.
+- A dedicated Forms Next.js deployment served through `jobing.site/forms`, with
+  public endpoints served directly from `forms.jobing.site`.
 - Shared Clerk authentication on the primary `jobing.site` origin.
-- An isolated Neon schema with workspace, entitlement, draft, immutable version,
-  endpoint reservation, audit, idempotency, nonce, and outbox foundations.
-- HMAC-signed, replay-protected internal APIs for workspace projection, creating
-  drafts, listing forms, and publishing definitions.
-- MCP tools in the main deployment for creating, listing, and publishing definitions.
-- A minimal authenticated dashboard and database-aware `/forms/api/health` endpoint.
+- An isolated Neon schema with workspaces, entitlements, drafts, immutable
+  versions, submissions, uploads, audit logs, idempotency, and durable outboxes.
+- HMAC-signed, replay-protected internal APIs and MCP tools for form creation,
+  editing, publishing, discovery, and dashboard navigation.
+- Hosted forms, native HTML submission endpoints, a visual editor, response inbox,
+  CSV export, spam review, and plan-aware response visibility.
+- Fourteen optional integrations: Airtable, Email, Meta Pixel, Google Analytics,
+  Google Drive, Google Sheets, HubSpot, Lark Suite, Mailchimp, Notion, Slack,
+  Telegram, signed Webhooks, and Zapier.
 
-Not implemented in Phase 1:
-
-- Hosted respondent forms or a public `/f/{endpoint}` submission handler.
-- A visual form builder or editable dashboard workflow.
-- Response storage/inbox, analytics, uploads, notifications, integrations, or workers.
-- Public embed routes, custom domains, or public-form observability.
-
-An endpoint ID is reserved when a draft is created, but it is intentionally not a
-working submission URL until the public ingestion phase is delivered.
+Valid submissions are stored before integration delivery begins. Server-side
+integrations use a durable outbox with bounded retries, so an unavailable third
+party never blocks or loses the respondent's form submission.
 
 ## Deployment topology
 
@@ -109,6 +107,9 @@ CLERK_AUTHORIZED_PARTIES=https://jobing.site
 DATABASE_URL
 FORMS_INTERNAL_KEY_ID
 FORMS_INTERNAL_SECRET
+FORMS_INTEGRATION_ENCRYPTION_KEY_ID
+FORMS_INTEGRATION_ENCRYPTION_KEY
+CRON_SECRET
 ```
 
 `DATABASE_URL` must use a least-privileged Neon runtime login. It must not be the
@@ -121,6 +122,18 @@ Optional during HMAC rotation:
 FORMS_INTERNAL_PREVIOUS_KEY_ID
 FORMS_INTERNAL_PREVIOUS_SECRET
 ```
+
+Optional during integration encryption-key rotation:
+
+```text
+FORMS_INTEGRATION_PREVIOUS_ENCRYPTION_KEY_ID
+FORMS_INTEGRATION_PREVIOUS_ENCRYPTION_KEY
+```
+
+The Email integration additionally requires `RESEND_API_KEY` and
+`FORMS_NOTIFICATION_FROM`. Other provider credentials are entered by the form
+owner in the authenticated dashboard, encrypted before storage, never returned
+by list APIs, and never sent through MCP tool results.
 
 `DATABASE_MIGRATION_URL` belongs only in a protected operator or migration CI
 environment. Do not add it to the Forms Vercel project.
@@ -203,16 +216,11 @@ Before the matching application code is promoted:
    the actual runtime URL and rejects owner, superuser, `BYPASSRLS`, object-owner,
    base-table, or over-broad function privileges.
 
-The Forms runner applies these files in lexical order:
+The Forms runner applies all files in lexical order. The latest integration
+migration is:
 
 ```text
-000001_bootstrap.sql
-000002_identity_entitlements.sql
-000003_forms.sql
-000004_operational_tables.sql
-000005_domain_helpers.sql
-000006_api_functions.sql
-000007_rls_and_grants.sql
+000016_form_integrations.sql
 ```
 
 The runner takes a Postgres advisory lock, wraps each migration in its own transaction,

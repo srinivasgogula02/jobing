@@ -7,7 +7,7 @@ export function FormPageHeader({
   current,
 }: {
   formId: string;
-  current: "build" | "responses" | "share";
+  current: "build" | "responses" | "share" | "integrations";
 }) {
   return (
     <div className="form-page-head">

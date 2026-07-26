@@ -6,12 +6,17 @@ const mocks = vi.hoisted(() => ({
   getPublicForm: vi.fn(),
   recordBlockedSubmission: vi.fn(),
   recordCompletion: vi.fn(),
+  runSubmissionIntegrations: vi.fn(async () => ({ claimed: 0, succeeded: 0, failed: 0 })),
 }));
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/forms-store", () => ({
   acceptSubmission: mocks.acceptSubmission,
   getPublicForm: mocks.getPublicForm,
   recordBlockedSubmission: mocks.recordBlockedSubmission,
+}));
+vi.mock("@/lib/integration-runner", () => ({
+  runSubmissionIntegrations: mocks.runSubmissionIntegrations,
 }));
 vi.mock("@/lib/server-telemetry", () => ({
   captureFormsOperationalError: mocks.captureError,
@@ -228,6 +233,23 @@ describe("public form submission telemetry", () => {
     const response = await GET(new Request("https://forms.jobing.site/forms/f/frm_test?submitted=1"), context);
 
     expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("opens CSP only for analytics providers enabled on this form", async () => {
+    mocks.getPublicForm.mockResolvedValue({
+      ...form,
+      clientIntegrations: [
+        { provider: "google_analytics", config: { measurementId: "G-ABC12345" } },
+        { provider: "facebook_pixel", config: { pixelId: "1234567890" } },
+      ],
+    });
+
+    const response = await GET(new Request("https://forms.jobing.site/forms/f/frm_test"), context);
+    const csp = response.headers.get("content-security-policy");
+    expect(csp).toContain("https://www.googletagmanager.com");
+    expect(csp).toContain("https://connect.facebook.net");
+    expect(csp).toContain("https://www.google-analytics.com");
+    expect(await response.text()).toContain('data-google-analytics="G-ABC12345"');
   });
 
   it("allows browser fetch submissions when a form intentionally has no origin allowlist", async () => {

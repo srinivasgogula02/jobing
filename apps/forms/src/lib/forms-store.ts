@@ -4,6 +4,22 @@ import { z } from "zod";
 import { databaseConfigured, query } from "@/lib/db";
 import { formDefinitionSchema, type CreateFormDraftRequest, type FormDefinition, type PublishFormRequest, type WorkspaceProjectionRequest } from "@/lib/form-definition";
 import { sha256Hex } from "@/lib/internal-auth";
+import { encryptIntegrationSecret } from "@/lib/integration-crypto";
+import {
+  clientIntegrationSchema,
+  formIntegrationSchema,
+  integrationProviderSchema,
+  integrationNeedsSecret,
+  parseIntegrationConfig,
+  parseIntegrationSecret,
+  type FormIntegration,
+  type IntegrationProvider,
+} from "@/lib/integration-definition";
+import {
+  integrationSubmissionFileSchema,
+  parseIntegrationDelivery,
+  type DeliveryOutcome,
+} from "@/lib/integration-delivery";
 
 const formSummarySchema = z.object({
   id: z.string().uuid(),
@@ -54,6 +70,7 @@ function isUndefinedDatabaseFunction(error: unknown) {
 const publicFormSchema = z.object({
   formId: z.string().uuid(), endpointId: z.string(), versionId: z.string().uuid(),
   version: z.coerce.number().int().positive(), name: z.string(), definition: z.unknown(), submissionCount: z.coerce.number().int().nonnegative().default(0),
+  clientIntegrations: z.array(clientIntegrationSchema).default([]),
 });
 
 const submissionFileSchema = z.object({
@@ -87,6 +104,16 @@ const paginatedBlockedSchema = z.object({
 const dashboardFormResultSchema = z.object({
   id: z.string().uuid(), name: z.string(), status: z.enum(["draft", "published", "paused", "archived", "trashed"]),
   revision: z.coerce.number().int().positive(), endpointId: z.string(), definition: z.unknown().optional(),
+});
+
+const savedIntegrationSchema = z.object({
+  id: z.string().uuid(),
+  formId: z.string().uuid(),
+  provider: integrationProviderSchema,
+  status: z.enum(["active", "paused"]),
+  config: z.record(z.string(), z.unknown()),
+  hasSecret: z.boolean(),
+  updatedAt: z.string(),
 });
 
 function idempotencyRequestHash(value: unknown) {
@@ -212,6 +239,111 @@ export async function getSubmissionFile(actorId: string, fileId: string) {
 
 export async function recordBlockedSubmission(input: { endpointId: string; reason: string; origin: string | null; ipHash: string }) {
   await query("select forms_api.record_blocked_submission($1,$2,$3,$4)", [input.endpointId, input.reason, input.origin, input.ipHash]);
+}
+
+export async function listFormIntegrationsForActor(actorId: string, formId: string): Promise<FormIntegration[]> {
+  const result = await query<{ value: unknown }>(
+    "select value from forms_api.list_form_integrations($1,$2::uuid) as value",
+    [actorId, formId],
+  );
+  return result.rows.map((row) => formIntegrationSchema.parse(row.value));
+}
+
+export async function saveFormIntegration(input: {
+  actorId: string;
+  formId: string;
+  provider: IntegrationProvider;
+  config: unknown;
+  secret?: unknown;
+  replaceSecret: boolean;
+}) {
+  const provider = integrationProviderSchema.parse(input.provider);
+  const config = parseIntegrationConfig(provider, input.config);
+  let encrypted: { ciphertext: string; keyId: string } | undefined;
+  if (input.replaceSecret) {
+    encrypted = encryptIntegrationSecret(parseIntegrationSecret(provider, input.secret));
+  } else if (integrationNeedsSecret(provider) && input.secret !== undefined) {
+    encrypted = encryptIntegrationSecret(parseIntegrationSecret(provider, input.secret));
+  }
+  const result = await query<{ value: unknown }>(
+    "select forms_api.upsert_form_integration($1,$2::uuid,$3,$4::jsonb,$5,$6,$7) as value",
+    [
+      input.actorId,
+      input.formId,
+      provider,
+      JSON.stringify(config),
+      encrypted?.ciphertext ?? null,
+      encrypted?.keyId ?? null,
+      Boolean(encrypted),
+    ],
+  );
+  return savedIntegrationSchema.parse(result.rows[0]?.value);
+}
+
+export async function setFormIntegrationStatus(input: {
+  actorId: string;
+  formId: string;
+  provider: IntegrationProvider;
+  status: "active" | "paused";
+}) {
+  const result = await query<{ changed: boolean }>(
+    "select forms_api.set_form_integration_status($1,$2::uuid,$3,$4) as changed",
+    [input.actorId, input.formId, integrationProviderSchema.parse(input.provider), input.status],
+  );
+  return result.rows[0]?.changed === true;
+}
+
+export async function deleteFormIntegration(input: {
+  actorId: string;
+  formId: string;
+  provider: IntegrationProvider;
+}) {
+  const result = await query<{ changed: boolean }>(
+    "select forms_api.delete_form_integration($1,$2::uuid,$3) as changed",
+    [input.actorId, input.formId, integrationProviderSchema.parse(input.provider)],
+  );
+  return result.rows[0]?.changed === true;
+}
+
+export async function claimIntegrationDeliveries(input: {
+  lockToken: string;
+  limit?: number;
+  submissionId?: string;
+}) {
+  const result = await query<{ value: unknown }>(
+    "select value from forms_api.claim_integration_deliveries($1,$2,$3::uuid) as value",
+    [input.lockToken, input.limit ?? 10, input.submissionId ?? null],
+  );
+  return result.rows.map((row) => parseIntegrationDelivery(row.value));
+}
+
+export async function completeIntegrationDelivery(input: {
+  lockToken: string;
+  deliveryId: string;
+  outcome: DeliveryOutcome;
+  retryAt?: Date;
+}) {
+  const result = await query<{ changed: boolean }>(
+    "select forms_api.complete_integration_delivery($1,$2::uuid,$3,$4,$5,$6,$7) as changed",
+    [
+      input.lockToken,
+      input.deliveryId,
+      input.outcome.success,
+      input.outcome.status,
+      input.outcome.code,
+      input.outcome.success ? null : "The destination did not accept this delivery.",
+      input.retryAt?.toISOString() ?? null,
+    ],
+  );
+  return result.rows[0]?.changed === true;
+}
+
+export async function listIntegrationSubmissionFiles(submissionId: string) {
+  const result = await query<{ value: unknown }>(
+    "select value from forms_api.list_integration_submission_files($1::uuid) as value",
+    [submissionId],
+  );
+  return result.rows.map((row) => integrationSubmissionFileSchema.parse(row.value));
 }
 
 export async function createDashboardForm(actorId: string, name: string, definition: FormDefinition) {

@@ -10,6 +10,7 @@ export type ProductServerEvent =
   | "form_draft_completed"
   | "form_publish_completed"
   | "forms_list_completed"
+  | "form_integrations_list_completed"
   | "connector_feedback_submitted"
   | "checkout_started"
   | "checkout_failed"

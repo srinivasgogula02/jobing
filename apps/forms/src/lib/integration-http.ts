@@ -95,7 +95,10 @@ export async function integrationHttpRequest(input: {
   return new Promise((resolve, reject) => {
     const request = https.request({
       protocol: "https:",
-      hostname: url.hostname,
+      // Connect to the vetted address directly. Keeping DNS out of
+      // https.request avoids Node's version-dependent lookup callback shapes
+      // while servername and Host preserve TLS and HTTP origin validation.
+      hostname: resolved.address,
       servername: url.hostname,
       port: 443,
       method: input.method,
@@ -104,9 +107,7 @@ export async function integrationHttpRequest(input: {
         accept: "application/json",
         "content-length": String(body.byteLength),
         ...input.headers,
-      },
-      lookup: (_hostname, _options, callback) => {
-        callback(null, resolved.address, resolved.family);
+        host: url.host,
       },
       timeout: input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     }, (response) => {

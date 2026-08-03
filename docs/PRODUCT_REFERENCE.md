@@ -879,6 +879,8 @@ Prices and allowances below reflect the product on 17 July 2026 and may change. 
 
 ### Free access
 
+- Up to 5 published web pages
+- Jobing-hosted page addresses
 - Up to 5 total forms
 - Up to 5 published forms
 - View up to 50 responses each month
@@ -888,7 +890,8 @@ Prices and allowances below reflect the product on 17 July 2026 and may change. 
 - $9 per month
 - Up to 25 total and published forms
 - View up to 5,000 responses each month
-- Unlimited published web pages
+- Up to 25 published web pages
+- 1 custom domain
 - Create and edit from the connected AI app
 - Standard support
 
@@ -897,12 +900,14 @@ Prices and allowances below reflect the product on 17 July 2026 and may change. 
 - $29 per month
 - Up to 100 total and published forms
 - View up to 25,000 responses each month
+- Up to 100 published web pages
+- 5 custom domains
 - Everything in Starter
 - Priority support
 
-### What happens at a form limit
+### What happens at a page or form limit
 
-If the account reaches its total or published form allowance, Jobing blocks the new creation or publish action. Existing published forms continue working. The connected AI should explain the limit and return the pricing page:
+If the account reaches its page, total-form, or published-form allowance, Jobing blocks only the new creation or publish action. Existing pages and published forms continue working, and existing work can still be edited or removed. The connected AI explains the limit and returns the pricing page:
 
 `https://jobing.site/pricing`
 
@@ -1156,7 +1161,6 @@ No promise should be made yet about bulk campaigns, automated sequences, deliver
 - automatic but user-controlled follow-up rules;
 - page templates and reusable brand systems;
 - multi-page websites;
-- custom domains for individual pages;
 - version history and rollback for pages;
 - form logic, branching, and multi-step experiences;
 - payment-enabled forms;

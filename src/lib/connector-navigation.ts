@@ -3,6 +3,7 @@ const JOBING_ORIGIN = "https://jobing.site";
 export const connectorDestinations = {
   dashboardUrl: `${JOBING_ORIGIN}/dashboard`,
   pagesDashboardUrl: `${JOBING_ORIGIN}/dashboard/pages`,
+  pageDomainsUrl: `${JOBING_ORIGIN}/dashboard/pages#custom-domains`,
   formsDashboardUrl: `${JOBING_ORIGIN}/dashboard/forms`,
   connectorManageUrl: `${JOBING_ORIGIN}/connector/manage`,
   pricingUrl: `${JOBING_ORIGIN}/pricing`,
@@ -65,9 +66,11 @@ export function recoveryUrlForConnectorError(code: string) {
     return connectorDestinations.connectorManageUrl;
   }
   if (code === "form_limit_reached") return `${connectorDestinations.pricingUrl}?from=connector-limit`;
+  if (code === "page_limit_reached" || code === "domain_limit_reached") return `${connectorDestinations.pricingUrl}?from=page-limit`;
   if (code.startsWith("form_") || code === "stale_revision" || code === "response_not_found") {
     return connectorDestinations.formsDashboardUrl;
   }
+  if (code.startsWith("domain_")) return connectorDestinations.pageDomainsUrl;
   if (code.startsWith("page_")) return connectorDestinations.pagesDashboardUrl;
   return undefined;
 }

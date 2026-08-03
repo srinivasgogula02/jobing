@@ -36,3 +36,24 @@ export async function getPublicPage(id: string): Promise<PublicPage | null> {
   return pages[0] ?? null;
 }
 
+export async function getPublicPageByCustomDomain(hostname: string, path: string): Promise<PublicPage | null> {
+  const baseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!baseUrl || !anonKey) throw new Error("Pages Runtime database is not configured.");
+
+  const response = await fetch(new URL("/rest/v1/rpc/resolve_custom_page", baseUrl), {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+      apikey: anonKey,
+      authorization: `Bearer ${anonKey}`,
+    },
+    body: JSON.stringify({ p_hostname: hostname, p_path: path }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!response.ok) throw new Error(`Pages Runtime database returned ${response.status}.`);
+  const pages = z.array(pageSchema).max(1).parse(await response.json());
+  return pages[0] ?? null;
+}

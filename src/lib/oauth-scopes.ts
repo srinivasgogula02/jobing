@@ -41,7 +41,7 @@ export const OAUTH_SCOPE_DETAILS: Record<OAuthScope, { title: string; descriptio
   },
   "pages:manage": {
     title: "Manage pages",
-    description: "Edit or delete existing public pages after you ask for the change.",
+    description: "Edit or delete pages, connect owned domains, and change public page addresses after you ask.",
   },
   "forms:read": {
     title: "View form definitions",

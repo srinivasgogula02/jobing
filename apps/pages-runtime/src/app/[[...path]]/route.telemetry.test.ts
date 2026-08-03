@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   captureError: vi.fn(),
   getPublicPage: vi.fn(),
+  getPublicPageByCustomDomain: vi.fn(),
   recordCompletion: vi.fn(),
 }));
 
-vi.mock("@/lib/page-store", () => ({ getPublicPage: mocks.getPublicPage }));
+vi.mock("@/lib/page-store", () => ({ getPublicPage: mocks.getPublicPage, getPublicPageByCustomDomain: mocks.getPublicPageByCustomDomain }));
 vi.mock("@/lib/server-telemetry", () => ({
   capturePagesOperationalError: mocks.captureError,
   durationBucket: () => "lt_100ms",

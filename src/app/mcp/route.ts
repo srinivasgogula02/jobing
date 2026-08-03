@@ -18,6 +18,7 @@ import {
 } from "@/lib/form-tool";
 import { connectorFeedbackInputSchema, reportConnectorFeedback } from "@/lib/connector-feedback";
 import { pageIdSchema } from "@/lib/page-id-schema";
+import { getPageEntitlement } from "@/lib/page-entitlements";
 import {
   createConnectorForm,
   duplicateConnectorForm,
@@ -37,6 +38,13 @@ import { captureProductEvent } from "@/lib/product-telemetry";
 import { classifyConnectorClient, countBucket, MCP_USE_CASES, payloadSizeBucket } from "@/lib/product-analytics-contract";
 import { rateLimit, requestIp } from "@/lib/rate-limit";
 import { connectorDestinations, formNavigation, noteNavigation, pageNavigation } from "@/lib/connector-navigation";
+import {
+  addPageDomain,
+  listPageDomains,
+  refreshPageDomain,
+  removePageDomain,
+  setPageCustomAddress,
+} from "@/lib/page-domain-service";
 
 const mcpUseCaseSchema = z.enum(MCP_USE_CASES).describe("Closest non-sensitive category for what the user is trying to accomplish. Choose other only when none fit. Never put names, contact details, prompts, or form answers here.");
 
@@ -107,7 +115,7 @@ const handler = createMcpHandler(
           const page = await deployConnectedPage(actor.userId, id, html);
           const result = { ...page, ...pageNavigation(page.id, page.url) };
           return {
-            content: [{ type: "text", text: `Deployed page "${page.id}".\nLive page: ${page.url}\nEdit page: ${result.editUrl}\nAll pages: ${result.pagesDashboardUrl}` }],
+            content: [{ type: "text", text: `Deployed page "${page.id}"${page.pageCount ? ` (${page.pageCount} of ${page.pageLimit} pages used)` : ""}.\nLive page: ${page.url}\nEdit page: ${result.editUrl}\nAll pages: ${result.pagesDashboardUrl}` }],
             structuredContent: result,
           };
         },
@@ -128,18 +136,19 @@ const handler = createMcpHandler(
         requiredScope: "pages:read",
         fallback: "Could not list the pages.",
         execute: async (actor) => {
-          const pages = await listConnectedPages(actor.userId);
+          const [pages, entitlement] = await Promise.all([listConnectedPages(actor.userId), getPageEntitlement(actor.userId)]);
           const linkedPages = pages.map((page) => ({ ...page, ...pageNavigation(page.id, page.url, false) }));
+          const remaining = Math.max(0, entitlement.pageLimit - pages.length);
           return {
             content: [{
               type: "text",
               text: pages.length === 200
                 ? `Found the 200 most recently updated pages. Open all pages: ${connectorDestinations.pagesDashboardUrl}`
                 : pages.length
-                  ? `Found ${pages.length} page${pages.length === 1 ? "" : "s"}. Open all pages: ${connectorDestinations.pagesDashboardUrl}`
-                  : `No pages yet. Open the Pages dashboard: ${connectorDestinations.pagesDashboardUrl}`,
+                  ? `Found ${pages.length} page${pages.length === 1 ? "" : "s"}; ${remaining} can still be created on the ${entitlement.planName} plan. Open all pages: ${connectorDestinations.pagesDashboardUrl}`
+                  : `No pages yet. This plan includes ${entitlement.pageLimit}. Open the Pages dashboard: ${connectorDestinations.pagesDashboardUrl}`,
             }],
-            structuredContent: { pages: linkedPages, pagesDashboardUrl: connectorDestinations.pagesDashboardUrl },
+            structuredContent: { pages: linkedPages, pagesDashboardUrl: connectorDestinations.pagesDashboardUrl, planName: entitlement.planName, pageLimit: entitlement.pageLimit, remaining },
           };
         },
         resultProperties: (result) => ({ result_count_bucket: countBucket(result.structuredContent.pages.length) }),
@@ -217,6 +226,133 @@ const handler = createMcpHandler(
         execute: async (actor) => {
           const result = await deleteConnectedPage(actor.userId, id);
           return { content: [{ type: "text", text: `Deleted page "${result.id}". Open your remaining pages: ${connectorDestinations.pagesDashboardUrl}` }], structuredContent: { ...result, pagesDashboardUrl: connectorDestinations.pagesDashboardUrl, nextActions: [{ label: "Open all pages", url: connectorDestinations.pagesDashboardUrl }] } };
+        },
+      }),
+    );
+
+    server.registerTool(
+      "list_page_domains",
+      {
+        title: "List page domains",
+        description: "Lists the connected user's custom page domains, verification state, and required DNS records. Use this before assigning a page to a custom domain. Surface the domains dashboard URL.",
+        inputSchema: {},
+        annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      },
+      async (_, { authInfo }) => runConnectorTool({
+        toolName: "list_page_domains",
+        authInfo,
+        requiredScope: "pages:read",
+        fallback: "Could not list page domains.",
+        execute: async (actor) => {
+          const domains = await listPageDomains(actor.userId);
+          const safeDomains = domains.map(({ id, hostname, status, is_default, dns_records }) => ({
+            id,
+            hostname,
+            status,
+            isDefault: is_default,
+            dnsRecords: dns_records,
+          }));
+          return {
+            content: [{ type: "text", text: `${domains.length ? `Found ${domains.length} custom domain${domains.length === 1 ? "" : "s"}.` : "No custom domains are connected."} Manage domains: ${connectorDestinations.pageDomainsUrl}` }],
+            structuredContent: { domains: safeDomains, domainsDashboardUrl: connectorDestinations.pageDomainsUrl },
+          };
+        },
+        resultProperties: (result) => ({ result_count_bucket: countBucket(result.structuredContent.domains.length) }),
+      }),
+    );
+
+    server.registerTool(
+      "add_page_domain",
+      {
+        title: "Add a custom page domain",
+        description: "Starts connecting a domain the user owns and returns the exact DNS records they must add. It cannot edit DNS for the user. After calling it, clearly surface the domains dashboard URL and explain that the domain stays offline until verification succeeds.",
+        inputSchema: { domain: z.string().trim().min(4).max(253).describe("Domain owned by the user, such as example.com or pages.example.com. Do not include a page path.") },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      },
+      async ({ domain }, { authInfo }) => runConnectorTool({
+        toolName: "add_page_domain",
+        authInfo,
+        requiredScope: "pages:manage",
+        fallback: "Could not add the custom domain.",
+        execute: async (actor) => {
+          const added = await addPageDomain(actor.userId, domain);
+          const domains = await listPageDomains(actor.userId);
+          const current = domains.find((entry) => entry.id === added.domainId);
+          return {
+            content: [{ type: "text", text: `Added ${added.hostname}. It will not serve pages until its DNS records are added and verified. Continue here: ${added.domainsDashboardUrl}` }],
+            structuredContent: { ...added, status: current?.status ?? "pending", dnsRecords: current?.dns_records ?? [], nextActions: [{ label: "Finish domain setup", url: added.domainsDashboardUrl }] },
+          };
+        },
+      }),
+    );
+
+    server.registerTool(
+      "verify_page_domain",
+      {
+        title: "Check a page domain",
+        description: "Checks whether the user's DNS records and HTTPS setup are ready. Use list_page_domains first to get the domain ID.",
+        inputSchema: { domainId: z.string().uuid() },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      },
+      async ({ domainId }, { authInfo }) => runConnectorTool({
+        toolName: "verify_page_domain",
+        authInfo,
+        requiredScope: "pages:manage",
+        fallback: "Could not check the custom domain.",
+        execute: async (actor) => {
+          const result = await refreshPageDomain(actor.userId, domainId);
+          return {
+            content: [{ type: "text", text: result.ready ? `${result.hostname} is verified and ready.` : `${result.hostname} is still waiting for DNS. Review the required records: ${connectorDestinations.pageDomainsUrl}` }],
+            structuredContent: { ...result, domainsDashboardUrl: connectorDestinations.pageDomainsUrl },
+          };
+        },
+      }),
+    );
+
+    server.registerTool(
+      "set_page_address",
+      {
+        title: "Set a page's custom address",
+        description: "Assigns an owned page to one of the user's custom domains and sets its editable path. Use list_pages and list_page_domains first. A page remains available at its Jobing URL while domain verification is pending.",
+        inputSchema: {
+          pageId: pageIdSchema,
+          domainId: z.string().uuid().nullable().describe("Custom domain ID, or null to remove the custom-domain assignment."),
+          path: pageIdSchema.describe("Editable path after the domain, for example contact in example.com/contact."),
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      },
+      async ({ pageId, domainId, path }, { authInfo }) => runConnectorTool({
+        toolName: "set_page_address",
+        authInfo,
+        requiredScope: "pages:manage",
+        fallback: "Could not change the page address.",
+        execute: async (actor) => {
+          const result = await setPageCustomAddress(actor.userId, pageId, domainId, path);
+          const fallbackUrl = pageNavigation(result.pageId).editUrl;
+          return {
+            content: [{ type: "text", text: result.customUrl ? `${result.customUrl} was assigned${result.ready ? " and is live" : ", but it will stay pending until DNS is verified"}. Edit the page: ${fallbackUrl}` : `Removed the custom-domain assignment. The Jobing page URL still works. Edit the page: ${fallbackUrl}` }],
+            structuredContent: { ...result, editUrl: fallbackUrl, pagesDashboardUrl: connectorDestinations.pagesDashboardUrl },
+          };
+        },
+      }),
+    );
+
+    server.registerTool(
+      "remove_page_domain",
+      {
+        title: "Remove a custom page domain",
+        description: "Disconnects a custom domain from Jobing. Call only after the user explicitly confirms the exact domain. Jobing-hosted page URLs remain available.",
+        inputSchema: { domainId: z.string().uuid(), confirmed: z.literal(true).describe("True only after the user confirms permanent disconnection of this exact domain.") },
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+      },
+      async ({ domainId }, { authInfo }) => runConnectorTool({
+        toolName: "remove_page_domain",
+        authInfo,
+        requiredScope: "pages:manage",
+        fallback: "Could not remove the custom domain.",
+        execute: async (actor) => {
+          const result = await removePageDomain(actor.userId, domainId);
+          return { content: [{ type: "text", text: `Removed ${result.hostname}. Jobing-hosted page links continue to work. Manage pages: ${connectorDestinations.pagesDashboardUrl}` }], structuredContent: { ...result, pagesDashboardUrl: connectorDestinations.pagesDashboardUrl } };
         },
       }),
     );

@@ -4,11 +4,15 @@ const db = vi.hoisted(() => ({
   from: vi.fn(),
   maybeSingle: vi.fn(),
   insert: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase-admin", () => ({
-  getSupabaseAdmin: () => ({ from: db.from }),
+  getSupabaseAdmin: () => ({ from: db.from, rpc: db.rpc }),
+}));
+vi.mock("@/lib/page-entitlements", () => ({
+  getPageEntitlement: vi.fn().mockResolvedValue({ planKey: "free", planName: "Free", pageLimit: 5, customDomainLimit: 0 }),
 }));
 
 import {
@@ -24,10 +28,18 @@ beforeEach(() => {
   vi.unstubAllEnvs();
   db.maybeSingle.mockResolvedValue({ data: null });
   db.insert.mockResolvedValue({ error: null });
-  db.from.mockImplementation(() => ({
-    select: () => ({ eq: () => ({ maybeSingle: db.maybeSingle }) }),
-    insert: db.insert,
-  }));
+  db.rpc.mockResolvedValue({ data: { status: "created", count: 1, limit: 5 }, error: null });
+  db.from.mockImplementation(() => {
+    const builder = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      maybeSingle: db.maybeSingle,
+      insert: db.insert,
+    };
+    builder.select.mockReturnValue(builder);
+    builder.eq.mockReturnValue(builder);
+    return builder;
+  });
 });
 
 describe("connected note creation", () => {
@@ -75,13 +87,13 @@ describe("connected page deployment", () => {
     vi.stubEnv("NEXT_PUBLIC_PAGES_ROOT_DOMAIN", "jobing.online");
     const result = await deployConnectedPage("user_456", "Launch-Page", "<main>Hello</main>");
 
-    expect(db.from).toHaveBeenCalledWith("pages");
-    expect(db.insert).toHaveBeenCalledWith(expect.objectContaining({
-      id: "launch-page",
-      html_content: "<main>Hello</main>",
-      user_id: "user_456",
+    expect(db.rpc).toHaveBeenCalledWith("jobing_create_page", expect.objectContaining({
+      p_page_id: "launch-page",
+      p_html: "<main>Hello</main>",
+      p_user_id: "user_456",
+      p_page_limit: 5,
     }));
-    expect(result).toEqual({ id: "launch-page", url: "https://launch-page.jobing.online" });
+    expect(result).toEqual({ id: "launch-page", url: "https://launch-page.jobing.online", pageCount: 1, pageLimit: 5 });
   });
 
   it.each(["new", "edit", "admin", "api", "settings", "tools", "www", "forms", "assets", "mail"])(
@@ -106,19 +118,23 @@ describe("connected page deployment", () => {
   });
 
   it("does not overwrite an existing page", async () => {
-    db.insert.mockResolvedValue({ error: { code: "23505" } });
-    db.maybeSingle.mockResolvedValue({ data: { id: "launch", user_id: "someone_else", html_content: "<p>Other</p>" } });
+    db.rpc.mockResolvedValue({ data: { status: "page_id_taken" }, error: null });
     await expect(deployConnectedPage("user_456", "launch", "<p>Page</p>")).rejects.toThrow('ID "launch" is already taken');
-    expect(db.insert).toHaveBeenCalledOnce();
+    expect(db.rpc).toHaveBeenCalledOnce();
   });
 
   it("treats an exact owner and HTML retry as a successful idempotent replay", async () => {
     vi.stubEnv("NEXT_PUBLIC_PAGES_ROOT_DOMAIN", "jobing.online");
-    db.insert.mockResolvedValue({ error: { code: "23505" } });
-    db.maybeSingle.mockResolvedValue({ data: { id: "launch", user_id: "user_456", html_content: "<p>Page</p>" } });
+    db.rpc.mockResolvedValue({ data: { status: "idempotent", count: 1, limit: 5 }, error: null });
     await expect(deployConnectedPage("user_456", "launch", "<p>Page</p>"))
-      .resolves.toEqual({ id: "launch", url: "https://launch.jobing.online" });
-    expect(db.insert).toHaveBeenCalledOnce();
+      .resolves.toEqual({ id: "launch", url: "https://launch.jobing.online", pageCount: 1, pageLimit: 5 });
+    expect(db.rpc).toHaveBeenCalledOnce();
+  });
+
+  it("returns an actionable error when the page plan limit is reached", async () => {
+    db.rpc.mockResolvedValue({ data: { status: "limit_reached", count: 5, limit: 5 }, error: null });
+    await expect(deployConnectedPage("user_456", "sixth-page", "<p>Page</p>"))
+      .rejects.toMatchObject({ code: "page_limit_reached" });
   });
 });
 

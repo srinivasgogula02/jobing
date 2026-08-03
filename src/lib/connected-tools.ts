@@ -3,6 +3,7 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { isValidPageId, normalizePageId, PAGE_ID_ERROR } from "@/lib/page-id";
 import { publicPageUrl } from "@/lib/pages-runtime-url";
+import { getPageEntitlement } from "@/lib/page-entitlements";
 
 const ID_REGEX = /^[a-zA-Z0-9-_]+$/;
 const MAX_ID_LENGTH = 64;
@@ -19,6 +20,7 @@ export class ConnectedToolError extends Error {
       | "invalid_page_id"
       | "invalid_page_html"
       | "page_id_taken"
+      | "page_limit_reached"
       | "page_not_found"
       | "page_changed"
       | "page_read_failed"
@@ -30,6 +32,23 @@ export class ConnectedToolError extends Error {
     super(message);
     this.name = "ConnectedToolError";
   }
+}
+
+type PageAddressRow = {
+  id: string;
+  custom_domain_id?: string | null;
+  custom_path?: string | null;
+};
+
+async function connectedPageUrl(page: PageAddressRow, knownDomains?: Map<string, { hostname: string; status: string }>) {
+  if (page.custom_domain_id && page.custom_path) {
+    const data = knownDomains?.get(page.custom_domain_id) ?? (await getSupabaseAdmin().from("page_domains")
+      .select("hostname,status")
+      .eq("id", page.custom_domain_id)
+      .maybeSingle()).data;
+    if (data?.status === "verified" && data.hostname) return `https://${data.hostname}/${page.custom_path}`;
+  }
+  return publicPageUrl(page.id);
 }
 
 function normalizeId(id: string) {
@@ -74,48 +93,50 @@ export async function deployConnectedPage(userId: string, requestedId: string, h
   }
 
   const supabase = getSupabaseAdmin();
-  const now = new Date().toISOString();
-  const { error } = await supabase.from("pages").insert({
-    id,
-    html_content: html,
-    user_id: userId,
-    created_at: now,
-    updated_at: now,
+  const entitlement = await getPageEntitlement(userId);
+  const { data, error } = await supabase.rpc("jobing_create_page", {
+    p_user_id: userId,
+    p_page_id: id,
+    p_html: html,
+    p_page_limit: entitlement.pageLimit,
   });
-  if (error?.code === "23505") {
-    // The common success path is one write. Only a collision pays for the read
-    // needed to distinguish a safe MCP retry from somebody else's page ID.
-    const { data: existing, error: readError } = await supabase
-      .from("pages")
-      .select("user_id,html_content")
-      .eq("id", id)
-      .maybeSingle();
-    if (!readError && existing?.user_id === userId && existing.html_content === html) {
-      return { id, url: publicPageUrl(id) };
-    }
-    if (readError) throw new ConnectedToolError("page_storage_failed", "The page could not be deployed right now.");
-    throw new ConnectedToolError("page_id_taken", `The page ID "${id}" is already taken.`);
-  }
   if (error) throw new ConnectedToolError("page_storage_failed", "The page could not be deployed right now.");
+  const result = data as { status?: string; count?: number; limit?: number } | null;
+  if (result?.status === "page_id_taken") throw new ConnectedToolError("page_id_taken", `The page ID "${id}" is already taken.`);
+  if (result?.status === "limit_reached") {
+    throw new ConnectedToolError(
+      "page_limit_reached",
+      `Your ${entitlement.planName} plan includes ${entitlement.pageLimit} page${entitlement.pageLimit === 1 ? "" : "s"}. Upgrade to publish another.`,
+    );
+  }
 
-  return { id, url: publicPageUrl(id) };
+  const { data: page } = await supabase.from("pages").select("id,custom_domain_id,custom_path").eq("id", id).eq("user_id", userId).maybeSingle();
+  const url = await connectedPageUrl(page ?? { id });
+  return { id, url, pageCount: result?.count ?? null, pageLimit: entitlement.pageLimit };
 }
 
 export async function listConnectedPages(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("pages")
-    .select("id,created_at,updated_at")
+    .select("id,created_at,updated_at,custom_domain_id,custom_path")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false })
     .limit(200);
 
   if (error) throw new ConnectedToolError("page_read_failed", "Your pages could not be loaded right now.");
-  return (data ?? []).map((page) => ({
+  const domainIds = [...new Set((data ?? []).map((page) => page.custom_domain_id).filter((value): value is string => Boolean(value)))];
+  const domains = new Map<string, { hostname: string; status: string }>();
+  if (domainIds.length) {
+    const { data: domainRows, error: domainError } = await getSupabaseAdmin().from("page_domains").select("id,hostname,status").in("id", domainIds);
+    if (domainError) throw new ConnectedToolError("page_read_failed", "Your page addresses could not be loaded right now.");
+    for (const domain of domainRows ?? []) domains.set(domain.id, domain);
+  }
+  return Promise.all((data ?? []).map(async (page) => ({
     id: page.id,
-    url: publicPageUrl(page.id),
+    url: await connectedPageUrl(page, domains),
     createdAt: page.created_at,
     updatedAt: page.updated_at,
-  }));
+  })));
 }
 
 export async function getConnectedPage(userId: string, requestedId: string) {
@@ -124,7 +145,7 @@ export async function getConnectedPage(userId: string, requestedId: string) {
 
   const { data, error } = await getSupabaseAdmin()
     .from("pages")
-    .select("id,html_content,created_at,updated_at")
+    .select("id,html_content,created_at,updated_at,custom_domain_id,custom_path")
     .eq("id", id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -134,7 +155,7 @@ export async function getConnectedPage(userId: string, requestedId: string) {
   return {
     id: data.id,
     html: data.html_content,
-    url: publicPageUrl(data.id),
+    url: await connectedPageUrl(data),
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -154,12 +175,12 @@ export async function updateConnectedPage(userId: string, requestedId: string, h
     .eq("id", id)
     .eq("user_id", userId)
     .eq("updated_at", expectedUpdatedAt)
-    .select("id,updated_at")
+    .select("id,updated_at,custom_domain_id,custom_path")
     .maybeSingle();
 
   if (error) throw new ConnectedToolError("page_update_failed", "The page could not be updated right now.");
   if (!data) throw new ConnectedToolError("page_changed", "The page was changed after it was read. Load it again before updating.");
-  return { id: data.id, url: publicPageUrl(data.id), updatedAt: data.updated_at };
+  return { id: data.id, url: await connectedPageUrl(data), updatedAt: data.updated_at };
 }
 
 export async function deleteConnectedPage(userId: string, requestedId: string) {

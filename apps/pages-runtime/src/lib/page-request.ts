@@ -51,3 +51,16 @@ export function resolvePageId(
   const firstSegment = pathSegments?.[0]?.toLowerCase();
   return isValidPageId(firstSegment) ? firstSegment : null;
 }
+
+export function resolveCustomPageRequest(
+  host: string,
+  pathSegments: string[] | undefined,
+  rootDomain?: string,
+): { hostname: string; path: string } | null {
+  const hostname = hostnameWithoutPort(host);
+  const root = normalizedRootDomain(rootDomain);
+  if (!hostname || isFallbackHost(hostname) || pathSegments?.length !== 1) return null;
+  if (root && (hostname === root || hostname.endsWith(`.${root}`))) return null;
+  const path = pathSegments[0]?.toLowerCase() ?? "";
+  return isValidPageId(path) ? { hostname, path } : null;
+}

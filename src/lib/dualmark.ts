@@ -206,6 +206,8 @@ Prices and allowances below reflect the current product and may change. The
 
 ## Free
 
+- Up to 5 published web pages
+- Jobing-hosted page addresses
 - Up to 5 total forms
 - Up to 5 published forms
 - View up to 50 responses each month
@@ -216,7 +218,8 @@ Prices and allowances below reflect the current product and may change. The
 
 - Up to 25 total and published forms
 - View up to 5,000 responses each month
-- Unlimited published web pages
+- Up to 25 published web pages
+- 1 custom domain
 - Create and edit from a connected AI app
 - One dashboard for responses
 - Standard support
@@ -225,14 +228,17 @@ Prices and allowances below reflect the current product and may change. The
 
 - Up to 100 total and published forms
 - View up to 25,000 responses each month
+- Up to 100 published web pages
+- 5 custom domains
 - Everything in Starter
 - Priority support
 
 ## What happens at a limit
 
-If the account reaches its form allowance, Jobing blocks a new form or publish
-action and directs the user to pricing. Existing published forms continue
-working.
+If the account reaches its page or form allowance, Jobing blocks only the new
+creation or publish action and directs the user to pricing. Existing pages and
+published forms continue working. Removing or editing existing work remains
+available.
 
 If the account reaches its monthly response viewing allowance, valid submissions
 continue being accepted and saved. Additional responses remain locked until the

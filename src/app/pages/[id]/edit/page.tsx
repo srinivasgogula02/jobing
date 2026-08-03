@@ -3,6 +3,7 @@ import { getPage } from "@/app/actions/pages";
 import { auth } from "@clerk/nextjs/server";
 import HtmlViewerClient from "../../HtmlViewerClient";
 import LoginButton from "../../LoginButton";
+import { getPreferredPageUrl } from "@/lib/page-domain-service";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -82,5 +83,5 @@ export default async function EditPage({ params }: PageProps) {
   }
 
   // They are the owner!
-  return <HtmlViewerClient id={decodedId} initialHtml={page.html_content} isNew={false} />;
+  return <HtmlViewerClient id={decodedId} initialHtml={page.html_content} isNew={false} initialLiveUrl={await getPreferredPageUrl(decodedId)} />;
 }

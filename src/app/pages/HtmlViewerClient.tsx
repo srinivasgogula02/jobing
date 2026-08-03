@@ -4,7 +4,7 @@ import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser, SignInButton } from "@clerk/nextjs";
-import { savePage, checkPageIdTaken, getUserPages, deletePage } from "@/app/actions/pages";
+import { savePage, checkPageIdTaken, getUserPages, deletePage, renamePage } from "@/app/actions/pages";
 import {
   Copy,
   Trash2,
@@ -93,9 +93,10 @@ interface HtmlViewerClientProps {
   id: string;
   initialHtml: string;
   isNew?: boolean;
+  initialLiveUrl?: string | null;
 }
 
-export default function HtmlViewerClient({ id, initialHtml, isNew = false }: HtmlViewerClientProps) {
+export default function HtmlViewerClient({ id, initialHtml, isNew = false, initialLiveUrl = null }: HtmlViewerClientProps) {
   const pageAddressAffixes = publicPageAddressAffixes();
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
@@ -106,6 +107,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
 
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [liveUrl, setLiveUrl] = useState(initialLiveUrl);
   const [deployStatus, setDeployStatus] = useState<"idle" | "deploying" | "deployed" | "error">("idle");
   const [deployError, setDeployError] = useState("");
 
@@ -195,7 +197,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
   };
 
   const handleCopyLink = () => {
-    const url = publicPageUrl(currentId);
+    const url = liveUrl || publicPageUrl(currentId);
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
@@ -243,18 +245,9 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
         setIsEditingId(false);
         setCheckingId(false);
       } else {
-        const saved = await savePage(cleanId, htmlInput);
-        if (!saved.success) {
-          setIdError(saved.error || "The new page address could not be saved.");
-          setCheckingId(false);
-          return;
-        }
-        const removed = await deletePage(currentId);
-        if (!removed.success) {
-          // Best-effort rollback: never silently leave a copied page when the
-          // user asked to rename the existing one.
-          await deletePage(cleanId);
-          setIdError(removed.error || "The old page address could not be removed.");
+        const renamed = await renamePage(currentId, cleanId);
+        if (!renamed.success) {
+          setIdError(renamed.error || "The page address could not be changed.");
           setCheckingId(false);
           return;
         }
@@ -274,6 +267,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
     const result = await savePage(currentId, htmlInput);
 
     if (result.success) {
+      if (result.url) setLiveUrl(result.url);
       setDeployStatus("deployed");
       if (isSignedIn) fetchUserPages(); // Refresh sidebar list
       
@@ -283,7 +277,7 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
       setTimeout(() => setDeployStatus("idle"), 2500);
       
       // Open the deployed page in a new tab
-      window.open(publicPageUrl(currentId), '_blank', 'noopener,noreferrer');
+      window.open(result.url || publicPageUrl(currentId), '_blank', 'noopener,noreferrer');
       
       if (isNew) {
         if (isSignedIn) {
@@ -307,11 +301,6 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
     } else {
       executeDeploy();
     }
-  };
-
-  const handleDeployAnyway = () => {
-    setShowGuestWarning(false);
-    executeDeploy();
   };
 
   return (
@@ -654,11 +643,9 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
       {showGuestWarning && !isSignedIn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-neutral-900 rounded-xl max-w-sm w-full p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 transform transition-all">
-            <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">Deploying Anonymously</h3>
+            <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">Sign in to publish</h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
-              You are about to deploy this page without logging in. <strong className="text-neutral-900 dark:text-neutral-200">Anonymous pages are permanently locked and cannot be edited later.</strong> 
-              <br/><br/>
-              Log in now to save this page to your account so you can update it anytime. (Your code is safely backed up).
+              Publishing uses one page from your plan. Sign in so the page stays in your dashboard and can be edited, moved to a custom domain, or deleted later. Your code is saved in this browser during sign-in.
             </p>
             <div className="flex flex-col gap-3">
               <SignInButton mode="modal" forceRedirectUrl="/pages">
@@ -666,12 +653,6 @@ export default function HtmlViewerClient({ id, initialHtml, isNew = false }: Htm
                   Log In to Save
                 </button>
               </SignInButton>
-              <button 
-                onClick={handleDeployAnyway}
-                className="w-full py-2.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold text-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition"
-              >
-                Deploy Anonymously
-              </button>
               <button 
                 onClick={() => setShowGuestWarning(false)}
                 className="mt-2 text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 font-medium"

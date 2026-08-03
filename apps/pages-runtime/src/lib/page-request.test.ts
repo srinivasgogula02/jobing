@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolvePageId } from "@/lib/page-request";
+import { resolveCustomPageRequest, resolvePageId } from "@/lib/page-request";
 
 describe("resolvePageId", () => {
   it("resolves one page per wildcard subdomain at its root document", () => {
@@ -31,5 +31,22 @@ describe("resolvePageId", () => {
   it("does not trust lookalike or unconfigured hosts", () => {
     expect(resolvePageId("launch.jobing.online.evil.example", [], "jobing.online")).toBeNull();
     expect(resolvePageId("launch.example.com", [], "jobing.online")).toBeNull();
+  });
+});
+
+describe("resolveCustomPageRequest", () => {
+  it("accepts one editable path on an exact customer hostname", () => {
+    expect(resolveCustomPageRequest("Pages.Example.com:443", ["Contact"], "jobing.online"))
+      .toEqual({ hostname: "pages.example.com", path: "contact" });
+  });
+
+  it.each([
+    ["launch.jobing.online", ["contact"]],
+    ["jobing-pages.vercel.app", ["contact"]],
+    ["pages.example.com", []],
+    ["pages.example.com", ["contact", "thanks"]],
+    ["pages.example.com", ["admin"]],
+  ])("rejects system, root, nested, and reserved addresses", (host, path) => {
+    expect(resolveCustomPageRequest(host, path, "jobing.online")).toBeNull();
   });
 });

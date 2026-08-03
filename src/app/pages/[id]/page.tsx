@@ -3,6 +3,7 @@ import { getPage } from "@/app/actions/pages";
 import { permanentRedirect } from "next/navigation";
 import HtmlViewerClient from "../HtmlViewerClient";
 import { publicPageUrl } from "@/lib/pages-runtime-url";
+import { getPreferredPageUrl } from "@/lib/page-domain-service";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -38,5 +39,5 @@ export default async function DeployedPage({ params }: PageProps) {
     return <HtmlViewerClient id={decodedId} initialHtml="" isNew={true} />;
   }
 
-  permanentRedirect(publicPageUrl(decodedId));
+  permanentRedirect(await getPreferredPageUrl(decodedId) ?? publicPageUrl(decodedId));
 }

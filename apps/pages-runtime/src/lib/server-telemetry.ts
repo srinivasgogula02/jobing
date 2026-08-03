@@ -10,7 +10,7 @@ import {
 
 const OUTCOMES = new Set(["served", "not_found", "unavailable"]);
 const REASONS = new Set(["published", "invalid_address", "unpublished", "load_failed"]);
-const ROUTE_MODES = new Set(["subdomain", "path", "unknown"]);
+const ROUTE_MODES = new Set(["subdomain", "path", "custom_domain", "unknown"]);
 const DURATION_BUCKETS = new Set(["lt_100ms", "100_499ms", "500_999ms", "1_2s", "gte_3s"]);
 const STATUS_CODES = new Set([200, 304, 404, 503]);
 export const SUCCESS_SAMPLE_RATE = 0.1;
@@ -19,7 +19,7 @@ export type PageRequestTelemetry = {
   outcome: "served" | "not_found" | "unavailable";
   reason: "published" | "invalid_address" | "unpublished" | "load_failed";
   status_code: 200 | 304 | 404 | 503;
-  route_mode: "subdomain" | "path" | "unknown";
+  route_mode: "subdomain" | "path" | "custom_domain" | "unknown";
   duration_bucket: "lt_100ms" | "100_499ms" | "500_999ms" | "1_2s" | "gte_3s";
 };
 

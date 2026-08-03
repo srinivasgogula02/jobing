@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 import { ConnectorAuthError, requireConnectorActor, type ConnectorAuthInfo } from "@/lib/connector-auth";
 import { ConnectedToolError } from "@/lib/connected-tools";
+import { PageDomainError } from "@/lib/page-domain-service";
 import { ConnectorFeedbackError } from "@/lib/connector-feedback";
 import { FormsServiceError, type FormsActor } from "@/lib/forms-service";
 import type { OAuthScope } from "@/lib/oauth-scopes";
@@ -31,6 +32,9 @@ export function normalizeConnectorToolFailure(error: unknown, fallback: string):
   if (error instanceof ConnectorAuthError) return { code: error.code, message: error.message, operational: false };
   if (error instanceof ConnectedToolError) {
     return { code: error.code, message: error.message, operational: error.code.endsWith("_failed") };
+  }
+  if (error instanceof PageDomainError) {
+    return { code: error.code, message: error.message, operational: error.code === "domain_provider_unavailable" };
   }
   if (error instanceof FormsServiceError) {
     const code = SAFE_CODE.test(error.code) ? error.code : "forms_error";

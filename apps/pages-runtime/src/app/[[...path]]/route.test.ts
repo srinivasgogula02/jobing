@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getPublicPage: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getPublicPage: vi.fn(), getPublicPageByCustomDomain: vi.fn() }));
 
-vi.mock("@/lib/page-store", () => ({ getPublicPage: mocks.getPublicPage }));
+vi.mock("@/lib/page-store", () => ({ getPublicPage: mocks.getPublicPage, getPublicPageByCustomDomain: mocks.getPublicPageByCustomDomain }));
 
 import { GET } from "./route";
 
@@ -17,6 +17,11 @@ describe("Pages Runtime document route", () => {
     mocks.getPublicPage.mockResolvedValue({
       html_content: "<!doctype html><html><body><h1>FreshMart</h1></body></html>",
       updated_at: "2026-07-14T00:00:00.000Z",
+    });
+    mocks.getPublicPageByCustomDomain.mockReset();
+    mocks.getPublicPageByCustomDomain.mockResolvedValue({
+      html_content: "<!doctype html><html><body><h1>Custom domain</h1></body></html>",
+      updated_at: "2026-08-03T00:00:00.000Z",
     });
   });
 
@@ -57,6 +62,14 @@ describe("Pages Runtime document route", () => {
     );
     expect(response.status).toBe(200);
     expect(mocks.getPublicPage).toHaveBeenCalledWith("launch");
+  });
+
+  it("serves a verified custom domain by its editable path", async () => {
+    const response = await GET(new Request("https://pages.example.com/contact"), context(["contact"]));
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("Custom domain");
+    expect(mocks.getPublicPageByCustomDomain).toHaveBeenCalledWith("pages.example.com", "contact");
+    expect(mocks.getPublicPage).not.toHaveBeenCalled();
   });
 
   it.each([

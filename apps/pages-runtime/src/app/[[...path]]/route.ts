@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { getPublicPage } from "@/lib/page-store";
+import { getPublicPage, getPublicPageByCustomDomain } from "@/lib/page-store";
 import { renderErrorDocument, renderPageDocument } from "@/lib/page-document";
-import { resolvePageId } from "@/lib/page-request";
+import { resolveCustomPageRequest, resolvePageId } from "@/lib/page-request";
 import {
   capturePagesOperationalError,
   durationBucket,
@@ -77,8 +77,11 @@ export async function GET(
   const host = request.headers.get("host") ?? new URL(request.url).host;
   const rootDomain = process.env.PAGES_ROOT_DOMAIN?.trim().toLowerCase();
   const normalizedHost = host.toLowerCase().replace(/\.$/, "").split(":", 1)[0];
-  const routeMode: PageRequestTelemetry["route_mode"] = path?.length
-    ? "path"
+  const customPage = resolveCustomPageRequest(host, path, rootDomain);
+  const routeMode: PageRequestTelemetry["route_mode"] = customPage
+    ? "custom_domain"
+    : path?.length
+      ? "path"
     : rootDomain && normalizedHost?.endsWith(`.${rootDomain}`)
       ? "subdomain"
       : "unknown";
@@ -106,10 +109,12 @@ export async function GET(
     rootDomain,
   );
 
-  if (!pageId) return complete(document(renderErrorDocument("Page not found", "This page address is unavailable."), 404), { outcome: "not_found", reason: "invalid_address", status_code: 404 });
+  if (!pageId && !customPage) return complete(document(renderErrorDocument("Page not found", "This page address is unavailable."), 404), { outcome: "not_found", reason: "invalid_address", status_code: 404 });
 
   try {
-    const page = await getPublicPage(pageId);
+    const page = customPage
+      ? await getPublicPageByCustomDomain(customPage.hostname, customPage.path)
+      : await getPublicPage(pageId!);
     if (!page) return complete(document(renderErrorDocument("Page not found", "This page has not been published."), 404), { outcome: "not_found", reason: "unpublished", status_code: 404 });
     const body = renderPageDocument(page.html_content);
     const etag = pageEtag(body);

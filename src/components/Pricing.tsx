@@ -11,21 +11,37 @@ import styles from "./pricing.module.css";
 
 type PricingProps = {
   currentProductId?: string | null;
-  limitReached?: boolean;
+  limitSource?: string | null;
 };
 
 const oldWorkflow = ["Page builder", "Form builder", "Database setup", "Automation setup"] as const;
 
-export function Pricing({ currentProductId, limitReached = false }: PricingProps) {
+export function Pricing({ currentProductId, limitSource = null }: PricingProps) {
   const plans = getBillingPlans();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const clerk = useClerk();
+  const limitReached = Boolean(limitSource);
+  const limitKind = limitSource === "page-limit"
+    ? "page"
+    : limitSource === "custom-domain" || limitSource === "custom-domain-limit"
+      ? "domain"
+      : limitSource === "connector-limit"
+        ? "connector"
+        : "form";
+  const limitHeadline = limitKind === "page"
+    ? "Unlock your next web page."
+    : limitKind === "domain"
+      ? "Publish on your own domain."
+      : limitKind === "connector"
+        ? "Let your AI keep working."
+        : "Unlock your next form.";
+  const returnUrl = limitSource ? `/pricing?from=${encodeURIComponent(limitSource)}` : "/pricing";
 
   async function choosePlan(productId: string, planKey: string) {
     track("pricing_plan_selected", {
       plan: planKey,
-      source: limitReached ? "connector_limit" : "pricing_page",
+      source: limitSource ?? "pricing_page",
     });
 
     if (currentProductId) {
@@ -38,8 +54,8 @@ export function Pricing({ currentProductId, limitReached = false }: PricingProps
     }
     if (!clerk.user) {
       await clerk.redirectToSignIn({
-        signInFallbackRedirectUrl: limitReached ? "/pricing?from=connector-limit" : "/pricing",
-        signUpFallbackRedirectUrl: limitReached ? "/pricing?from=connector-limit" : "/pricing",
+        signInFallbackRedirectUrl: returnUrl,
+        signUpFallbackRedirectUrl: returnUrl,
       });
       return;
     }
@@ -68,14 +84,14 @@ export function Pricing({ currentProductId, limitReached = false }: PricingProps
       <section className={styles.hero}>
         {limitReached ? (
           <div className={styles.limitNotice} role="status">
-            <span>Your free workspace is full</span>
+            <span>You reached this plan&apos;s limit</span>
             <p>Choose a plan below, complete checkout, then ask your AI to retry.</p>
           </div>
         ) : null}
         <div className={styles.heroCopy}>
           <p>Simple pricing</p>
-          <h1>{limitReached ? "Unlock your next form." : "Pay when Jobing AI becomes useful."}</h1>
-          <span>Start free with 5 published forms and 50 visible responses each month. Extra responses stay saved, so upgrading never loses a lead.</span>
+          <h1>{limitReached ? limitHeadline : "Pay when Jobing AI becomes useful."}</h1>
+          <span>Start free with 5 web pages, 5 published forms, and 50 visible responses each month. Existing work stays live when you reach a limit.</span>
         </div>
         <div className={styles.trustLine} aria-label="Purchase information">
           <span><ShieldCheck size={16} /> Secure checkout</span>
@@ -91,7 +107,7 @@ export function Pricing({ currentProductId, limitReached = false }: PricingProps
           {plans.map((plan) => {
             const isCurrent = currentProductId === plan.productId && Boolean(plan.productId);
             const isLoading = loadingPlan === plan.productId && Boolean(plan.productId);
-            const primaryLimit = plan.key === "pro" ? "25 published forms" : "100 published forms";
+            const primaryLimit = plan.key === "pro" ? "25 pages + 25 forms" : "100 pages + 100 forms";
             const responseLimit = plan.key === "pro" ? "View 5,000 responses / month" : "View 25,000 responses / month";
             return (
               <article key={plan.key} className={`${styles.planCard} ${plan.highlighted ? styles.featuredPlan : ""}`}>
@@ -172,7 +188,7 @@ export function Pricing({ currentProductId, limitReached = false }: PricingProps
         <div className={styles.faqList}>
           <details open={limitReached}>
             <summary>How quickly can I continue?</summary>
-            <p>Checkout returns you to your dashboard. Your new form limits are applied automatically, then your AI can retry the same request.</p>
+            <p>Checkout returns you to your dashboard. Your new page, domain, and form limits are applied automatically, then your AI can retry the same request.</p>
           </details>
           <details>
             <summary>What happens if I cancel?</summary>
